@@ -1,7 +1,7 @@
 export const CHURCH_NAME = "كنيسة الشهيد العظيم مارجرجس بالمطرية";
 export const CHURCH_SHORT_NAME = "كنيسة مارجرجس المطرية";
 export const CHURCH_LOGO = "/logo.png";
-export const CHURCH_OG_IMAGE = "/hero-bg.jpg";
+export const CHURCH_OG_IMAGE = "/og-image.jpg";
 export const CHURCH_DESCRIPTION = `الموقع الرسمي ل${CHURCH_NAME}`;
 export const CHURCH_SEO_DESCRIPTION =
   "الموقع الرسمي لكنيسة الشهيد العظيم مارجرجس بالمطرية. تابع مواعيد القداسات، الأخبار، والنهضات الروحية. Official website of St. George Coptic Orthodox Church in El Matareya.";

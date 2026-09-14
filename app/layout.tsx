@@ -39,6 +39,23 @@ export const metadata: Metadata = {
     alternateLocale: ["en_US"],
     url: "/",
     siteName: CHURCH_SHORT_NAME,
+    title: {
+      template: "%s | كنيسة مارجرجس المطرية",
+      default: "كنيسة الشهيد العظيم مارجرجس بالمطرية",
+    },
+    description: CHURCH_SEO_DESCRIPTION,
+    images: [
+      {
+        url: CHURCH_OG_IMAGE,
+        width: 1200,
+        height: 630,
+        type: "image/jpeg",
+        alt: CHURCH_NAME,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
     title: CHURCH_NAME,
     description: CHURCH_SEO_DESCRIPTION,
     images: [
@@ -49,12 +66,6 @@ export const metadata: Metadata = {
         alt: CHURCH_NAME,
       },
     ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: CHURCH_NAME,
-    description: CHURCH_SEO_DESCRIPTION,
-    images: [CHURCH_OG_IMAGE],
   },
 };
 
