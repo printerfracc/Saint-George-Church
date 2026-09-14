@@ -1,0 +1,171 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+}
+
+enum ServiceType {
+  MEDICAL
+  SUNDAY_SCHOOL
+  YOUTH
+  CHOIR
+  VISITATION
+  CHARITY
+  OTHER
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  password     String
+  role         Role          @default(ADMIN)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  inviteTokens InviteToken[]
+}
+
+model InviteToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  email     String
+  expiresAt DateTime
+  createdBy String
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  creator   User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([createdBy])
+  @@index([email])
+}
+
+model Priest {
+  id                 String    @id @default(cuid())
+  name               String
+  cloudinaryImageUrl String?
+  ordinationDate     DateTime
+  confessionSchedule String    @db.Text
+  bio                String?   @db.Text
+  contactNumbers     String?   @db.Text
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  sermons            Sermon[]
+}
+
+model Sermon {
+  id        String   @id @default(cuid())
+  title     String
+  mediaUrl  String
+  date      DateTime
+  priestId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  priest    Priest   @relation(fields: [priestId], references: [id], onDelete: Cascade)
+
+  @@index([priestId])
+}
+
+model Service {
+  id          String      @id @default(cuid())
+  title       String
+  description String      @db.Text
+  schedule    String
+  type        ServiceType
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model NewsEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DynamicContent {
+  id         String   @id @default(cuid())
+  sectionKey String   @unique
+  title      String
+  content    String   @db.LongText
+  imageUrl   String?
+  updatedAt  DateTime @updatedAt
+}
+
+model Relic {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @db.Text
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+}
+
+model ChurchActivity {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @db.Text
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+}
+
+enum LiturgySection {
+  SCHEDULE
+  LIVE
+  RITES
+  CALENDAR
+}
+
+model LiturgyEntry {
+  id          String         @id @default(cuid())
+  section     LiturgySection
+  title       String
+  description String         @db.Text
+  detail      String?
+  imageUrl    String?
+  createdAt   DateTime       @default(now())
+
+  @@index([section])
+}
+
+model MediaCollection {
+  id          String      @id @default(cuid())
+  title       String
+  description String      @db.Text
+  imageUrl    String?     @db.Text
+  createdAt   DateTime    @default(now())
+  items       MediaItem[]
+}
+
+model MediaItem {
+  id           String          @id @default(cuid())
+  collectionId String
+  title        String          @default("")
+  fileUrl      String          @db.Text
+  fileName     String?
+  fileType     String
+  thumbnail    String?         @db.Text
+  createdAt    DateTime        @default(now())
+  collection   MediaCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@index([collectionId])
+}
+
+model PrayerRequest {
+  id        String   @id @default(cuid())
+  name      String
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+}

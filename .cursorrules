@@ -1,0 +1,21 @@
+# Global Project Rules: Coptic Church Website
+
+## Core Identity
+- **Language:** STRICTLY Arabic (AR). All UI text, component names (where applicable as labels), aria-labels, and content must be in Arabic.
+- **Direction:** RTL (Right-to-Left) natively enforced via standard HTML attributes.
+- **Design System:** Coptic aesthetic. Primary colors: Deep Red (Crimson/Burgundy), Gold, and Cream/Off-white background.
+- **Animation:** Use Framer Motion for smooth, highly animated mobile-first page transitions.
+
+## Tech Stack
+- **Framework:** Next.js 14+ (App Router).
+- **Styling:** Tailwind CSS.
+- **Database:** TiDB Serverless (MySQL) via Prisma ORM. 
+- **DB Connection:** MUST use `@tidbcloud/prisma-adapter` and `@tidbcloud/serverless` for HTTP connection.
+- **Media:** Cloudinary via `next-cloudinary`.
+- **Auth:** NextAuth.js (Role-based: Super Admin, Admin).
+- **Emails:** Nodemailer.
+
+## Code Standards
+- Use TypeScript for all files.
+- Favor Server Components for SEO and data fetching; use Client Components only where interactivity (Framer Motion, React hooks) is required.
+- Do not use standard Prisma TCP connections; always instantiate Prisma with the TiDB serverless adapter.
