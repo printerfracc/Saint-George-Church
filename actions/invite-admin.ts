@@ -1,21 +1,10 @@
 "use server";
 
 import crypto from "crypto";
-import nodemailer from "nodemailer";
 import { getInviteUrl } from "@/lib/app-url";
-import { inviteEmailContent } from "@/lib/mailer";
+import { inviteEmailContent, sendChurchEmail } from "@/lib/mailer";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin } from "@/lib/require-admin";
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
 
 export type InviteAdminResult =
   | {
@@ -80,8 +69,7 @@ export async function inviteAdmin(emailInput: string): Promise<InviteAdminResult
   let emailSent = false;
 
   try {
-    await transporter.sendMail({
-      from: `${emailContent.fromName} <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`,
+    await sendChurchEmail({
       to: email,
       subject: emailContent.subject,
       text: emailContent.text,

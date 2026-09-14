@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  outputFileTracingIncludes: {
+    "/*": ["./public/logo.png"],
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "10mb",

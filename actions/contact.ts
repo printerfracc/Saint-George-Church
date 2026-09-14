@@ -1,24 +1,12 @@
 "use server";
 
-import nodemailer from "nodemailer";
-import { CHURCH_NAME } from "@/lib/church";
-import { prayerRequestEmailTemplate } from "@/lib/mailer";
+import { prayerRequestEmailTemplate, sendChurchEmail } from "@/lib/mailer";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 
 export type ContactActionResult =
   | { success: true }
   | { success: false; error: string };
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
 
 const PRAYER_REQUEST_RECIPIENTS =
   "fracc2009@gmail.com, bishowesa@gmail.com";
@@ -46,8 +34,7 @@ export async function submitPrayerRequest(
   }
 
   try {
-    await transporter.sendMail({
-      from: `${CHURCH_NAME} <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`,
+    await sendChurchEmail({
       to: PRAYER_REQUEST_RECIPIENTS,
       subject: `طلب صلاة/افتقاد جديد من: ${name}`,
       text: `الاسم: ${name}\n\nالرسالة / الطلب:\n${message}`,
