@@ -27,10 +27,12 @@ export const invitationStatusLabel: Record<InvitationStatus, string> = {
 };
 
 export function buildWhatsAppInviteLink(inviteUrl: string) {
-  const message = `السلام عليكم،
-تمت دعوتك للانضمام كمسؤول إلى موقع ${CHURCH_NAME}.
-أكمل التسجيل من هذا الرابط خلال 48 ساعة:
-${inviteUrl}`;
+  const message = `بركة الرب معكم،
+ندعوكم للانضمام كمسؤول على موقع ${CHURCH_NAME}.
+أكملوا إنشاء الحساب خلال 48 ساعة من هذا الرابط:
+${inviteUrl}
+
+بركة القديس مارجرجس تكون معكم.`;
 
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
 }

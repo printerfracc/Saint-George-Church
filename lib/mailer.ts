@@ -139,15 +139,16 @@ export function inviteEmailTemplate(inviteUrl: string) {
     kicker: "دعوة للانضمام كمسؤول",
     title: "إكمال إنشاء الحساب",
     bodyHtml: `
-      <p style="margin:0 0 16px;">السلام عليكم ورحمة الله،</p>
+      <p style="margin:0 0 16px;">بركة الرب معكم،</p>
       <p style="margin:0 0 8px;">
-        تمت دعوتك لإدارة موقع ${escapeHtml(CHURCH_NAME)}. يمكنك إكمال التسجيل من الزر التالي خلال 48 ساعة.
+        ندعوكم للانضمام كمسؤول على موقع ${escapeHtml(CHURCH_NAME)} لخدمة الكنيسة وأبنائها. من فضلكم أكملوا إنشاء الحساب خلال 48 ساعة من الزر التالي.
       </p>
       ${primaryButton(inviteUrl, "إكمال التسجيل")}
-      <p style="margin:0;font-size:13px;line-height:1.8;color:${DEEP_RED};">
-        إذا لم يعمل الزر، انسخ هذا الرابط إلى المتصفح:<br />
+      <p style="margin:0 0 16px;font-size:13px;line-height:1.8;color:${DEEP_RED};">
+        إذا لم يعمل الزر، انسخوا هذا الرابط إلى المتصفح:<br />
         <a href="${inviteUrl}" style="color:${GOLD_DARK};word-break:break-all;">${escapeHtml(inviteUrl)}</a>
       </p>
+      <p style="margin:0;font-size:14px;line-height:1.8;">بركة القديس مارجرجس تكون معكم.</p>
     `,
   });
 }
@@ -156,7 +157,7 @@ export function inviteEmailContent(inviteUrl: string) {
   return {
     fromName: CHURCH_NAME,
     subject: `دعوة للانضمام كمسؤول — ${CHURCH_NAME}`,
-    text: `السلام عليكم، تمت دعوتك لإدارة موقع ${CHURCH_NAME}. أكمل التسجيل من هذا الرابط خلال 48 ساعة: ${inviteUrl}`,
+    text: `بركة الرب معكم، ندعوكم للانضمام كمسؤول على موقع ${CHURCH_NAME}. أكملوا إنشاء الحساب خلال 48 ساعة من هذا الرابط: ${inviteUrl}\n\nبركة القديس مارجرجس تكون معكم.`,
     html: inviteEmailTemplate(inviteUrl),
   };
 }
@@ -170,7 +171,7 @@ export function prayerRequestEmailTemplate(name: string, message: string) {
     kicker: "خدمة الصلاة والافتقاد",
     title: "طلب صلاة / افتقاد جديد",
     bodyHtml: `
-      <p style="margin:0 0 20px;">وصل طلب جديد من خلال موقع الكنيسة:</p>
+      <p style="margin:0 0 20px;">بركة الرب معكم، وصل طلب صلاة أو افتقاد جديد من خلال موقع الكنيسة:</p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM};border:1px solid ${GOLD};">
         <tr>
           <td style="padding:16px 18px;">
@@ -181,6 +182,7 @@ export function prayerRequestEmailTemplate(name: string, message: string) {
           </td>
         </tr>
       </table>
+      <p style="margin:20px 0 0;font-size:14px;line-height:1.8;">بركة الرب تكون مع الطالب ومع الكنيسة.</p>
     `,
   });
 }
