@@ -32,7 +32,7 @@ export default function Navbar({ isLive = false }: { isLive?: boolean }) {
           <span className="shrink-0 overflow-hidden rounded-md bg-cream">
             <ChurchLogo size={48} priority className="h-10 w-10 md:h-12 md:w-12" />
           </span>
-          <span className="max-w-[9.5rem] text-xs font-bold leading-tight sm:max-w-none sm:text-sm md:text-base">
+          <span className="max-w-38 text-xs font-bold leading-tight sm:max-w-none sm:text-sm md:text-base">
             {CHURCH_NAME}
           </span>
         </Link>

@@ -31,7 +31,7 @@ export default function FilePreview({
         <iframe
           src={officePreviewUrl(fileUrl)}
           title={title}
-          className="h-[32rem] w-full bg-white"
+          className="h-128 w-full bg-white"
         />
       )}
 

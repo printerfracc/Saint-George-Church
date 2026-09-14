@@ -222,10 +222,10 @@ function NewsSection({ news }: { news: HomeNewsItem[] }) {
                       {formatAdminDate(item.createdAt)}
                     </time>
                   </div>
-                  <h3 className="text-xl font-bold leading-9 break-words text-coptic-gold-dark md:text-2xl">
+                  <h3 className="text-xl font-bold leading-9 wrap-break-word text-coptic-gold-dark md:text-2xl">
                     {item.title}
                   </h3>
-                  <p className="mt-4 whitespace-pre-line text-sm leading-8 break-words text-deep-red/85 md:text-base">
+                  <p className="mt-4 whitespace-pre-line text-sm leading-8 wrap-break-word text-deep-red/85 md:text-base">
                     {item.description}
                   </p>
                 </div>
