@@ -48,7 +48,7 @@ export const metadata: Metadata = {
       {
         url: CHURCH_OG_IMAGE,
         width: 1200,
-        height: 630,
+        height: 1200,
         type: "image/jpeg",
         alt: CHURCH_NAME,
       },
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
       {
         url: CHURCH_OG_IMAGE,
         width: 1200,
-        height: 630,
+        height: 1200,
         alt: CHURCH_NAME,
       },
     ],
