@@ -13,6 +13,7 @@ import {
 import { toWhatsAppUrl } from "@/lib/admin-labels";
 
 const mainLinks = [
+  
   { href: "/", label: "الرئيسية" },
   { href: "/liturgies", label: "صلوات الكنيسة" },
   { href: "/sectors", label: "قطاعات الخدمات" },
