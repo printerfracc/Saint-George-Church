@@ -102,7 +102,7 @@ export default async function PriestsPage() {
                       <p className="text-xs font-bold text-coptic-gold-light">
                         مواعيد الاعترافات
                       </p>
-                      <p className="mt-1 text-lg font-bold leading-8 text-cream">
+                      <p className="mt-1 whitespace-pre-line text-lg font-bold leading-8 text-cream">
                         {priest.confessionSchedule}
                       </p>
                     </div>

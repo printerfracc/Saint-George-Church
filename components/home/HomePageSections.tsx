@@ -339,7 +339,7 @@ function ChurchStorySection({
             </div>
 
             <div>
-              <p className="text-sm leading-8 text-deep-red/85 md:text-base">
+              <p className="whitespace-pre-line text-sm leading-8 text-deep-red/85 md:text-base">
                 {excerptStory(content) || "سيتم استكمال نص قصة الكنيسة قريباً."}
               </p>
               {showReadMore ? (
@@ -483,7 +483,7 @@ function PriestsSection({ priests }: { priests: HomePriest[] }) {
                   {hasFilledText(priest.confessionSchedule) || phones.length > 0 ? (
                     <div className="mt-auto flex flex-col gap-2 border-t border-coptic-gold-main/20 pt-4">
                       {hasFilledText(priest.confessionSchedule) ? (
-                        <p className="text-sm font-bold text-coptic-gold-dark">
+                        <p className="whitespace-pre-line text-sm font-bold text-coptic-gold-dark">
                           الاعتراف: {priest.confessionSchedule}
                         </p>
                       ) : null}

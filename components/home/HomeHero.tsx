@@ -52,7 +52,7 @@ export default function HomeHero({
         <h1 className="max-w-4xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark bg-clip-text text-3xl font-bold leading-relaxed text-transparent sm:text-4xl md:text-6xl">
           {heading}
         </h1>
-        <p className="mt-6 max-w-2xl text-base font-light leading-9 text-white sm:text-lg md:text-xl">
+        <p className="mt-6 max-w-2xl whitespace-pre-line text-base font-light leading-9 text-white sm:text-lg md:text-xl">
           {description}
         </p>
       </div>

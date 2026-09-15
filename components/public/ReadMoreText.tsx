@@ -13,8 +13,8 @@ export default function ReadMoreText({
   className?: string;
   buttonClassName?: string;
 }) {
-  const trimmed = text?.trim() ?? "";
-  const textRef = useRef<HTMLParagraphElement>(null);
+  const formatted = (text ?? "").replace(/\r\n/g, "\n").trim();
+  const textRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
 
@@ -39,30 +39,28 @@ export default function ReadMoreText({
     observer.observe(element);
 
     return () => observer.disconnect();
-  }, [trimmed, expanded, lines]);
+  }, [formatted, expanded, lines]);
 
-  if (!trimmed) {
+  if (!formatted) {
     return null;
   }
 
   return (
     <div>
-      <p
+      <div
         ref={textRef}
         style={
           expanded
             ? undefined
             : {
-                display: "-webkit-box",
-                WebkitBoxOrient: "vertical",
-                WebkitLineClamp: lines,
+                maxHeight: `calc(${lines} * 1lh)`,
                 overflow: "hidden",
               }
         }
-        className={className}
+        className={`whitespace-pre-line wrap-break-word ${className}`.trim()}
       >
-        {trimmed}
-      </p>
+        {formatted}
+      </div>
       {canExpand ? (
         <button
           type="button"

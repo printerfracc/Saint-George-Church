@@ -73,7 +73,7 @@ export default function HeroSlider({ slides }: { slides: HeroSlide[] }) {
           <h1 className="mt-3 max-w-3xl text-2xl font-bold leading-relaxed sm:text-4xl md:text-5xl">
             {current?.title ?? `مرحباً بكم في ${CHURCH_NAME}`}
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-8 text-cream/90 sm:text-base md:text-lg">
+          <p className="mt-4 max-w-2xl whitespace-pre-line text-sm leading-8 text-cream/90 sm:text-base md:text-lg">
             {current?.description ??
               "تابعوا أخبار الكنيسة، القداسات، والنهضات الروحية من هنا."}
           </p>
