@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ImageUpload, {
@@ -8,13 +8,13 @@ import ImageUpload, {
 } from "@/components/admin/ImageUpload";
 import {
   AdminActions,
-  AdminMobileCard,
   AdminPageHeader,
-  AdminResponsiveTable,
   adminActionMuted,
   adminActionOutline,
 } from "@/components/admin/admin-ui";
+import DraggableList from "@/components/admin/DraggableList";
 import SlideOver from "@/components/admin/SlideOver";
+import { updateItemOrder } from "@/actions/reorder";
 
 export type NamedItemRow = {
   id: string;
@@ -31,6 +31,7 @@ type NamedItemManagerProps = {
   emptyLabel: string;
   deleteConfirm: string;
   items: NamedItemRow[];
+  reorderModel: "Relic" | "ChurchActivity";
   onCreate: (data: {
     name: string;
     description: string;
@@ -60,17 +61,37 @@ export default function NamedItemManager({
   emptyLabel,
   deleteConfirm,
   items,
+  reorderModel,
   onCreate,
   onUpdate,
   onDelete,
   preview = "wide",
 }: NamedItemManagerProps) {
   const router = useRouter();
+  const [rows, setRows] = useState(items);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<NamedItemRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setRows(items);
+  }, [items]);
+
+  function handleReorder(next: NamedItemRow[]) {
+    const previous = rows;
+    setRows(next);
+    void updateItemOrder(
+      reorderModel,
+      next.map((item, index) => ({ id: item.id, order: index })),
+    ).then((result) => {
+      if (!result.success) {
+        setRows(previous);
+        window.alert(result.error);
+      }
+    });
+  }
 
   function openCreate() {
     setEditing(null);
@@ -144,21 +165,14 @@ export default function NamedItemManager({
         }
       />
 
-      <AdminResponsiveTable
-        empty={items.length === 0}
+      <DraggableList
+        items={rows}
+        onReorder={handleReorder}
         emptyLabel={emptyLabel}
-        colSpan={4}
-        head={
-          <>
-            <th className="px-4 py-3">الصورة</th>
-            <th className="px-4 py-3">الاسم</th>
-            <th className="px-4 py-3">الوصف</th>
-            <th className="px-4 py-3">الإجراء</th>
-          </>
-        }
-        cards={items.map((item) => (
-          <AdminMobileCard key={item.id}>
-            <div className="flex gap-3">
+      >
+        {(item) => (
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="flex min-w-0 flex-1 gap-3">
               {item.imageUrl ? (
                 <Image
                   src={item.imageUrl}
@@ -184,71 +198,25 @@ export default function NamedItemManager({
                 </p>
               </div>
             </div>
-            <div className="mt-3">
-              <AdminActions>
-                <button
-                  type="button"
-                  onClick={() => openEdit(item)}
-                  className={adminActionOutline}
-                >
-                  تعديل
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(item.id)}
-                  className={adminActionMuted}
-                >
-                  حذف
-                </button>
-              </AdminActions>
-            </div>
-          </AdminMobileCard>
-        ))}
-        rows={items.map((item) => (
-          <tr key={item.id} className="border-t border-coptic-gold-main/20">
-            <td className="px-4 py-3">
-              {item.imageUrl ? (
-                <Image
-                  src={item.imageUrl}
-                  alt={item.name}
-                  width={96}
-                  height={72}
-                  unoptimized
-                  className={
-                    preview === "activity"
-                      ? "h-16 w-24 rounded-2xl object-cover"
-                      : "h-16 w-[5.3rem] rounded-3xl object-cover"
-                  }
-                />
-              ) : (
-                <span className="text-deep-red/50">بدون صورة</span>
-              )}
-            </td>
-            <td className="px-4 py-3 font-bold text-deep-red">{item.name}</td>
-            <td className="max-w-xs px-4 py-3 text-deep-red/80">
-              <p className="line-clamp-2">{item.description}</p>
-            </td>
-            <td className="px-4 py-3">
-              <AdminActions>
-                <button
-                  type="button"
-                  onClick={() => openEdit(item)}
-                  className={adminActionOutline}
-                >
-                  تعديل
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(item.id)}
-                  className={adminActionMuted}
-                >
-                  حذف
-                </button>
-              </AdminActions>
-            </td>
-          </tr>
-        ))}
-      />
+            <AdminActions>
+              <button
+                type="button"
+                onClick={() => openEdit(item)}
+                className={adminActionOutline}
+              >
+                تعديل
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDelete(item.id)}
+                className={adminActionMuted}
+              >
+                حذف
+              </button>
+            </AdminActions>
+          </div>
+        )}
+      </DraggableList>
 
       <SlideOver
         open={open}

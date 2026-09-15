@@ -9,6 +9,7 @@ export type LiturgyRecord = {
   description: string;
   detail: string | null;
   imageUrl: string | null;
+  order: number;
   createdAt: Date;
 };
 
@@ -32,9 +33,24 @@ function toDate(value: Date | string) {
   return value instanceof Date ? value : new Date(value);
 }
 
-function toRecord(row: LiturgyRecord): LiturgyRecord {
+function toRecord(row: {
+  id: string;
+  section: LiturgySectionKey;
+  title: string;
+  description: string;
+  detail: string | null;
+  imageUrl: string | null;
+  order?: number | null;
+  createdAt: Date | string;
+}): LiturgyRecord {
   return {
-    ...row,
+    id: row.id,
+    section: row.section,
+    title: row.title,
+    description: row.description,
+    detail: row.detail,
+    imageUrl: row.imageUrl,
+    order: row.order ?? 0,
     createdAt: toDate(row.createdAt),
   };
 }
@@ -45,36 +61,78 @@ function isActiveSection(section: string): section is LiturgySectionKey {
 
 export async function listLiturgyRecords() {
   if (hasDelegate()) {
-    const rows = (await prisma.liturgyEntry.findMany({
-      orderBy: { createdAt: "asc" },
-    })) as LiturgyRecord[];
+    try {
+      const rows = (await prisma.liturgyEntry.findMany({
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      })) as Array<LiturgyRecord & { order?: number }>;
 
-    return rows.filter((row) => isActiveSection(row.section));
+      return rows.filter((row) => isActiveSection(row.section)).map(toRecord);
+    } catch {
+      const rows = (await prisma.liturgyEntry.findMany({
+        orderBy: { createdAt: "asc" },
+      })) as Array<LiturgyRecord & { order?: number }>;
+
+      return rows.filter((row) => isActiveSection(row.section)).map(toRecord);
+    }
   }
 
-  const rows = await prisma.$queryRaw<LiturgyRecord[]>`
-    SELECT id, section, title, description, detail, imageUrl, createdAt
+  const rows = await prisma.$queryRaw<
+    Array<{
+      id: string;
+      section: LiturgySectionKey;
+      title: string;
+      description: string;
+      detail: string | null;
+      imageUrl: string | null;
+      order: number;
+      createdAt: Date;
+    }>
+  >`
+    SELECT id, section, title, description, detail, imageUrl, \`order\`, createdAt
     FROM LiturgyEntry
     WHERE section IN ('SCHEDULE', 'LIVE', 'RITES')
-    ORDER BY createdAt ASC
+    ORDER BY \`order\` ASC, createdAt ASC
   `;
 
   return rows.map(toRecord);
 }
 
+async function nextLiturgyOrder(section: LiturgySectionKey) {
+  if (typeof prisma.liturgyEntry?.aggregate === "function") {
+    const max = await prisma.liturgyEntry.aggregate({
+      where: { section },
+      _max: { order: true },
+    });
+    return (max._max.order ?? -1) + 1;
+  }
+
+  const rows = await prisma.$queryRaw<Array<{ nextOrder: number }>>`
+    SELECT COALESCE(MAX(\`order\`), -1) + 1 AS nextOrder
+    FROM LiturgyEntry
+    WHERE section = ${section}
+  `;
+
+  return Number(rows[0]?.nextOrder ?? 0);
+}
+
 export async function createLiturgyRecord(data: LiturgyRecordInput) {
+  const order = await nextLiturgyOrder(data.section);
+
   if (typeof prisma.liturgyEntry?.create === "function") {
-    return prisma.liturgyEntry.create({ data });
+    return prisma.liturgyEntry.create({
+      data: { ...data, order },
+    });
   }
 
   const created: LiturgyRecord = {
     id: randomUUID(),
     ...data,
+    order,
     createdAt: new Date(),
   };
 
   await prisma.$executeRaw`
-    INSERT INTO LiturgyEntry (id, section, title, description, detail, imageUrl, createdAt)
+    INSERT INTO LiturgyEntry (id, section, title, description, detail, imageUrl, \`order\`, createdAt)
     VALUES (
       ${created.id},
       ${created.section},
@@ -82,6 +140,7 @@ export async function createLiturgyRecord(data: LiturgyRecordInput) {
       ${created.description},
       ${created.detail},
       ${created.imageUrl},
+      ${created.order},
       ${created.createdAt}
     )
   `;

@@ -19,7 +19,7 @@ const navItems = [
   { href: "/admin/services", label: "قطاعات الخدمات" },
   { href: "/admin/media", label: "الوسائط والمكتبة" },
   { href: "/admin/prayer-requests", label: "طلبات الصلاة والافتقاد" },
-  { href: "/admin/news", label: "العظات والأخبار" },
+  { href: "/admin/news", label: "الأخبار" },
   { href: "/admin/invitations", label: "الدعوات", superAdminOnly: true },
 ] as const;
 

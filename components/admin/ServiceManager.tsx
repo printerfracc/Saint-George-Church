@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -8,13 +8,13 @@ import {
   deleteService,
   updateService,
 } from "@/actions/admin-actions";
+import { updateItemOrder } from "@/actions/reorder";
+import DraggableList from "@/components/admin/DraggableList";
 import ImageUpload from "@/components/admin/ImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
 import {
   AdminActions,
-  AdminMobileCard,
   AdminPageHeader,
-  AdminResponsiveTable,
   adminActionMuted,
   adminActionOutline,
 } from "@/components/admin/admin-ui";
@@ -34,11 +34,30 @@ const emptyForm = {
 
 export default function ServiceManager({ services }: { services: ServiceRow[] }) {
   const router = useRouter();
+  const [rows, setRows] = useState(services);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ServiceRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setRows(services);
+  }, [services]);
+
+  function handleReorder(next: ServiceRow[]) {
+    const previous = rows;
+    setRows(next);
+    void updateItemOrder(
+      "Service",
+      next.map((service, index) => ({ id: service.id, order: index })),
+    ).then((result) => {
+      if (!result.success) {
+        setRows(previous);
+        window.alert(result.error);
+      }
+    });
+  }
 
   function openCreate() {
     setEditing(null);
@@ -112,21 +131,14 @@ export default function ServiceManager({ services }: { services: ServiceRow[] })
         }
       />
 
-      <AdminResponsiveTable
-        empty={services.length === 0}
+      <DraggableList
+        items={rows}
+        onReorder={handleReorder}
         emptyLabel="لا توجد قطاعات بعد. أضف القطاع من الزر أعلاه."
-        colSpan={4}
-        head={
-          <>
-            <th className="px-4 py-3">الصورة</th>
-            <th className="px-4 py-3">الاسم</th>
-            <th className="px-4 py-3">الوصف</th>
-            <th className="px-4 py-3">الإجراء</th>
-          </>
-        }
-        cards={services.map((service) => (
-          <AdminMobileCard key={service.id}>
-            <div className="flex gap-3">
+      >
+        {(service) => (
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="flex min-w-0 flex-1 gap-3">
               {service.imageUrl ? (
                 <Image
                   src={service.imageUrl}
@@ -148,67 +160,25 @@ export default function ServiceManager({ services }: { services: ServiceRow[] })
                 </p>
               </div>
             </div>
-            <div className="mt-3">
-              <AdminActions>
-                <button
-                  type="button"
-                  onClick={() => openEdit(service)}
-                  className={adminActionOutline}
-                >
-                  تعديل
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(service.id)}
-                  className={adminActionMuted}
-                >
-                  حذف
-                </button>
-              </AdminActions>
-            </div>
-          </AdminMobileCard>
-        ))}
-        rows={services.map((service) => (
-          <tr key={service.id} className="border-t border-coptic-gold-main/20">
-            <td className="px-4 py-3">
-              {service.imageUrl ? (
-                <Image
-                  src={service.imageUrl}
-                  alt={service.title}
-                  width={64}
-                  height={48}
-                  unoptimized
-                  className="h-12 w-16 rounded-md object-cover"
-                />
-              ) : (
-                <span className="text-deep-red/50">بدون صورة</span>
-              )}
-            </td>
-            <td className="px-4 py-3 font-bold text-deep-red">{service.title}</td>
-            <td className="max-w-xs px-4 py-3 text-deep-red/80">
-              <p className="line-clamp-2">{service.description || "—"}</p>
-            </td>
-            <td className="px-4 py-3">
-              <AdminActions>
-                <button
-                  type="button"
-                  onClick={() => openEdit(service)}
-                  className={adminActionOutline}
-                >
-                  تعديل
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(service.id)}
-                  className={adminActionMuted}
-                >
-                  حذف
-                </button>
-              </AdminActions>
-            </td>
-          </tr>
-        ))}
-      />
+            <AdminActions>
+              <button
+                type="button"
+                onClick={() => openEdit(service)}
+                className={adminActionOutline}
+              >
+                تعديل
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDelete(service.id)}
+                className={adminActionMuted}
+              >
+                حذف
+              </button>
+            </AdminActions>
+          </div>
+        )}
+      </DraggableList>
 
       <SlideOver
         open={open}

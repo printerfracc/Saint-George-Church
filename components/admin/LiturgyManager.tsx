@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -8,13 +8,13 @@ import {
   deleteLiturgyEntry,
   updateLiturgyEntry,
 } from "@/actions/liturgies";
+import { updateItemOrder } from "@/actions/reorder";
+import DraggableList from "@/components/admin/DraggableList";
 import ImageUpload from "@/components/admin/ImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
 import {
   AdminActions,
-  AdminMobileCard,
   AdminPageHeader,
-  AdminResponsiveTable,
   adminActionMuted,
   adminActionOutline,
 } from "@/components/admin/admin-ui";
@@ -42,6 +42,7 @@ const emptyForm = {
 
 export default function LiturgyManager({ entries }: { entries: LiturgyRow[] }) {
   const router = useRouter();
+  const [rows, setRows] = useState(entries);
   const [activeSection, setActiveSection] = useState<AdminLiturgySectionKey>("SCHEDULE");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<LiturgyRow | null>(null);
@@ -49,18 +50,39 @@ export default function LiturgyManager({ entries }: { entries: LiturgyRow[] }) {
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    setRows(entries);
+  }, [entries]);
+
   const grouped = useMemo(() => {
     return Object.fromEntries(
       ADMIN_LITURGY_SECTIONS.map((section) => [
         section.key,
-        entries.filter((entry) => entry.section === section.key),
+        rows.filter((entry) => entry.section === section.key),
       ]),
     ) as Record<AdminLiturgySectionKey, LiturgyRow[]>;
-  }, [entries]);
+  }, [rows]);
 
   const current = ADMIN_LITURGY_SECTIONS.find((section) => section.key === activeSection)!;
   const items = grouped[activeSection] ?? [];
   const isSchedule = activeSection === "SCHEDULE";
+
+  function handleReorder(next: LiturgyRow[]) {
+    const previous = rows;
+    setRows([
+      ...rows.filter((entry) => entry.section !== activeSection),
+      ...next,
+    ]);
+    void updateItemOrder(
+      "LiturgyEntry",
+      next.map((item, index) => ({ id: item.id, order: index })),
+    ).then((result) => {
+      if (!result.success) {
+        setRows(previous);
+        window.alert(result.error);
+      }
+    });
+  }
 
   function openCreate() {
     setEditing(null);
@@ -159,22 +181,14 @@ export default function LiturgyManager({ entries }: { entries: LiturgyRow[] }) {
         })}
       </div>
 
-      <AdminResponsiveTable
-        empty={items.length === 0}
+      <DraggableList
+        items={items}
+        onReorder={handleReorder}
         emptyLabel={`لا توجد عناصر في ${current.label} بعد`}
-        colSpan={isSchedule ? 3 : 5}
-        head={
-          <>
-            {isSchedule ? null : <th className="px-4 py-3">الصورة</th>}
-            <th className="px-4 py-3">العنوان</th>
-            {isSchedule ? null : <th className="px-4 py-3">الوصف</th>}
-            <th className="px-4 py-3">الموعد / الملاحظة</th>
-            <th className="px-4 py-3">الإجراء</th>
-          </>
-        }
-        cards={items.map((item) => (
-          <AdminMobileCard key={item.id}>
-            <div className="flex gap-3">
+      >
+        {(item) => (
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="flex min-w-0 flex-1 gap-3">
               {isSchedule ? null : item.imageUrl ? (
                 <Image
                   src={item.imageUrl}
@@ -184,7 +198,7 @@ export default function LiturgyManager({ entries }: { entries: LiturgyRow[] }) {
                   unoptimized
                   className="h-12 w-16 shrink-0 rounded-md object-cover"
                 />
-              ) : (
+              ) : isSchedule ? null : (
                 <span className="flex h-12 w-16 shrink-0 items-center justify-center rounded-md bg-cream text-xs font-bold text-deep-red/50">
                   بدون
                 </span>
@@ -201,72 +215,25 @@ export default function LiturgyManager({ entries }: { entries: LiturgyRow[] }) {
                 </p>
               </div>
             </div>
-            <div className="mt-3">
-              <AdminActions>
-                <button
-                  type="button"
-                  onClick={() => openEdit(item)}
-                  className={adminActionOutline}
-                >
-                  تعديل
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(item.id)}
-                  className={adminActionMuted}
-                >
-                  حذف
-                </button>
-              </AdminActions>
-            </div>
-          </AdminMobileCard>
-        ))}
-        rows={items.map((item) => (
-          <tr key={item.id} className="border-t border-coptic-gold-main/20">
-            {isSchedule ? null : (
-              <td className="px-4 py-3">
-                {item.imageUrl ? (
-                  <Image
-                    src={item.imageUrl}
-                    alt={item.title}
-                    width={64}
-                    height={48}
-                    unoptimized
-                    className="h-12 w-16 rounded-md object-cover"
-                  />
-                ) : (
-                  <span className="text-deep-red/50">بدون صورة</span>
-                )}
-              </td>
-            )}
-            <td className="px-4 py-3 font-bold text-deep-red">{item.title || "—"}</td>
-            {isSchedule ? null : (
-              <td className="max-w-xs px-4 py-3 text-deep-red/80">
-                <p className="line-clamp-2">{item.description || "—"}</p>
-              </td>
-            )}
-            <td className="px-4 py-3 text-coptic-gold-dark">{item.detail || "—"}</td>
-            <td className="px-4 py-3">
-              <AdminActions>
-                <button
-                  type="button"
-                  onClick={() => openEdit(item)}
-                  className={adminActionOutline}
-                >
-                  تعديل
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(item.id)}
-                  className={adminActionMuted}
-                >
-                  حذف
-                </button>
-              </AdminActions>
-            </td>
-          </tr>
-        ))}
-      />
+            <AdminActions>
+              <button
+                type="button"
+                onClick={() => openEdit(item)}
+                className={adminActionOutline}
+              >
+                تعديل
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDelete(item.id)}
+                className={adminActionMuted}
+              >
+                حذف
+              </button>
+            </AdminActions>
+          </div>
+        )}
+      </DraggableList>
 
       <SlideOver
         open={open}

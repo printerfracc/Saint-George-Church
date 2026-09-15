@@ -12,10 +12,17 @@ export default async function ClinicsPage() {
   try {
     clinics = await prisma.service.findMany({
       where: { type: "MEDICAL" },
-      orderBy: { createdAt: "desc" },
+      orderBy: { order: "asc" },
     });
   } catch {
-    clinics = [];
+    try {
+      clinics = await prisma.service.findMany({
+        where: { type: "MEDICAL" },
+        orderBy: { createdAt: "desc" },
+      });
+    } catch {
+      clinics = [];
+    }
   }
 
   return (

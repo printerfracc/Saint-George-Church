@@ -22,6 +22,7 @@ export default async function AdminRelicsPage() {
         emptyLabel="لا توجد رفات أو مزارات بعد"
         deleteConfirm="هل تريد حذف هذا المزار؟"
         preview="relic"
+        reorderModel="Relic"
         items={relics.map((relic) => ({
           id: relic.id,
           name: relic.name,

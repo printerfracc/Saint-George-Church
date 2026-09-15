@@ -43,11 +43,19 @@ function toRecord(row: {
 
 export async function listServiceRecords() {
   if (typeof prisma.service?.findMany === "function") {
-    const rows = await prisma.service.findMany({
-      orderBy: { createdAt: "asc" },
-    });
+    try {
+      const rows = await prisma.service.findMany({
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      });
 
-    return rows.map((row) => toRecord(row));
+      return rows.map((row) => toRecord(row));
+    } catch {
+      const rows = await prisma.service.findMany({
+        orderBy: { createdAt: "asc" },
+      });
+
+      return rows.map((row) => toRecord(row));
+    }
   }
 
   const rows = await prisma.$queryRaw<
@@ -61,13 +69,19 @@ export async function listServiceRecords() {
   >`
     SELECT id, title, description, schedule, createdAt
     FROM Service
-    ORDER BY createdAt ASC
+    ORDER BY \`order\` ASC, createdAt ASC
   `;
 
   return rows.map(toRecord);
 }
 
 export async function createServiceRecord(data: ServiceRecordInput) {
+  const maxOrder =
+    typeof prisma.service?.aggregate === "function"
+      ? await prisma.service.aggregate({ _max: { order: true } })
+      : { _max: { order: -1 } };
+  const order = (maxOrder._max.order ?? -1) + 1;
+
   if (typeof prisma.service?.create === "function") {
     return prisma.service.create({
       data: {
@@ -75,6 +89,7 @@ export async function createServiceRecord(data: ServiceRecordInput) {
         description: data.description,
         schedule: data.imageUrl ?? "",
         type: "OTHER",
+        order,
       },
     });
   }
@@ -83,13 +98,14 @@ export async function createServiceRecord(data: ServiceRecordInput) {
   const now = new Date();
 
   await prisma.$executeRaw`
-    INSERT INTO Service (id, title, description, schedule, type, createdAt, updatedAt)
+    INSERT INTO Service (id, title, description, schedule, type, \`order\`, createdAt, updatedAt)
     VALUES (
       ${id},
       ${data.title},
       ${data.description},
       ${data.imageUrl ?? ""},
       'OTHER',
+      ${order},
       ${now},
       ${now}
     )

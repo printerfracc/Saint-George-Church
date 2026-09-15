@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { removeLibraryItem, saveLibraryItem } from "@/actions/media";
+import { updateItemOrder } from "@/actions/reorder";
 import {
   AdminActions,
-  AdminMobileCard,
   AdminPageHeader,
-  AdminResponsiveTable,
   adminActionMuted,
   adminActionOutline,
 } from "@/components/admin/admin-ui";
+import DraggableList from "@/components/admin/DraggableList";
 import FileUpload, {
   type UploadedLibraryFile,
 } from "@/components/admin/FileUpload";
@@ -42,6 +42,7 @@ export default function MediaItemManager({
   items: MediaItemRow[];
 }) {
   const router = useRouter();
+  const [rows, setRows] = useState(items);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<MediaItemRow | null>(null);
   const [title, setTitle] = useState("");
@@ -51,6 +52,24 @@ export default function MediaItemManager({
   const [linkLabel, setLinkLabel] = useState("");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setRows(items);
+  }, [items]);
+
+  function handleReorder(next: MediaItemRow[]) {
+    const previous = rows;
+    setRows(next);
+    void updateItemOrder(
+      "MediaItem",
+      next.map((item, index) => ({ id: item.id, order: index })),
+    ).then((result) => {
+      if (!result.success) {
+        setRows(previous);
+        window.alert(result.error);
+      }
+    });
+  }
 
   function resetForm() {
     setTitle("");
@@ -187,24 +206,17 @@ export default function MediaItemManager({
         }
       />
 
-      <AdminResponsiveTable
-        empty={items.length === 0}
+      <DraggableList
+        items={rows}
+        onReorder={handleReorder}
         emptyLabel="لا توجد ملفات في هذا القسم بعد."
-        colSpan={4}
-        head={
-          <>
-            <th className="px-4 py-3">thumbnail</th>
-            <th className="px-4 py-3">العنوان</th>
-            <th className="px-4 py-3">النوع</th>
-            <th className="px-4 py-3">الإجراء</th>
-          </>
-        }
-        cards={items.map((item) => {
+      >
+        {(item) => {
           const preview = mediaGalleryImage(item);
 
           return (
-            <AdminMobileCard key={item.id}>
-              <div className="flex gap-3">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center">
+              <div className="flex min-w-0 flex-1 gap-3">
                 {preview ? (
                   <Image
                     src={preview}
@@ -228,74 +240,26 @@ export default function MediaItemManager({
                   </p>
                 </div>
               </div>
-              <div className="mt-3">
-                <AdminActions>
-                  <button
-                    type="button"
-                    onClick={() => openEdit(item)}
-                    className={adminActionOutline}
-                  >
-                    تعديل
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleDelete(item.id)}
-                    className={adminActionMuted}
-                  >
-                    حذف
-                  </button>
-                </AdminActions>
-              </div>
-            </AdminMobileCard>
+              <AdminActions>
+                <button
+                  type="button"
+                  onClick={() => openEdit(item)}
+                  className={adminActionOutline}
+                >
+                  تعديل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(item.id)}
+                  className={adminActionMuted}
+                >
+                  حذف
+                </button>
+              </AdminActions>
+            </div>
           );
-        })}
-        rows={items.map((item) => {
-          const preview = mediaGalleryImage(item);
-
-          return (
-            <tr key={item.id} className="border-t border-coptic-gold-main/20">
-              <td className="px-4 py-3">
-                {preview ? (
-                  <Image
-                    src={preview}
-                    alt={item.title.trim() || mediaFileTypeLabel(item.fileType)}
-                    width={64}
-                    height={48}
-                    unoptimized
-                    className="h-12 w-16 rounded-md object-cover"
-                  />
-                ) : (
-                  <span className="text-xs font-bold text-coptic-gold-dark">
-                    {mediaFileTypeLabel(item.fileType)}
-                  </span>
-                )}
-              </td>
-              <td className="px-4 py-3 font-bold text-deep-red">
-                {item.title.trim() || "—"}
-              </td>
-              <td className="px-4 py-3">{mediaFileTypeLabel(item.fileType)}</td>
-              <td className="px-4 py-3">
-                <AdminActions>
-                  <button
-                    type="button"
-                    onClick={() => openEdit(item)}
-                    className={adminActionOutline}
-                  >
-                    تعديل
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleDelete(item.id)}
-                    className={adminActionMuted}
-                  >
-                    حذف
-                  </button>
-                </AdminActions>
-              </td>
-            </tr>
-          );
-        })}
-      />
+        }}
+      </DraggableList>
 
       <SlideOver
         open={open}

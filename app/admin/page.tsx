@@ -28,7 +28,7 @@ const cards = [
   { href: "/admin/services", label: "قطاعات الخدمات", key: "services" },
   { href: "/admin/media", label: "الوسائط والمكتبة", key: "media" },
   { href: "/admin/prayer-requests", label: "طلبات الصلاة", key: "prayers" },
-  { href: "/admin/news", label: "العظات والأخبار", key: "news" },
+  { href: "/admin/news", label: "الأخبار", key: "news" },
   { href: "/admin/sermons", label: "عدد العظات", key: "sermons" },
 ] as const;
 

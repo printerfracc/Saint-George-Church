@@ -23,7 +23,7 @@ export default async function PriestsPage() {
   try {
     await ensurePriestColumns();
     priests = await prisma.priest.findMany({
-      orderBy: { ordinationDate: "asc" },
+      orderBy: { order: "asc" },
     });
   } catch {
     priests = [];

@@ -2,7 +2,7 @@ import NewsManager from "@/components/admin/NewsManager";
 import { listNewsEvents } from "@/actions/admin-actions";
 
 export const metadata = {
-  title: "إدارة الأخبار",
+  title: "الأخبار",
 };
 
 export default async function AdminNewsPage() {

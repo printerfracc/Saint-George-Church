@@ -35,29 +35,37 @@ export default async function Home() {
       loadOr(
         () =>
           prisma.relic.findMany({
-            orderBy: { createdAt: "asc" },
+            orderBy: { order: "asc" },
           }),
         [],
       ),
       loadOr(
         () =>
           prisma.churchActivity.findMany({
-            orderBy: { createdAt: "asc" },
+            orderBy: { order: "asc" },
           }),
         [],
       ),
       loadOr(async () => {
         await ensurePriestColumns();
         return prisma.priest.findMany({
-          orderBy: { ordinationDate: "asc" },
+          orderBy: { order: "asc" },
         });
       }, []),
       loadOr(
-        () =>
-          prisma.newsEvent.findMany({
-            where: { isActive: true },
-            orderBy: { createdAt: "desc" },
-          }),
+        async () => {
+          try {
+            return await prisma.newsEvent.findMany({
+              where: { isActive: true },
+              orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+            });
+          } catch {
+            return prisma.newsEvent.findMany({
+              where: { isActive: true },
+              orderBy: { createdAt: "desc" },
+            });
+          }
+        },
         [],
       ),
     ]);

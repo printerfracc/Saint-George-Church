@@ -27,6 +27,7 @@ export default async function AdminActivitiesPage() {
         emptyLabel="لا توجد أنشطة بعد"
         deleteConfirm="هل تريد حذف هذا النشاط؟"
         preview="activity"
+        reorderModel="ChurchActivity"
         items={activities.map((activity) => ({
           id: activity.id,
           name: activity.name,

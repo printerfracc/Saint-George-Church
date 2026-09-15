@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,15 +8,15 @@ import {
   removeLibraryCollection,
   saveLibraryCollection,
 } from "@/actions/media";
+import { updateItemOrder } from "@/actions/reorder";
 import {
   AdminActions,
-  AdminMobileCard,
   AdminPageHeader,
-  AdminResponsiveTable,
   adminActionGold,
   adminActionMuted,
   adminActionOutline,
 } from "@/components/admin/admin-ui";
+import DraggableList from "@/components/admin/DraggableList";
 import ImageUpload from "@/components/admin/ImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
 
@@ -64,11 +64,30 @@ export default function MediaCollectionManager({
   collections: MediaCollectionRow[];
 }) {
   const router = useRouter();
+  const [rows, setRows] = useState(collections);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<MediaCollectionRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setRows(collections);
+  }, [collections]);
+
+  function handleReorder(next: MediaCollectionRow[]) {
+    const previous = rows;
+    setRows(next);
+    void updateItemOrder(
+      "MediaCollection",
+      next.map((collection, index) => ({ id: collection.id, order: index })),
+    ).then((result) => {
+      if (!result.success) {
+        setRows(previous);
+        window.alert(result.error);
+      }
+    });
+  }
 
   function openCreate() {
     setEditing(null);
@@ -144,21 +163,14 @@ export default function MediaCollectionManager({
         داخله.
       </p>
 
-      <AdminResponsiveTable
-        empty={collections.length === 0}
+      <DraggableList
+        items={rows}
+        onReorder={handleReorder}
         emptyLabel="لا توجد أقسام بعد. أضف معرض الصور أو الكتب من الزر أعلاه."
-        colSpan={4}
-        head={
-          <>
-            <th className="px-4 py-3">الغلاف</th>
-            <th className="px-4 py-3">القسم</th>
-            <th className="px-4 py-3">عدد الملفات</th>
-            <th className="px-4 py-3">الإجراء</th>
-          </>
-        }
-        cards={collections.map((collection) => (
-          <AdminMobileCard key={collection.id}>
-            <div className="flex gap-3">
+      >
+        {(collection) => (
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="flex min-w-0 flex-1 gap-3">
               {collection.imageUrl ? (
                 <Image
                   src={collection.imageUrl}
@@ -183,50 +195,14 @@ export default function MediaCollectionManager({
                 </p>
               </div>
             </div>
-            <div className="mt-3">
-              <CollectionActions
-                collection={collection}
-                onEdit={() => openEdit(collection)}
-                onDelete={() => void handleDelete(collection.id)}
-              />
-            </div>
-          </AdminMobileCard>
-        ))}
-        rows={collections.map((collection) => (
-          <tr key={collection.id} className="border-t border-coptic-gold-main/20">
-            <td className="px-4 py-3">
-              {collection.imageUrl ? (
-                <Image
-                  src={collection.imageUrl}
-                  alt={collection.title}
-                  width={64}
-                  height={48}
-                  unoptimized
-                  className="h-12 w-16 rounded-md object-cover"
-                />
-              ) : (
-                <span className="text-deep-red/50">بدون غلاف</span>
-              )}
-            </td>
-            <td className="px-4 py-3">
-              <p className="font-bold text-deep-red">{collection.title}</p>
-              <p className="line-clamp-2 text-deep-red/70">
-                {collection.description || "—"}
-              </p>
-            </td>
-            <td className="px-4 py-3 font-bold text-coptic-gold-dark">
-              {collection.itemCount}
-            </td>
-            <td className="px-4 py-3">
-              <CollectionActions
-                collection={collection}
-                onEdit={() => openEdit(collection)}
-                onDelete={() => void handleDelete(collection.id)}
-              />
-            </td>
-          </tr>
-        ))}
-      />
+            <CollectionActions
+              collection={collection}
+              onEdit={() => openEdit(collection)}
+              onDelete={() => void handleDelete(collection.id)}
+            />
+          </div>
+        )}
+      </DraggableList>
 
       <SlideOver
         open={open}

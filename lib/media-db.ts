@@ -46,6 +46,7 @@ let tablesReady = false;
 let thumbnailColumnReady = false;
 let linkColumnsReady = false;
 let optionalFileReady = false;
+let orderColumnReady = false;
 
 async function execute(sql: string, args: unknown[] = []) {
   await db().execute(sql, args);
@@ -145,19 +146,32 @@ async function ensureTables() {
 
     optionalFileReady = true;
   }
+
+  if (!orderColumnReady) {
+    try {
+      await execute(
+        "ALTER TABLE MediaCollection ADD COLUMN `order` INT NOT NULL DEFAULT 0",
+      );
+    } catch {
+      // Column may already exist.
+    }
+
+    try {
+      await execute(
+        "ALTER TABLE MediaItem ADD COLUMN `order` INT NOT NULL DEFAULT 0",
+      );
+    } catch {
+      // Column may already exist.
+    }
+
+    orderColumnReady = true;
+  }
 }
 
 export async function listMediaCollections() {
   await ensureTables();
 
-  const rows = await query<{
-    id: string;
-    title: string;
-    description: string;
-    imageUrl: string | null;
-    createdAt: Date | string;
-    itemCount: number | string;
-  }>(`
+  const selectSql = `
     SELECT
       c.id,
       c.title,
@@ -170,8 +184,22 @@ export async function listMediaCollections() {
         WHERE i.collectionId = c.id
       ) AS itemCount
     FROM MediaCollection c
-    ORDER BY c.createdAt ASC
-  `);
+  `;
+
+  let rows: Array<{
+    id: string;
+    title: string;
+    description: string;
+    imageUrl: string | null;
+    createdAt: Date | string;
+    itemCount: number | string;
+  }>;
+
+  try {
+    rows = await query(`${selectSql} ORDER BY c.\`order\` ASC, c.createdAt ASC`);
+  } catch {
+    rows = await query(`${selectSql} ORDER BY c.createdAt ASC`);
+  }
 
   return rows.map((row) => ({
     id: row.id,
@@ -224,6 +252,11 @@ export async function createMediaCollection(data: {
 }) {
   await ensureTables();
 
+  const nextRows = await query<{ nextOrder: number | string }>(
+    "SELECT COALESCE(MAX(`order`), -1) + 1 AS nextOrder FROM MediaCollection",
+  );
+  const order = Number(nextRows[0]?.nextOrder ?? 0);
+
   const created: MediaCollectionRecord = {
     id: randomUUID(),
     ...data,
@@ -233,14 +266,15 @@ export async function createMediaCollection(data: {
 
   await execute(
     `
-      INSERT INTO MediaCollection (id, title, description, imageUrl, createdAt)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO MediaCollection (id, title, description, imageUrl, \`order\`, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?)
     `,
     [
       created.id,
       created.title,
       created.description,
       created.imageUrl,
+      order,
       toSqlDate(created.createdAt),
     ],
   );
@@ -278,7 +312,13 @@ export async function deleteMediaCollection(id: string) {
 export async function listMediaItems(collectionId: string) {
   await ensureTables();
 
-  const rows = await query<{
+  const selectSql = `
+    SELECT id, collectionId, title, fileUrl, fileName, fileType, thumbnail, link, linkLabel, createdAt
+    FROM MediaItem
+    WHERE collectionId = ?
+  `;
+
+  let rows: Array<{
     id: string;
     collectionId: string;
     title: string;
@@ -289,15 +329,15 @@ export async function listMediaItems(collectionId: string) {
     link: string | null;
     linkLabel: string | null;
     createdAt: Date | string;
-  }>(
-    `
-      SELECT id, collectionId, title, fileUrl, fileName, fileType, thumbnail, link, linkLabel, createdAt
-      FROM MediaItem
-      WHERE collectionId = ?
-      ORDER BY createdAt ASC
-    `,
-    [collectionId],
-  );
+  }>;
+
+  try {
+    rows = await query(`${selectSql} ORDER BY \`order\` ASC, createdAt ASC`, [
+      collectionId,
+    ]);
+  } catch {
+    rows = await query(`${selectSql} ORDER BY createdAt ASC`, [collectionId]);
+  }
 
   return rows.map((row) => ({
     id: row.id,
@@ -325,6 +365,12 @@ export async function createMediaItem(data: {
 }) {
   await ensureTables();
 
+  const nextRows = await query<{ nextOrder: number | string }>(
+    "SELECT COALESCE(MAX(`order`), -1) + 1 AS nextOrder FROM MediaItem WHERE collectionId = ?",
+    [data.collectionId],
+  );
+  const order = Number(nextRows[0]?.nextOrder ?? 0);
+
   const created: MediaItemRecord = {
     id: randomUUID(),
     ...data,
@@ -333,8 +379,8 @@ export async function createMediaItem(data: {
 
   await execute(
     `
-      INSERT INTO MediaItem (id, collectionId, title, fileUrl, fileName, fileType, thumbnail, link, linkLabel, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO MediaItem (id, collectionId, title, fileUrl, fileName, fileType, thumbnail, link, linkLabel, \`order\`, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       created.id,
@@ -346,6 +392,7 @@ export async function createMediaItem(data: {
       created.thumbnail,
       created.link,
       created.linkLabel,
+      order,
       toSqlDate(created.createdAt),
     ],
   );
@@ -390,4 +437,30 @@ export async function deleteMediaItem(id: string) {
   await ensureTables();
 
   await execute("DELETE FROM MediaItem WHERE id = ?", [id]);
+}
+
+export async function updateMediaCollectionOrders(
+  items: { id: string; order: number }[],
+) {
+  await ensureTables();
+
+  for (const item of items) {
+    await execute("UPDATE MediaCollection SET `order` = ? WHERE id = ?", [
+      item.order,
+      item.id,
+    ]);
+  }
+}
+
+export async function updateMediaItemOrders(
+  items: { id: string; order: number }[],
+) {
+  await ensureTables();
+
+  for (const item of items) {
+    await execute("UPDATE MediaItem SET `order` = ? WHERE id = ?", [
+      item.order,
+      item.id,
+    ]);
+  }
 }

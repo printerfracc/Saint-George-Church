@@ -49,7 +49,7 @@ function revalidateRelics() {
 export async function listRelics() {
   try {
     return await prisma.relic.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { order: "asc" },
     });
   } catch {
     return [];
@@ -61,8 +61,12 @@ export async function createRelic(data: RelicData): Promise<RelicActionResult> {
   if (auth !== true) return auth;
 
   try {
+    const maxOrder = await prisma.relic.aggregate({ _max: { order: true } });
     await prisma.relic.create({
-      data: parseRelicData(data),
+      data: {
+        ...parseRelicData(data),
+        order: (maxOrder._max.order ?? -1) + 1,
+      },
     });
     revalidateRelics();
     return { success: true };

@@ -30,7 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const collections = await prisma.mediaCollection.findMany({
       select: { id: true, createdAt: true },
-      orderBy: { createdAt: "desc" },
+      orderBy: { order: "asc" },
     });
 
     const mediaEntries: MetadataRoute.Sitemap = collections.map((collection) => ({

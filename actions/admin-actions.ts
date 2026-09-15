@@ -144,10 +144,16 @@ export async function deleteService(id: string): Promise<AdminActionResult> {
 export async function listNewsEvents() {
   try {
     return await prisma.newsEvent.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
     });
   } catch {
-    return [];
+    try {
+      return await prisma.newsEvent.findMany({
+        orderBy: { createdAt: "desc" },
+      });
+    } catch {
+      return [];
+    }
   }
 }
 
@@ -158,12 +164,14 @@ export async function createNewsEvent(
   if (auth !== true) return auth;
 
   try {
+    const maxOrder = await prisma.newsEvent.aggregate({ _max: { order: true } });
     await prisma.newsEvent.create({
       data: {
         title: requiredText(formData.get("title"), "العنوان"),
         description: requiredText(formData.get("description"), "الوصف"),
         imageUrl: optionalText(formData.get("imageUrl")),
         isActive: formData.get("isActive") === "true",
+        order: (maxOrder._max.order ?? -1) + 1,
       },
     });
     revalidateAdmin();

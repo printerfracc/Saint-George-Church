@@ -49,7 +49,7 @@ function revalidateActivities() {
 export async function listActivities() {
   try {
     return await prisma.churchActivity.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { order: "asc" },
     });
   } catch {
     return [];
@@ -63,8 +63,14 @@ export async function createActivity(
   if (auth !== true) return auth;
 
   try {
+    const maxOrder = await prisma.churchActivity.aggregate({
+      _max: { order: true },
+    });
     await prisma.churchActivity.create({
-      data: parseActivityData(data),
+      data: {
+        ...parseActivityData(data),
+        order: (maxOrder._max.order ?? -1) + 1,
+      },
     });
     revalidateActivities();
     return { success: true };

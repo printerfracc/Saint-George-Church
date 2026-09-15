@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -8,13 +8,13 @@ import {
   deleteNewsEvent,
   updateNewsEvent,
 } from "@/actions/admin-actions";
+import { updateItemOrder } from "@/actions/reorder";
+import DraggableList from "@/components/admin/DraggableList";
 import ImageUpload from "@/components/admin/ImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
 import {
   AdminActions,
-  AdminMobileCard,
   AdminPageHeader,
-  AdminResponsiveTable,
   adminActionMuted,
   adminActionOutline,
 } from "@/components/admin/admin-ui";
@@ -36,11 +36,30 @@ const emptyForm = {
 
 export default function NewsManager({ news }: { news: NewsRow[] }) {
   const router = useRouter();
+  const [rows, setRows] = useState(news);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<NewsRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setRows(news);
+  }, [news]);
+
+  function handleReorder(next: NewsRow[]) {
+    const previous = rows;
+    setRows(next);
+    void updateItemOrder(
+      "NewsEvent",
+      next.map((item, index) => ({ id: item.id, order: index })),
+    ).then((result) => {
+      if (!result.success) {
+        setRows(previous);
+        window.alert(result.error);
+      }
+    });
+  }
 
   function openCreate() {
     setEditing(null);
@@ -102,7 +121,7 @@ export default function NewsManager({ news }: { news: NewsRow[] }) {
   return (
     <>
       <AdminPageHeader
-        title="إدارة الأخبار"
+        title="الأخبار"
         action={
           <button
             type="button"
@@ -114,21 +133,10 @@ export default function NewsManager({ news }: { news: NewsRow[] }) {
         }
       />
 
-      <AdminResponsiveTable
-        empty={news.length === 0}
-        emptyLabel="لا توجد بيانات"
-        colSpan={4}
-        head={
-          <>
-            <th className="px-4 py-3">الصورة</th>
-            <th className="px-4 py-3">العنوان</th>
-            <th className="px-4 py-3">الحالة</th>
-            <th className="px-4 py-3">الإجراء</th>
-          </>
-        }
-        cards={news.map((item) => (
-          <AdminMobileCard key={item.id}>
-            <div className="flex gap-3">
+      <DraggableList items={rows} onReorder={handleReorder} emptyLabel="لا توجد بيانات">
+        {(item) => (
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="flex min-w-0 flex-1 gap-3">
               {item.imageUrl ? (
                 <Image
                   src={item.imageUrl}
@@ -150,57 +158,21 @@ export default function NewsManager({ news }: { news: NewsRow[] }) {
                 </p>
               </div>
             </div>
-            <div className="mt-3">
-              <AdminActions>
-                <button type="button" onClick={() => openEdit(item)} className={adminActionOutline}>
-                  تعديل
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(item.id)}
-                  className={adminActionMuted}
-                >
-                  حذف
-                </button>
-              </AdminActions>
-            </div>
-          </AdminMobileCard>
-        ))}
-        rows={news.map((item) => (
-          <tr key={item.id} className="border-t border-gold/20">
-            <td className="px-4 py-3">
-              {item.imageUrl ? (
-                <Image
-                  src={item.imageUrl}
-                  alt={item.title}
-                  width={64}
-                  height={48}
-                  unoptimized
-                  className="h-12 w-16 rounded-md object-cover"
-                />
-              ) : (
-                <span className="text-deep-red/50">بدون صورة</span>
-              )}
-            </td>
-            <td className="px-4 py-3 font-bold">{item.title}</td>
-            <td className="px-4 py-3">{item.isActive ? "منشور" : "مخفي"}</td>
-            <td className="px-4 py-3">
-              <AdminActions>
-                <button type="button" onClick={() => openEdit(item)} className={adminActionOutline}>
-                  تعديل
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleDelete(item.id)}
-                  className={adminActionMuted}
-                >
-                  حذف
-                </button>
-              </AdminActions>
-            </td>
-          </tr>
-        ))}
-      />
+            <AdminActions>
+              <button type="button" onClick={() => openEdit(item)} className={adminActionOutline}>
+                تعديل
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDelete(item.id)}
+                className={adminActionMuted}
+              >
+                حذف
+              </button>
+            </AdminActions>
+          </div>
+        )}
+      </DraggableList>
 
       <SlideOver
         open={open}

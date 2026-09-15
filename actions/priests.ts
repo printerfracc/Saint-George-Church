@@ -136,7 +136,7 @@ export async function listPriests() {
   try {
     await ensurePriestColumns();
     return await prisma.priest.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { order: "asc" },
     });
   } catch {
     return [];
@@ -149,8 +149,12 @@ export async function createPriest(data: PriestData): Promise<PriestActionResult
 
   try {
     await ensurePriestColumns();
+    const maxOrder = await prisma.priest.aggregate({ _max: { order: true } });
     await prisma.priest.create({
-      data: parsePriestData(data),
+      data: {
+        ...parsePriestData(data),
+        order: (maxOrder._max.order ?? -1) + 1,
+      },
     });
     revalidatePriests();
     return { success: true };
