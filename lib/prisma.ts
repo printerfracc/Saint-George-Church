@@ -7,7 +7,7 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const clientGeneration = "prayer-request-v1";
+const clientGeneration = "priest-partial-dates-v1";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;

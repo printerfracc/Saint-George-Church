@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { createPriest, deletePriest, updatePriest } from "@/actions/priests";
 import ImageUpload from "@/components/admin/ImageUpload";
+import PartialDateInput from "@/components/admin/PartialDateInput";
 import SlideOver from "@/components/admin/SlideOver";
 import {
   AdminActions,
@@ -14,9 +15,12 @@ import {
   adminActionOutline,
 } from "@/components/admin/admin-ui";
 import {
-  formatAdminDate,
+  composePartialDate,
+  emptyPartialDate,
+  formatPartialDate,
   parseContactNumbers,
-  toDateInputValue,
+  parsePartialDate,
+  type PartialDateParts,
 } from "@/lib/admin-labels";
 
 export type PriestRow = {
@@ -26,15 +30,19 @@ export type PriestRow = {
   ordinationDate: string;
   confessionSchedule: string;
   bio: string | null;
+  qommosiyaDegree: string | null;
+  deathDate: string | null;
   contactNumbers: string | null;
 };
 
 const emptyForm = {
   name: "",
   cloudinaryImageUrl: "",
-  ordinationDate: "",
+  ordinationDate: emptyPartialDate(),
   confessionSchedule: "",
   bio: "",
+  qommosiyaDegree: "",
+  deathDate: emptyPartialDate(),
   phones: [""],
 };
 
@@ -57,9 +65,11 @@ export default function PriestManager({ priests }: { priests: PriestRow[] }) {
     setForm({
       name: priest.name,
       cloudinaryImageUrl: priest.cloudinaryImageUrl ?? "",
-      ordinationDate: toDateInputValue(priest.ordinationDate),
+      ordinationDate: parsePartialDate(priest.ordinationDate),
       confessionSchedule: priest.confessionSchedule,
       bio: priest.bio ?? "",
+      qommosiyaDegree: priest.qommosiyaDegree ?? "",
+      deathDate: parsePartialDate(priest.deathDate),
       phones: parseContactNumbers(priest.contactNumbers).length
         ? parseContactNumbers(priest.contactNumbers)
         : [""],
@@ -72,30 +82,44 @@ export default function PriestManager({ priests }: { priests: PriestRow[] }) {
     setIsSaving(true);
     setError("");
 
-    const data = {
-      name: form.name,
-      cloudinaryImageUrl: form.cloudinaryImageUrl,
-      ordinationDate: form.ordinationDate,
-      confessionSchedule: form.confessionSchedule,
-      bio: form.bio,
-      contactNumbers: form.phones
-        .map((phone) => phone.trim())
-        .filter(Boolean)
-        .join("\n"),
-    };
+    try {
+      const ordinationDate = composePartialDate(
+        form.ordinationDate,
+        true,
+        "الرسامة",
+      );
+      const deathDate = composePartialDate(form.deathDate, false, "الوفاة");
 
-    const result = editing
-      ? await updatePriest(editing.id, data)
-      : await createPriest(data);
+      const data = {
+        name: form.name,
+        cloudinaryImageUrl: form.cloudinaryImageUrl,
+        ordinationDate: ordinationDate ?? "",
+        confessionSchedule: form.confessionSchedule,
+        bio: form.bio,
+        qommosiyaDegree: form.qommosiyaDegree,
+        deathDate,
+        contactNumbers: form.phones
+          .map((phone) => phone.trim())
+          .filter(Boolean)
+          .join("\n"),
+      };
 
-    setIsSaving(false);
+      const result = editing
+        ? await updatePriest(editing.id, data)
+        : await createPriest(data);
 
-    if (!result.success) {
-      setError(result.error);
-      return;
+      setIsSaving(false);
+
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+
+      setOpen(false);
+    } catch (error) {
+      setIsSaving(false);
+      setError(error instanceof Error ? error.message : "تعذر حفظ بيانات الكاهن");
     }
-
-    setOpen(false);
   }
 
   async function handleDelete(id: string) {
@@ -163,8 +187,18 @@ export default function PriestManager({ priests }: { priests: PriestRow[] }) {
               <div className="min-w-0 flex-1">
                 <p className="font-bold text-coptic-gold-dark">{priest.name}</p>
                 <p className="mt-1 text-xs text-coptic-gold-dark/80">
-                  الرسامة: {formatAdminDate(priest.ordinationDate)}
+                  الرسامة: {formatPartialDate(priest.ordinationDate)}
                 </p>
+                {priest.qommosiyaDegree ? (
+                  <p className="mt-1 text-sm text-coptic-gold-dark/80">
+                    درجة القمصية: {priest.qommosiyaDegree}
+                  </p>
+                ) : null}
+                {priest.deathDate ? (
+                  <p className="mt-1 text-sm text-coptic-gold-dark/80">
+                    تاريخ الوفاة: {formatPartialDate(priest.deathDate)}
+                  </p>
+                ) : null}
                 <p className="mt-1 text-sm text-coptic-gold-dark/80">
                   {priest.confessionSchedule}
                 </p>
@@ -220,7 +254,13 @@ export default function PriestManager({ priests }: { priests: PriestRow[] }) {
               </div>
             </td>
             <td className="px-4 py-3 text-coptic-gold-dark/80">
-              {formatAdminDate(priest.ordinationDate)}
+              {formatPartialDate(priest.ordinationDate)}
+              {priest.qommosiyaDegree ? (
+                <p className="mt-1">درجة القمصية: {priest.qommosiyaDegree}</p>
+              ) : null}
+              {priest.deathDate ? (
+                <p className="mt-1">تاريخ الوفاة: {formatPartialDate(priest.deathDate)}</p>
+              ) : null}
             </td>
             <td className="px-4 py-3 text-coptic-gold-dark/80">
               {priest.confessionSchedule}
@@ -306,22 +346,36 @@ export default function PriestManager({ priests }: { priests: PriestRow[] }) {
             />
           </label>
           <label className="block text-sm font-bold text-coptic-gold-dark">
-            تاريخ الرسامة
+            درجة القمصية (اختياري)
             <input
-              type="date"
-              value={form.ordinationDate}
+              type="text"
+              value={form.qommosiyaDegree}
               onChange={(event) =>
                 setForm((current) => ({
                   ...current,
-                  ordinationDate: event.target.value,
+                  qommosiyaDegree: event.target.value,
                 }))
               }
-              required
               className="mt-2 w-full rounded-xl border border-coptic-gold-main/40 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-coptic-gold-main"
             />
           </label>
+          <PartialDateInput
+            label="تاريخ الرسامة"
+            required
+            value={form.ordinationDate}
+            onChange={(ordinationDate: PartialDateParts) =>
+              setForm((current) => ({ ...current, ordinationDate }))
+            }
+          />
+          <PartialDateInput
+            label="تاريخ الوفاة"
+            value={form.deathDate}
+            onChange={(deathDate: PartialDateParts) =>
+              setForm((current) => ({ ...current, deathDate }))
+            }
+          />
           <label className="block text-sm font-bold text-coptic-gold-dark">
-            مواعيد الاعترافات
+            مواعيد الاعترافات (اختياري)
             <textarea
               value={form.confessionSchedule}
               onChange={(event) =>
@@ -330,7 +384,6 @@ export default function PriestManager({ priests }: { priests: PriestRow[] }) {
                   confessionSchedule: event.target.value,
                 }))
               }
-              required
               rows={4}
               className="mt-2 w-full rounded-xl border border-coptic-gold-main/40 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-coptic-gold-main"
             />

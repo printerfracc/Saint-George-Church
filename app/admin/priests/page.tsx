@@ -1,3 +1,4 @@
+import { priestDateValue } from "@/lib/admin-labels";
 import PriestManager from "@/components/admin/PriestManager";
 import { listPriests } from "@/actions/priests";
 
@@ -21,9 +22,11 @@ export default async function AdminPriestsPage() {
           id: priest.id,
           name: priest.name,
           cloudinaryImageUrl: priest.cloudinaryImageUrl,
-          ordinationDate: priest.ordinationDate.toISOString(),
+          ordinationDate: priestDateValue(priest.ordinationDateText, priest.ordinationDate) ?? "",
           confessionSchedule: priest.confessionSchedule,
           bio: priest.bio,
+          qommosiyaDegree: priest.qommosiyaDegree,
+          deathDate: priestDateValue(priest.deathDateText, priest.deathDate),
           contactNumbers: priest.contactNumbers,
         }))}
       />

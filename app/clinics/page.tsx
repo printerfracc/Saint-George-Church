@@ -1,3 +1,4 @@
+import ReadMoreText from "@/components/public/ReadMoreText";
 import { prisma } from "@/lib/prisma";
 
 export const metadata = {
@@ -37,9 +38,11 @@ export default async function ClinicsPage() {
               className="rounded-2xl border border-gold/40 bg-white/80 p-5"
             >
               <h2 className="text-lg font-bold text-deep-red">{clinic.title}</h2>
-              <p className="mt-2 text-sm leading-7 text-deep-red/75">
-                {clinic.description}
-              </p>
+              <ReadMoreText
+                text={clinic.description}
+                className="mt-2 whitespace-pre-line text-sm leading-7 text-deep-red/75"
+                buttonClassName="text-coptic-gold-dark"
+              />
               <p className="mt-3 text-sm font-bold text-gold">{clinic.schedule}</p>
             </li>
           ))}

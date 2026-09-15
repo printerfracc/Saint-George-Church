@@ -5,13 +5,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
+import ReadMoreText from "@/components/public/ReadMoreText";
 import {
   formatAdminDate,
+  formatPartialDate,
   parseContactNumbers,
   toPhoneHref,
   toWhatsAppUrl,
 } from "@/lib/admin-labels";
-import { excerptStory, storyNeedsReadMore } from "@/lib/content";
+import { excerptStory, hasFilledText, storyNeedsReadMore } from "@/lib/content";
 
 export type HomeContentSection = {
   title: string;
@@ -26,6 +28,8 @@ export type HomePriest = {
   ordinationDate: string;
   confessionSchedule: string;
   bio: string | null;
+  qommosiyaDegree: string | null;
+  deathDate: string | null;
   contactNumbers: string | null;
 };
 
@@ -225,9 +229,12 @@ function NewsSection({ news }: { news: HomeNewsItem[] }) {
                   <h3 className="text-xl font-bold leading-9 wrap-break-word text-coptic-gold-dark md:text-2xl">
                     {item.title}
                   </h3>
-                  <p className="mt-4 whitespace-pre-line text-sm leading-8 wrap-break-word text-deep-red/85 md:text-base">
-                    {item.description}
-                  </p>
+                  <ReadMoreText
+                    text={item.description}
+                    lines={6}
+                    className="mt-4 whitespace-pre-line text-sm leading-8 wrap-break-word text-deep-red/85 md:text-base"
+                    buttonClassName="text-coptic-gold-dark"
+                  />
                 </div>
               </div>
             </motion.article>
@@ -394,9 +401,11 @@ function RelicsSection({ relics }: { relics: HomeNamedItem[] }) {
                   <h3 className="text-xl font-bold text-coptic-gold-light">
                     {relic.name}
                   </h3>
-                  <p className="mt-2 text-sm leading-7 text-cream/85">
-                    {relic.description}
-                  </p>
+                  <ReadMoreText
+                    text={relic.description}
+                    className="mt-2 whitespace-pre-line text-sm leading-7 text-cream/85"
+                    buttonClassName="text-coptic-gold-light"
+                  />
                 </div>
               </motion.article>
             ))}
@@ -448,20 +457,36 @@ function PriestsSection({ priests }: { priests: HomePriest[] }) {
                   <h3 className="mt-4 text-xl font-bold text-coptic-gold-dark">
                     {priest.name}
                   </h3>
+                  {hasFilledText(priest.qommosiyaDegree) ? (
+                    <p className="mt-1 text-sm font-bold text-coptic-gold-dark">
+                      درجة القمصية: {priest.qommosiyaDegree}
+                    </p>
+                  ) : null}
                   <p className="mt-1 text-sm text-coptic-gold-main">
-                    تاريخ الرسامة: {formatAdminDate(priest.ordinationDate)}
+                    تاريخ الرسامة: {formatPartialDate(priest.ordinationDate)}
                   </p>
-
-                  {priest.bio ? (
-                    <p className="mt-3 line-clamp-3 text-sm leading-7 text-deep-red/70">
-                      {priest.bio}
+                  {priest.deathDate ? (
+                    <p className="mt-1 text-sm text-coptic-gold-main">
+                      تاريخ الوفاة: {formatPartialDate(priest.deathDate)}
                     </p>
                   ) : null}
 
-                  <div className="mt-auto flex flex-col gap-2 border-t border-coptic-gold-main/20 pt-4">
-                    <p className="text-sm font-bold text-coptic-gold-dark">
-                      الاعتراف: {priest.confessionSchedule}
-                    </p>
+                  {priest.bio ? (
+                    <ReadMoreText
+                      text={priest.bio}
+                      lines={3}
+                      className="mt-3 text-sm leading-7 text-deep-red/70"
+                      buttonClassName="text-coptic-gold-dark"
+                    />
+                  ) : null}
+
+                  {hasFilledText(priest.confessionSchedule) || phones.length > 0 ? (
+                    <div className="mt-auto flex flex-col gap-2 border-t border-coptic-gold-main/20 pt-4">
+                      {hasFilledText(priest.confessionSchedule) ? (
+                        <p className="text-sm font-bold text-coptic-gold-dark">
+                          الاعتراف: {priest.confessionSchedule}
+                        </p>
+                      ) : null}
                     {phones.length > 0 ? (
                       <div className="flex flex-wrap items-center justify-center gap-2">
                         {phones.map((number) => (
@@ -489,7 +514,8 @@ function PriestsSection({ priests }: { priests: HomePriest[] }) {
                         ))}
                       </div>
                     ) : null}
-                  </div>
+                    </div>
+                  ) : null}
                 </motion.article>
               );
             })}
@@ -544,9 +570,11 @@ function ServicesSection({ activities }: { activities: HomeNamedItem[] }) {
                   <h3 className="text-lg font-bold text-coptic-gold-dark">
                     {activity.name}
                   </h3>
-                  <p className="mt-2 text-sm leading-7 text-deep-red/75">
-                    {activity.description}
-                  </p>
+                  <ReadMoreText
+                    text={activity.description}
+                    className="mt-2 whitespace-pre-line text-sm leading-7 text-deep-red/75"
+                    buttonClassName="text-coptic-gold-dark"
+                  />
                 </div>
               </motion.article>
             ))}
@@ -574,8 +602,8 @@ export default function HomePageSections({
     <>
       <NewsSection news={news} />
       <ChurchStorySection section={churchStory} />
-      <RelicsSection relics={relics} />
       <PriestsSection priests={priests} />
+      <RelicsSection relics={relics} />
       <ServicesSection activities={activities} />
     </>
   );

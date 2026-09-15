@@ -41,3 +41,13 @@ export function excerptStory(content: string) {
 
   return `${trimmed.slice(0, STORY_EXCERPT_LIMIT).trimEnd()}…`;
 }
+
+export function hasFilledText(value?: string | null) {
+  const trimmed = value?.trim() ?? "";
+
+  if (!trimmed) {
+    return false;
+  }
+
+  return !/^[-–—•·.]+$/.test(trimmed);
+}

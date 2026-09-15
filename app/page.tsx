@@ -12,124 +12,104 @@ import {
   YOUTUBE_CHANNEL_URL,
   toInternationalPhone,
 } from "@/lib/church";
+import { priestDateValue } from "@/lib/admin-labels";
 import { findDynamicContentByKey } from "@/lib/dynamic-content";
 import { prisma } from "@/lib/prisma";
+import { ensurePriestColumns } from "@/actions/priests";
 
 export const revalidate = 60;
 
-export default async function Home() {
-  let hero = null;
-  let churchStory = null;
-  let relics: {
-    id: string;
-    name: string;
-    description: string;
-    imageUrl: string | null;
-  }[] = [];
-  let activities: {
-    id: string;
-    name: string;
-    description: string;
-    imageUrl: string | null;
-  }[] = [];
-  let priests: {
-    id: string;
-    name: string;
-    cloudinaryImageUrl: string | null;
-    ordinationDate: string;
-    confessionSchedule: string;
-    bio: string | null;
-    contactNumbers: string | null;
-  }[] = [];
-  let news: {
-    id: string;
-    title: string;
-    description: string;
-    imageUrl: string | null;
-    createdAt: string;
-  }[] = [];
-
+async function loadOr<T>(loader: () => Promise<T>, fallback: T) {
   try {
-    const [
-      heroRecord,
-      storyRecord,
-      relicRecords,
-      activityRecords,
-      priestRecords,
-      newsRecords,
-    ] =
-      await Promise.all([
-        findDynamicContentByKey("hero"),
-        findDynamicContentByKey("church_story"),
-        prisma.relic.findMany({
-          orderBy: { createdAt: "asc" },
-        }),
-        prisma.churchActivity.findMany({
-          orderBy: { createdAt: "asc" },
-        }),
-        prisma.priest.findMany({
-          orderBy: { ordinationDate: "asc" },
-        }),
-        prisma.newsEvent.findMany({
-          where: { isActive: true },
-          orderBy: { createdAt: "desc" },
-        }),
-      ]);
-
-    hero = heroRecord
-      ? {
-          title: heroRecord.title,
-          content: heroRecord.content,
-          imageUrl: heroRecord.imageUrl,
-        }
-      : null;
-    churchStory = storyRecord
-      ? {
-          title: storyRecord.title,
-          content: storyRecord.content,
-          imageUrl: storyRecord.imageUrl,
-        }
-      : null;
-
-    relics = relicRecords.map((relic) => ({
-      id: relic.id,
-      name: relic.name,
-      description: relic.description,
-      imageUrl: relic.imageUrl,
-    }));
-
-    activities = activityRecords.map((activity) => ({
-      id: activity.id,
-      name: activity.name,
-      description: activity.description,
-      imageUrl: activity.imageUrl,
-    }));
-
-    priests = priestRecords.map((priest) => ({
-      id: priest.id,
-      name: priest.name,
-      cloudinaryImageUrl: priest.cloudinaryImageUrl,
-      ordinationDate: priest.ordinationDate.toISOString(),
-      confessionSchedule: priest.confessionSchedule,
-      bio: priest.bio,
-      contactNumbers: priest.contactNumbers,
-    }));
-
-    news = newsRecords.map((item) => ({
-      id: item.id,
-      title: item.title,
-      description: item.description,
-      imageUrl: item.imageUrl,
-      createdAt: item.createdAt.toISOString(),
-    }));
+    return await loader();
   } catch {
-    hero = null;
-    churchStory = null;
-    relics = [];
-    activities = [];
-    priests = [];
-    news = [];
+    return fallback;
   }
+}
+
+export default async function Home() {
+  const [heroRecord, storyRecord, relicRecords, activityRecords, priestRecords, newsRecords] =
+    await Promise.all([
+      loadOr(() => findDynamicContentByKey("hero"), null),
+      loadOr(() => findDynamicContentByKey("church_story"), null),
+      loadOr(
+        () =>
+          prisma.relic.findMany({
+            orderBy: { createdAt: "asc" },
+          }),
+        [],
+      ),
+      loadOr(
+        () =>
+          prisma.churchActivity.findMany({
+            orderBy: { createdAt: "asc" },
+          }),
+        [],
+      ),
+      loadOr(async () => {
+        await ensurePriestColumns();
+        return prisma.priest.findMany({
+          orderBy: { ordinationDate: "asc" },
+        });
+      }, []),
+      loadOr(
+        () =>
+          prisma.newsEvent.findMany({
+            where: { isActive: true },
+            orderBy: { createdAt: "desc" },
+          }),
+        [],
+      ),
+    ]);
+
+  const hero = heroRecord
+    ? {
+        title: heroRecord.title,
+        content: heroRecord.content,
+        imageUrl: heroRecord.imageUrl,
+      }
+    : null;
+  const churchStory = storyRecord
+    ? {
+        title: storyRecord.title,
+        content: storyRecord.content,
+        imageUrl: storyRecord.imageUrl,
+      }
+    : null;
+
+  const relics = relicRecords.map((relic) => ({
+    id: relic.id,
+    name: relic.name,
+    description: relic.description,
+    imageUrl: relic.imageUrl,
+  }));
+
+  const activities = activityRecords.map((activity) => ({
+    id: activity.id,
+    name: activity.name,
+    description: activity.description,
+    imageUrl: activity.imageUrl,
+  }));
+
+  const priests = priestRecords.map((priest) => ({
+    id: priest.id,
+    name: priest.name,
+    cloudinaryImageUrl: priest.cloudinaryImageUrl,
+    ordinationDate: priestDateValue(priest.ordinationDateText, priest.ordinationDate) ?? "",
+    confessionSchedule: priest.confessionSchedule,
+    bio: priest.bio,
+    qommosiyaDegree: priest.qommosiyaDegree,
+    deathDate: priestDateValue(priest.deathDateText, priest.deathDate),
+    contactNumbers: priest.contactNumbers,
+  }));
+
+  const news = newsRecords.map((item) => ({
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    imageUrl: item.imageUrl,
+    createdAt: item.createdAt.toISOString(),
+  }));
 
   const siteUrl = getAppUrl();
   const schemaObject = {

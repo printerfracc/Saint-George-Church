@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import ChurchLogo from "@/components/ChurchLogo";
+import ReadMoreText from "@/components/public/ReadMoreText";
 import { listLibraryCollections } from "@/actions/media";
 
 export const metadata = {
@@ -39,35 +40,36 @@ export default async function MediaPage() {
         <ul className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {collections.map((collection) => (
             <li key={collection.id}>
-              <Link
-                href={`/media/${collection.id}`}
-                className="block overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm transition hover:-translate-y-0.5 hover:border-coptic-gold-main"
-              >
-                {collection.imageUrl ? (
-                  <div className="relative aspect-video">
-                    <Image
-                      src={collection.imageUrl}
-                      alt={collection.title}
-                      fill
-                      unoptimized
-                      className="object-cover"
-                    />
-                  </div>
-                ) : null}
-                <div className="p-5">
-                  <h2 className="text-lg font-bold text-deep-red">
-                    {collection.title}
-                  </h2>
-                  {collection.description ? (
-                    <p className="mt-2 text-sm leading-7 text-deep-red/75">
-                      {collection.description}
-                    </p>
+              <article className="overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm transition hover:-translate-y-0.5 hover:border-coptic-gold-main">
+                <Link href={`/media/${collection.id}`} className="block">
+                  {collection.imageUrl ? (
+                    <div className="relative aspect-video">
+                      <Image
+                        src={collection.imageUrl}
+                        alt={collection.title}
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                    </div>
                   ) : null}
+                  <div className="px-5 pt-5">
+                    <h2 className="text-lg font-bold text-deep-red">
+                      {collection.title}
+                    </h2>
+                  </div>
+                </Link>
+                <div className="px-5 pb-5">
+                  <ReadMoreText
+                    text={collection.description}
+                    className="mt-2 whitespace-pre-line text-sm leading-7 text-deep-red/75"
+                    buttonClassName="text-coptic-gold-dark"
+                  />
                   <p className="mt-3 text-xs font-bold text-coptic-gold-dark">
                     {collection.itemCount} ملف
                   </p>
                 </div>
-              </Link>
+              </article>
             </li>
           ))}
         </ul>

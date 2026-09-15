@@ -55,8 +55,12 @@ model Priest {
   name               String
   cloudinaryImageUrl String?
   ordinationDate     DateTime
+  ordinationDateText String?   @db.VarChar(32)
   confessionSchedule String    @db.Text
   bio                String?   @db.Text
+  qommosiyaDegree    String?
+  deathDate          DateTime?
+  deathDateText      String?   @db.VarChar(32)
   contactNumbers     String?   @db.Text
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt

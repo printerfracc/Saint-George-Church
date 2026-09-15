@@ -1,5 +1,6 @@
 import Image from "next/image";
 import ChurchLogo from "@/components/ChurchLogo";
+import ReadMoreText from "@/components/public/ReadMoreText";
 import { listServices } from "@/actions/admin-actions";
 
 export const metadata = {
@@ -62,9 +63,11 @@ export default async function SectorsPage() {
                       <h2 className="text-lg font-bold text-deep-red">{title}</h2>
                     ) : null}
                     {description ? (
-                      <p className="mt-2 text-sm leading-7 text-deep-red/75">
-                        {description}
-                      </p>
+                      <ReadMoreText
+                        text={description}
+                        className="mt-2 whitespace-pre-line text-sm leading-7 text-deep-red/75"
+                        buttonClassName="text-coptic-gold-dark"
+                      />
                     ) : null}
                   </div>
                 ) : null}

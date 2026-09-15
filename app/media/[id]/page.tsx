@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChurchLogo from "@/components/ChurchLogo";
 import MediaGallery from "@/components/public/MediaGallery";
+import ReadMoreText from "@/components/public/ReadMoreText";
 import { getLibraryCollection } from "@/actions/media";
 
 export const revalidate = 60;
@@ -46,9 +47,14 @@ export default async function MediaCollectionPage({
       </h1>
       <div className="mx-auto mt-3 h-1 w-20 rounded-full bg-coptic-gold-main" />
       {collection.description ? (
-        <p className="mx-auto mt-6 max-w-2xl text-center text-sm leading-8 text-deep-red/80 md:text-base">
-          {collection.description}
-        </p>
+        <div className="mx-auto mt-6 max-w-2xl text-center">
+          <ReadMoreText
+            text={collection.description}
+            lines={5}
+            className="whitespace-pre-line text-sm leading-8 text-deep-red/80 md:text-base"
+            buttonClassName="text-coptic-gold-dark"
+          />
+        </div>
       ) : null}
 
       {collection.items.length === 0 ? (
