@@ -14,6 +14,7 @@ import {
   updateMediaItem,
 } from "@/lib/media-db";
 import { requireAdmin } from "@/lib/require-admin";
+import { normalizeExternalUrl } from "@/lib/media";
 
 export type MediaActionResult =
   | { success: true }
@@ -116,39 +117,55 @@ export async function saveLibraryItem(data: {
   id?: string;
   collectionId: string;
   title?: string;
-  fileUrl: string;
+  fileUrl?: string | null;
   fileName?: string | null;
-  fileType: MediaFileType;
+  fileType?: MediaFileType | null;
   thumbnail?: string | null;
+  link?: string | null;
+  linkLabel?: string | null;
 }): Promise<MediaActionResult> {
   const auth = await ensureAdmin();
   if (auth !== true) return auth;
 
   const title = data.title?.trim() ?? "";
-  const fileUrl = data.fileUrl.trim();
+  const fileUrl = data.fileUrl?.trim() || null;
   const thumbnail = data.thumbnail?.trim() || null;
+  const linkInput = data.link?.trim() ?? "";
+  const linkLabel = data.linkLabel?.trim() || null;
+  const link = linkInput ? normalizeExternalUrl(linkInput) : null;
+  const fileType: MediaFileType = fileUrl ? (data.fileType ?? "image") : "link";
 
-  if (!fileUrl) {
-    return { success: false, error: "يرجى رفع ملف" };
+  if (!fileUrl && !link && !title && !thumbnail) {
+    return { success: false, error: "يرجى رفع ملف أو إدخال رابط أو عنوان" };
   }
+
+  if (linkInput && !link) {
+    return { success: false, error: "يرجى إدخال رابط صالح" };
+  }
+
+  const savedLinkLabel = link ? linkLabel : null;
 
   try {
     if (data.id) {
       await updateMediaItem(data.id, {
         title,
         fileUrl,
-        fileName: data.fileName?.trim() || null,
-        fileType: data.fileType,
+        fileName: fileUrl ? data.fileName?.trim() || null : null,
+        fileType,
         thumbnail,
+        link,
+        linkLabel: savedLinkLabel,
       });
     } else {
       await createMediaItem({
         collectionId: data.collectionId,
         title,
         fileUrl,
-        fileName: data.fileName?.trim() || null,
-        fileType: data.fileType,
+        fileName: fileUrl ? data.fileName?.trim() || null : null,
+        fileType,
         thumbnail,
+        link,
+        linkLabel: savedLinkLabel,
       });
     }
 

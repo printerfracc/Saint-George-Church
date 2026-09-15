@@ -1,28 +1,63 @@
 import { NextResponse } from "next/server";
-import { isCloudinaryUrl } from "@/lib/media";
+import { fetchCloudinaryAsset, isAllowedCloudinaryUrl } from "@/lib/cloudinary-asset";
+import { mediaDownloadFileName } from "@/lib/media";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
+
+function contentTypeFor(
+  fileType: string | null,
+  fallback: string | null,
+  fileUrl: string,
+) {
+  if (fileType === "pdf" || fileUrl.toLowerCase().includes(".pdf")) {
+    return "application/pdf";
+  }
+
+  if (fileType === "word" || /\.docx?$/i.test(fileUrl)) {
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  }
+
+  if (fileType === "image") {
+    return fallback || "image/jpeg";
+  }
+
+  return fallback || "application/octet-stream";
+}
+
+function inlineDisposition(fileName: string) {
+  const ascii = fileName.replace(/[^\x20-\x7E]/g, "_") || "document";
+  const encoded = encodeURIComponent(fileName);
+  return `inline; filename="${ascii}"; filename*=UTF-8''${encoded}`;
+}
 
 export async function GET(request: Request) {
-  const fileUrl = new URL(request.url).searchParams.get("url");
+  const search = new URL(request.url).searchParams;
+  const fileUrl = search.get("url");
+  const fileType = search.get("type");
+  const fileName = search.get("name");
 
-  if (!fileUrl || !isCloudinaryUrl(fileUrl)) {
+  if (!fileUrl || !isAllowedCloudinaryUrl(fileUrl)) {
     return NextResponse.json({ error: "رابط غير صالح" }, { status: 400 });
   }
 
-  const response = await fetch(fileUrl);
+  const response = await fetchCloudinaryAsset(fileUrl);
 
-  if (!response.ok) {
-    return NextResponse.json({ error: "تعذر تحميل الملف" }, { status: 404 });
+  if (!response?.ok || !response.body) {
+    return NextResponse.json({ error: "تعذر فتح الملف" }, { status: 404 });
   }
 
-  const bytes = await response.arrayBuffer();
+  const downloadName = mediaDownloadFileName(fileName, fileType);
 
-  return new NextResponse(bytes, {
+  return new NextResponse(response.body, {
     headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": 'inline; filename="document.pdf"',
-      "Cache-Control": "public, max-age=3600",
+      "Content-Type": contentTypeFor(
+        fileType,
+        response.headers.get("content-type"),
+        fileUrl,
+      ),
+      "Content-Disposition": inlineDisposition(downloadName),
+      "Cache-Control": "private, max-age=300",
     },
   });
 }

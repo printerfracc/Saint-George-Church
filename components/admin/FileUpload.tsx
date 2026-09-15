@@ -17,6 +17,7 @@ type FileUploadProps = {
   multiple?: boolean;
   current?: UploadedLibraryFile | null;
   onUploaded: (files: UploadedLibraryFile[]) => void;
+  onClear?: () => void;
 };
 
 export default function FileUpload({
@@ -24,6 +25,7 @@ export default function FileUpload({
   multiple = true,
   current = null,
   onUploaded,
+  onClear,
 }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -116,21 +118,32 @@ export default function FileUpload({
             <p className="text-xs font-bold text-deep-red">
               {current.fileName || mediaFileTypeLabel(current.fileType)}
             </p>
-            <label className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-coptic-gold-main px-3 text-xs font-bold text-coptic-gold-dark">
-              تغيير الملف
-              <input
-                ref={inputRef}
-                type="file"
-                multiple={multiple}
-                accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                className="sr-only"
-                aria-label="تغيير الملف"
-                disabled={isUploading}
-                onChange={(event) => {
-                  void handleFiles(event.target.files);
-                }}
-              />
-            </label>
+            <div className="flex flex-wrap gap-2">
+              <label className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-coptic-gold-main px-3 text-xs font-bold text-coptic-gold-dark">
+                تغيير الملف
+                <input
+                  ref={inputRef}
+                  type="file"
+                  multiple={multiple}
+                  accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="sr-only"
+                  aria-label="تغيير الملف"
+                  disabled={isUploading}
+                  onChange={(event) => {
+                    void handleFiles(event.target.files);
+                  }}
+                />
+              </label>
+              {onClear ? (
+                <button
+                  type="button"
+                  onClick={onClear}
+                  className="inline-flex min-h-11 items-center rounded-full bg-coptic-gold-main/15 px-3 text-xs font-bold text-coptic-gold-dark"
+                >
+                  إزالة الملف
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : (

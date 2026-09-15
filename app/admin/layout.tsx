@@ -25,12 +25,12 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-cream">
+    <div className="flex min-h-dvh flex-col bg-cream lg:flex-row">
       <Sidebar
         userName={session.user.name ?? "مسؤول"}
         userRole={session.user.role}
       />
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="min-w-0 flex-1 overflow-x-hidden">{children}</div>
     </div>
   );
 }

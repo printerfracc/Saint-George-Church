@@ -15,10 +15,12 @@ export type MediaItemRecord = {
   id: string;
   collectionId: string;
   title: string;
-  fileUrl: string;
+  fileUrl: string | null;
   fileName: string | null;
   fileType: MediaFileType;
   thumbnail: string | null;
+  link: string | null;
+  linkLabel: string | null;
   createdAt: Date;
 };
 
@@ -42,6 +44,8 @@ function toSqlDate(value: Date) {
 
 let tablesReady = false;
 let thumbnailColumnReady = false;
+let linkColumnsReady = false;
+let optionalFileReady = false;
 
 async function execute(sql: string, args: unknown[] = []) {
   await db().execute(sql, args);
@@ -70,7 +74,7 @@ async function ensureTables() {
         id VARCHAR(191) NOT NULL,
         collectionId VARCHAR(191) NOT NULL,
         title VARCHAR(191) NOT NULL,
-        fileUrl TEXT NOT NULL,
+        fileUrl TEXT NULL,
         fileName VARCHAR(191) NULL,
         fileType VARCHAR(32) NOT NULL,
         thumbnail TEXT NULL,
@@ -114,6 +118,32 @@ async function ensureTables() {
     }
 
     thumbnailColumnReady = true;
+  }
+
+  if (!linkColumnsReady) {
+    try {
+      await execute("ALTER TABLE MediaItem ADD COLUMN link TEXT NULL");
+    } catch {
+      // Column may already exist.
+    }
+
+    try {
+      await execute("ALTER TABLE MediaItem ADD COLUMN linkLabel VARCHAR(191) NULL");
+    } catch {
+      // Column may already exist.
+    }
+
+    linkColumnsReady = true;
+  }
+
+  if (!optionalFileReady) {
+    try {
+      await execute("ALTER TABLE MediaItem MODIFY COLUMN fileUrl TEXT NULL");
+    } catch {
+      // Column may already be nullable.
+    }
+
+    optionalFileReady = true;
   }
 }
 
@@ -252,14 +282,16 @@ export async function listMediaItems(collectionId: string) {
     id: string;
     collectionId: string;
     title: string;
-    fileUrl: string;
+    fileUrl: string | null;
     fileName: string | null;
     fileType: string;
     thumbnail: string | null;
+    link: string | null;
+    linkLabel: string | null;
     createdAt: Date | string;
   }>(
     `
-      SELECT id, collectionId, title, fileUrl, fileName, fileType, thumbnail, createdAt
+      SELECT id, collectionId, title, fileUrl, fileName, fileType, thumbnail, link, linkLabel, createdAt
       FROM MediaItem
       WHERE collectionId = ?
       ORDER BY createdAt ASC
@@ -271,10 +303,12 @@ export async function listMediaItems(collectionId: string) {
     id: row.id,
     collectionId: row.collectionId,
     title: row.title,
-    fileUrl: row.fileUrl,
+    fileUrl: row.fileUrl || null,
     fileName: row.fileName,
-    fileType: row.fileType as MediaFileType,
+    fileType: (row.fileType || "link") as MediaFileType,
     thumbnail: row.thumbnail ?? null,
+    link: row.link ?? null,
+    linkLabel: row.linkLabel ?? null,
     createdAt: toDate(row.createdAt),
   }));
 }
@@ -282,10 +316,12 @@ export async function listMediaItems(collectionId: string) {
 export async function createMediaItem(data: {
   collectionId: string;
   title: string;
-  fileUrl: string;
+  fileUrl: string | null;
   fileName: string | null;
   fileType: MediaFileType;
   thumbnail: string | null;
+  link: string | null;
+  linkLabel: string | null;
 }) {
   await ensureTables();
 
@@ -297,8 +333,8 @@ export async function createMediaItem(data: {
 
   await execute(
     `
-      INSERT INTO MediaItem (id, collectionId, title, fileUrl, fileName, fileType, thumbnail, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO MediaItem (id, collectionId, title, fileUrl, fileName, fileType, thumbnail, link, linkLabel, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       created.id,
@@ -308,6 +344,8 @@ export async function createMediaItem(data: {
       created.fileName,
       created.fileType,
       created.thumbnail,
+      created.link,
+      created.linkLabel,
       toSqlDate(created.createdAt),
     ],
   );
@@ -319,10 +357,12 @@ export async function updateMediaItem(
   id: string,
   data: {
     title: string;
-    fileUrl: string;
+    fileUrl: string | null;
     fileName: string | null;
     fileType: MediaFileType;
     thumbnail: string | null;
+    link: string | null;
+    linkLabel: string | null;
   },
 ) {
   await ensureTables();
@@ -330,7 +370,7 @@ export async function updateMediaItem(
   await execute(
     `
       UPDATE MediaItem
-      SET title = ?, fileUrl = ?, fileName = ?, fileType = ?, thumbnail = ?
+      SET title = ?, fileUrl = ?, fileName = ?, fileType = ?, thumbnail = ?, link = ?, linkLabel = ?
       WHERE id = ?
     `,
     [
@@ -339,6 +379,8 @@ export async function updateMediaItem(
       data.fileName,
       data.fileType,
       data.thumbnail,
+      data.link,
+      data.linkLabel,
       id,
     ],
   );

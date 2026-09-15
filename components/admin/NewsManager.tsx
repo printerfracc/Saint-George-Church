@@ -10,6 +10,14 @@ import {
 } from "@/actions/admin-actions";
 import ImageUpload from "@/components/admin/ImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
+import {
+  AdminActions,
+  AdminMobileCard,
+  AdminPageHeader,
+  AdminResponsiveTable,
+  adminActionMuted,
+  adminActionOutline,
+} from "@/components/admin/admin-ui";
 
 export type NewsRow = {
   id: string;
@@ -93,79 +101,106 @@ export default function NewsManager({ news }: { news: NewsRow[] }) {
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-deep-red">إدارة الأخبار</h1>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex min-h-11 items-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black"
-        >
-          إضافة خبر
-        </button>
-      </div>
+      <AdminPageHeader
+        title="إدارة الأخبار"
+        action={
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black sm:w-auto"
+          >
+            إضافة خبر
+          </button>
+        }
+      />
 
-      <div className="overflow-x-auto rounded-2xl border border-gold/40 bg-white/80">
-        <table className="min-w-full text-right text-sm">
-          <thead className="bg-gray-900 text-coptic-gold-main">
-            <tr>
-              <th className="px-4 py-3">الصورة</th>
-              <th className="px-4 py-3">العنوان</th>
-              <th className="px-4 py-3">الحالة</th>
-              <th className="px-4 py-3">الإجراء</th>
-            </tr>
-          </thead>
-          <tbody>
-            {news.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-deep-red/70">
-                  لا توجد بيانات
-                </td>
-              </tr>
-            ) : (
-              news.map((item) => (
-                <tr key={item.id} className="border-t border-gold/20">
-                  <td className="px-4 py-3">
-                    {item.imageUrl ? (
-                      <Image
-                        src={item.imageUrl}
-                        alt={item.title}
-                        width={64}
-                        height={48}
-                        unoptimized
-                        className="h-12 w-16 rounded-md object-cover"
-                      />
-                    ) : (
-                      <span className="text-deep-red/50">بدون صورة</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 font-bold">{item.title}</td>
-                  <td className="px-4 py-3">
-                    {item.isActive ? "منشور" : "مخفي"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(item)}
-                        className="inline-flex min-h-11 items-center rounded-full border border-coptic-gold-main px-3 text-xs font-bold text-coptic-gold-dark"
-                      >
-                        تعديل
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(item.id)}
-                        className="inline-flex min-h-11 items-center rounded-full bg-coptic-gold-main/15 px-3 text-xs font-bold text-coptic-gold-dark"
-                      >
-                        حذف
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <AdminResponsiveTable
+        empty={news.length === 0}
+        emptyLabel="لا توجد بيانات"
+        colSpan={4}
+        head={
+          <>
+            <th className="px-4 py-3">الصورة</th>
+            <th className="px-4 py-3">العنوان</th>
+            <th className="px-4 py-3">الحالة</th>
+            <th className="px-4 py-3">الإجراء</th>
+          </>
+        }
+        cards={news.map((item) => (
+          <AdminMobileCard key={item.id}>
+            <div className="flex gap-3">
+              {item.imageUrl ? (
+                <Image
+                  src={item.imageUrl}
+                  alt={item.title}
+                  width={64}
+                  height={48}
+                  unoptimized
+                  className="h-12 w-16 shrink-0 rounded-md object-cover"
+                />
+              ) : (
+                <span className="flex h-12 w-16 shrink-0 items-center justify-center rounded-md bg-cream text-xs font-bold text-deep-red/50">
+                  بدون
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-deep-red">{item.title}</p>
+                <p className="mt-1 text-xs font-bold text-coptic-gold-dark">
+                  {item.isActive ? "منشور" : "مخفي"}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3">
+              <AdminActions>
+                <button type="button" onClick={() => openEdit(item)} className={adminActionOutline}>
+                  تعديل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(item.id)}
+                  className={adminActionMuted}
+                >
+                  حذف
+                </button>
+              </AdminActions>
+            </div>
+          </AdminMobileCard>
+        ))}
+        rows={news.map((item) => (
+          <tr key={item.id} className="border-t border-gold/20">
+            <td className="px-4 py-3">
+              {item.imageUrl ? (
+                <Image
+                  src={item.imageUrl}
+                  alt={item.title}
+                  width={64}
+                  height={48}
+                  unoptimized
+                  className="h-12 w-16 rounded-md object-cover"
+                />
+              ) : (
+                <span className="text-deep-red/50">بدون صورة</span>
+              )}
+            </td>
+            <td className="px-4 py-3 font-bold">{item.title}</td>
+            <td className="px-4 py-3">{item.isActive ? "منشور" : "مخفي"}</td>
+            <td className="px-4 py-3">
+              <AdminActions>
+                <button type="button" onClick={() => openEdit(item)} className={adminActionOutline}>
+                  تعديل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(item.id)}
+                  className={adminActionMuted}
+                >
+                  حذف
+                </button>
+              </AdminActions>
+            </td>
+          </tr>
+        ))}
+      />
 
       <SlideOver
         open={open}

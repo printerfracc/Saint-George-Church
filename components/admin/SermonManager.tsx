@@ -9,6 +9,14 @@ import {
 } from "@/actions/admin-actions";
 import ImageUpload from "@/components/admin/ImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
+import {
+  AdminActions,
+  AdminMobileCard,
+  AdminPageHeader,
+  AdminResponsiveTable,
+  adminActionMuted,
+  adminActionOutline,
+} from "@/components/admin/admin-ui";
 import { formatAdminDate, toDateInputValue } from "@/lib/admin-labels";
 
 export type SermonRow = {
@@ -105,64 +113,84 @@ export default function SermonManager({
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-deep-red">إدارة العظات</h1>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex min-h-11 items-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black"
-        >
-          إضافة عظة
-        </button>
-      </div>
+      <AdminPageHeader
+        title="إدارة العظات"
+        action={
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black sm:w-auto"
+          >
+            إضافة عظة
+          </button>
+        }
+      />
 
-      <div className="overflow-x-auto rounded-2xl border border-gold/40 bg-white/80">
-        <table className="min-w-full text-right text-sm">
-          <thead className="bg-gray-900 text-coptic-gold-main">
-            <tr>
-              <th className="px-4 py-3">العنوان</th>
-              <th className="px-4 py-3">الكاهن</th>
-              <th className="px-4 py-3">التاريخ</th>
-              <th className="px-4 py-3">الإجراء</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sermons.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-deep-red/70">
-                  لا توجد بيانات
-                </td>
-              </tr>
-            ) : (
-              sermons.map((sermon) => (
-                <tr key={sermon.id} className="border-t border-gold/20">
-                  <td className="px-4 py-3 font-bold">{sermon.title}</td>
-                  <td className="px-4 py-3">{sermon.priestName}</td>
-                  <td className="px-4 py-3">{formatAdminDate(sermon.date)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(sermon)}
-                        className="inline-flex min-h-11 items-center rounded-full border border-coptic-gold-main px-3 text-xs font-bold text-coptic-gold-dark"
-                      >
-                        تعديل
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(sermon.id)}
-                        className="inline-flex min-h-11 items-center rounded-full bg-coptic-gold-main/15 px-3 text-xs font-bold text-coptic-gold-dark"
-                      >
-                        حذف
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <AdminResponsiveTable
+        empty={sermons.length === 0}
+        emptyLabel="لا توجد بيانات"
+        colSpan={4}
+        head={
+          <>
+            <th className="px-4 py-3">العنوان</th>
+            <th className="px-4 py-3">الكاهن</th>
+            <th className="px-4 py-3">التاريخ</th>
+            <th className="px-4 py-3">الإجراء</th>
+          </>
+        }
+        cards={sermons.map((sermon) => (
+          <AdminMobileCard key={sermon.id}>
+            <p className="font-bold text-deep-red">{sermon.title}</p>
+            <p className="mt-1 text-sm text-deep-red/80">{sermon.priestName}</p>
+            <p className="mt-1 text-xs font-bold text-coptic-gold-dark">
+              {formatAdminDate(sermon.date)}
+            </p>
+            <div className="mt-3">
+              <AdminActions>
+                <button
+                  type="button"
+                  onClick={() => openEdit(sermon)}
+                  className={adminActionOutline}
+                >
+                  تعديل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(sermon.id)}
+                  className={adminActionMuted}
+                >
+                  حذف
+                </button>
+              </AdminActions>
+            </div>
+          </AdminMobileCard>
+        ))}
+        rows={sermons.map((sermon) => (
+          <tr key={sermon.id} className="border-t border-gold/20">
+            <td className="px-4 py-3 font-bold">{sermon.title}</td>
+            <td className="px-4 py-3">{sermon.priestName}</td>
+            <td className="px-4 py-3">{formatAdminDate(sermon.date)}</td>
+            <td className="px-4 py-3">
+              <AdminActions>
+                <button
+                  type="button"
+                  onClick={() => openEdit(sermon)}
+                  className={adminActionOutline}
+                >
+                  تعديل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(sermon.id)}
+                  className={adminActionMuted}
+                >
+                  حذف
+                </button>
+              </AdminActions>
+            </td>
+          </tr>
+        ))}
+      />
 
       <SlideOver
         open={open}

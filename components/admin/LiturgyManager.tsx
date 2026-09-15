@@ -11,6 +11,14 @@ import {
 import ImageUpload from "@/components/admin/ImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
 import {
+  AdminActions,
+  AdminMobileCard,
+  AdminPageHeader,
+  AdminResponsiveTable,
+  adminActionMuted,
+  adminActionOutline,
+} from "@/components/admin/admin-ui";
+import {
   ADMIN_LITURGY_SECTIONS,
   type AdminLiturgySectionKey,
   type LiturgySectionKey,
@@ -116,18 +124,18 @@ export default function LiturgyManager({ entries }: { entries: LiturgyRow[] }) {
 
   return (
     <>
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-deep-red md:text-3xl">
-          إدارة صلوات الكنيسة
-        </h1>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex min-h-11 items-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black"
-        >
-          {current.addLabel}
-        </button>
-      </div>
+      <AdminPageHeader
+        title="إدارة صلوات الكنيسة"
+        action={
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black sm:w-auto"
+          >
+            {current.addLabel}
+          </button>
+        }
+      />
 
       <div className="mb-6 flex flex-wrap gap-2">
         {ADMIN_LITURGY_SECTIONS.map((section) => {
@@ -151,81 +159,114 @@ export default function LiturgyManager({ entries }: { entries: LiturgyRow[] }) {
         })}
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-coptic-gold-main/40 bg-white/80">
-        <table className="min-w-full text-right text-sm">
-          <thead className="bg-gray-900 text-coptic-gold-main">
-            <tr>
-              {isSchedule ? null : <th className="px-4 py-3">الصورة</th>}
-              <th className="px-4 py-3">العنوان</th>
-              {isSchedule ? null : <th className="px-4 py-3">الوصف</th>}
-              <th className="px-4 py-3">الموعد / الملاحظة</th>
-              <th className="px-4 py-3">الإجراء</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={isSchedule ? 3 : 5}
-                  className="px-4 py-8 text-center text-deep-red/70"
+      <AdminResponsiveTable
+        empty={items.length === 0}
+        emptyLabel={`لا توجد عناصر في ${current.label} بعد`}
+        colSpan={isSchedule ? 3 : 5}
+        head={
+          <>
+            {isSchedule ? null : <th className="px-4 py-3">الصورة</th>}
+            <th className="px-4 py-3">العنوان</th>
+            {isSchedule ? null : <th className="px-4 py-3">الوصف</th>}
+            <th className="px-4 py-3">الموعد / الملاحظة</th>
+            <th className="px-4 py-3">الإجراء</th>
+          </>
+        }
+        cards={items.map((item) => (
+          <AdminMobileCard key={item.id}>
+            <div className="flex gap-3">
+              {isSchedule ? null : item.imageUrl ? (
+                <Image
+                  src={item.imageUrl}
+                  alt={item.title}
+                  width={64}
+                  height={48}
+                  unoptimized
+                  className="h-12 w-16 shrink-0 rounded-md object-cover"
+                />
+              ) : (
+                <span className="flex h-12 w-16 shrink-0 items-center justify-center rounded-md bg-cream text-xs font-bold text-deep-red/50">
+                  بدون
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-deep-red">{item.title || "—"}</p>
+                {isSchedule ? null : (
+                  <p className="mt-1 line-clamp-2 text-sm text-deep-red/80">
+                    {item.description || "—"}
+                  </p>
+                )}
+                <p className="mt-1 text-sm text-coptic-gold-dark">
+                  {item.detail || "—"}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3">
+              <AdminActions>
+                <button
+                  type="button"
+                  onClick={() => openEdit(item)}
+                  className={adminActionOutline}
                 >
-                  لا توجد عناصر في {current.label} بعد
-                </td>
-              </tr>
-            ) : (
-              items.map((item) => (
-                <tr key={item.id} className="border-t border-coptic-gold-main/20">
-                  {isSchedule ? null : (
-                    <td className="px-4 py-3">
-                      {item.imageUrl ? (
-                        <Image
-                          src={item.imageUrl}
-                          alt={item.title}
-                          width={64}
-                          height={48}
-                          unoptimized
-                          className="h-12 w-16 rounded-md object-cover"
-                        />
-                      ) : (
-                        <span className="text-deep-red/50">بدون صورة</span>
-                      )}
-                    </td>
-                  )}
-                  <td className="px-4 py-3 font-bold text-deep-red">
-                    {item.title || "—"}
-                  </td>
-                  {isSchedule ? null : (
-                    <td className="max-w-xs px-4 py-3 text-deep-red/80">
-                      <p className="line-clamp-2">{item.description || "—"}</p>
-                    </td>
-                  )}
-                  <td className="px-4 py-3 text-coptic-gold-dark">
-                    {item.detail || "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(item)}
-                        className="inline-flex min-h-11 items-center rounded-full border border-coptic-gold-main px-3 text-xs font-bold text-coptic-gold-dark"
-                      >
-                        تعديل
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(item.id)}
-                        className="inline-flex min-h-11 items-center rounded-full bg-coptic-gold-main/15 px-3 text-xs font-bold text-coptic-gold-dark"
-                      >
-                        حذف
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+                  تعديل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(item.id)}
+                  className={adminActionMuted}
+                >
+                  حذف
+                </button>
+              </AdminActions>
+            </div>
+          </AdminMobileCard>
+        ))}
+        rows={items.map((item) => (
+          <tr key={item.id} className="border-t border-coptic-gold-main/20">
+            {isSchedule ? null : (
+              <td className="px-4 py-3">
+                {item.imageUrl ? (
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.title}
+                    width={64}
+                    height={48}
+                    unoptimized
+                    className="h-12 w-16 rounded-md object-cover"
+                  />
+                ) : (
+                  <span className="text-deep-red/50">بدون صورة</span>
+                )}
+              </td>
             )}
-          </tbody>
-        </table>
-      </div>
+            <td className="px-4 py-3 font-bold text-deep-red">{item.title || "—"}</td>
+            {isSchedule ? null : (
+              <td className="max-w-xs px-4 py-3 text-deep-red/80">
+                <p className="line-clamp-2">{item.description || "—"}</p>
+              </td>
+            )}
+            <td className="px-4 py-3 text-coptic-gold-dark">{item.detail || "—"}</td>
+            <td className="px-4 py-3">
+              <AdminActions>
+                <button
+                  type="button"
+                  onClick={() => openEdit(item)}
+                  className={adminActionOutline}
+                >
+                  تعديل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(item.id)}
+                  className={adminActionMuted}
+                >
+                  حذف
+                </button>
+              </AdminActions>
+            </td>
+          </tr>
+        ))}
+      />
 
       <SlideOver
         open={open}

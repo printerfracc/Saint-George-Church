@@ -161,7 +161,7 @@ export default function ContentManager({ records }: { records: ContentRow[] }) {
                 <button
                   type="button"
                   onClick={() => openEdit(section.key)}
-                  className="inline-flex min-h-11 items-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black sm:w-auto"
                 >
                   تعديل
                 </button>

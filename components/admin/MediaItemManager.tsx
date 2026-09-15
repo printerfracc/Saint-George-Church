@@ -5,6 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { removeLibraryItem, saveLibraryItem } from "@/actions/media";
+import {
+  AdminActions,
+  AdminMobileCard,
+  AdminPageHeader,
+  AdminResponsiveTable,
+  adminActionMuted,
+  adminActionOutline,
+} from "@/components/admin/admin-ui";
 import FileUpload, {
   type UploadedLibraryFile,
 } from "@/components/admin/FileUpload";
@@ -16,10 +24,12 @@ import { mediaFileTypeLabel, mediaGalleryImage } from "@/lib/media";
 export type MediaItemRow = {
   id: string;
   title: string;
-  fileUrl: string;
+  fileUrl: string | null;
   fileName: string | null;
   fileType: MediaFileType;
   thumbnail: string | null;
+  link: string | null;
+  linkLabel: string | null;
 };
 
 export default function MediaItemManager({
@@ -37,27 +47,41 @@ export default function MediaItemManager({
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<UploadedLibraryFile | null>(null);
   const [thumbnail, setThumbnail] = useState("");
+  const [link, setLink] = useState("");
+  const [linkLabel, setLinkLabel] = useState("");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  function openCreate() {
-    setEditing(null);
+  function resetForm() {
     setTitle("");
     setFile(null);
     setThumbnail("");
+    setLink("");
+    setLinkLabel("");
     setError("");
+  }
+
+  function openCreate() {
+    setEditing(null);
+    resetForm();
     setOpen(true);
   }
 
   function openEdit(item: MediaItemRow) {
     setEditing(item);
     setTitle(item.title);
-    setFile({
-      url: item.fileUrl,
-      fileName: item.fileName ?? item.title,
-      fileType: item.fileType,
-    });
+    setFile(
+      item.fileUrl
+        ? {
+            url: item.fileUrl,
+            fileName: item.fileName ?? item.title,
+            fileType: item.fileType === "link" ? "image" : item.fileType,
+          }
+        : null,
+    );
     setThumbnail(item.thumbnail ?? "");
+    setLink(item.link ?? "");
+    setLinkLabel(item.linkLabel ?? "");
     setError("");
     setOpen(true);
   }
@@ -79,6 +103,8 @@ export default function MediaItemManager({
         fileName: uploaded.fileName,
         fileType: uploaded.fileType,
         thumbnail: null,
+        link: null,
+        linkLabel: null,
       });
 
       if (!result.success) {
@@ -94,11 +120,6 @@ export default function MediaItemManager({
   }
 
   async function handleSave() {
-    if (!file) {
-      setError("يرجى رفع ملف");
-      return;
-    }
-
     setIsSaving(true);
     setError("");
 
@@ -106,10 +127,12 @@ export default function MediaItemManager({
       id: editing?.id,
       collectionId,
       title,
-      fileUrl: file.url,
-      fileName: file.fileName,
-      fileType: file.fileType,
+      fileUrl: file?.url ?? null,
+      fileName: file?.fileName ?? null,
+      fileType: file?.fileType ?? "link",
       thumbnail,
+      link,
+      linkLabel,
     });
 
     setIsSaving(false);
@@ -139,95 +162,140 @@ export default function MediaItemManager({
 
   return (
     <>
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <Link
-            href="/admin/media"
-            className="text-sm font-bold text-coptic-gold-dark"
+      <AdminPageHeader
+        title={
+          <div>
+            <Link
+              href="/admin/media"
+              className="text-sm font-bold text-coptic-gold-dark"
+            >
+              العودة إلى الأقسام
+            </Link>
+            <h1 className="mt-2 text-2xl font-bold text-deep-red md:text-3xl">
+              {collectionTitle}
+            </h1>
+          </div>
+        }
+        action={
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black sm:w-auto"
           >
-            العودة إلى الأقسام
-          </Link>
-          <h1 className="mt-2 text-2xl font-bold text-deep-red md:text-3xl">
-            {collectionTitle}
-          </h1>
-        </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex min-h-11 items-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black"
-        >
-          إضافة ملفات
-        </button>
-      </div>
+            إضافة ملفات
+          </button>
+        }
+      />
 
-      <div className="overflow-x-auto rounded-2xl border border-coptic-gold-main/40 bg-white/80">
-        <table className="min-w-full text-right text-sm">
-          <thead className="bg-gray-900 text-coptic-gold-main">
-            <tr>
-              <th className="px-4 py-3">Thumbnail</th>
-              <th className="px-4 py-3">العنوان</th>
-              <th className="px-4 py-3">النوع</th>
-              <th className="px-4 py-3">الإجراء</th>
+      <AdminResponsiveTable
+        empty={items.length === 0}
+        emptyLabel="لا توجد ملفات في هذا القسم بعد."
+        colSpan={4}
+        head={
+          <>
+            <th className="px-4 py-3">thumbnail</th>
+            <th className="px-4 py-3">العنوان</th>
+            <th className="px-4 py-3">النوع</th>
+            <th className="px-4 py-3">الإجراء</th>
+          </>
+        }
+        cards={items.map((item) => {
+          const preview = mediaGalleryImage(item);
+
+          return (
+            <AdminMobileCard key={item.id}>
+              <div className="flex gap-3">
+                {preview ? (
+                  <Image
+                    src={preview}
+                    alt={item.title.trim() || mediaFileTypeLabel(item.fileType)}
+                    width={72}
+                    height={56}
+                    unoptimized
+                    className="h-14 w-16 shrink-0 rounded-md object-cover"
+                  />
+                ) : (
+                  <span className="flex h-14 w-16 shrink-0 items-center justify-center rounded-md bg-cream text-center text-xs font-bold text-coptic-gold-dark">
+                    {mediaFileTypeLabel(item.fileType)}
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-deep-red">
+                    {item.title.trim() || "—"}
+                  </p>
+                  <p className="mt-1 text-xs font-bold text-coptic-gold-dark">
+                    {mediaFileTypeLabel(item.fileType)}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3">
+                <AdminActions>
+                  <button
+                    type="button"
+                    onClick={() => openEdit(item)}
+                    className={adminActionOutline}
+                  >
+                    تعديل
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDelete(item.id)}
+                    className={adminActionMuted}
+                  >
+                    حذف
+                  </button>
+                </AdminActions>
+              </div>
+            </AdminMobileCard>
+          );
+        })}
+        rows={items.map((item) => {
+          const preview = mediaGalleryImage(item);
+
+          return (
+            <tr key={item.id} className="border-t border-coptic-gold-main/20">
+              <td className="px-4 py-3">
+                {preview ? (
+                  <Image
+                    src={preview}
+                    alt={item.title.trim() || mediaFileTypeLabel(item.fileType)}
+                    width={64}
+                    height={48}
+                    unoptimized
+                    className="h-12 w-16 rounded-md object-cover"
+                  />
+                ) : (
+                  <span className="text-xs font-bold text-coptic-gold-dark">
+                    {mediaFileTypeLabel(item.fileType)}
+                  </span>
+                )}
+              </td>
+              <td className="px-4 py-3 font-bold text-deep-red">
+                {item.title.trim() || "—"}
+              </td>
+              <td className="px-4 py-3">{mediaFileTypeLabel(item.fileType)}</td>
+              <td className="px-4 py-3">
+                <AdminActions>
+                  <button
+                    type="button"
+                    onClick={() => openEdit(item)}
+                    className={adminActionOutline}
+                  >
+                    تعديل
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDelete(item.id)}
+                    className={adminActionMuted}
+                  >
+                    حذف
+                  </button>
+                </AdminActions>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-deep-red/70">
-                  لا توجد ملفات في هذا القسم بعد.
-                </td>
-              </tr>
-            ) : (
-              items.map((item) => {
-                const preview = mediaGalleryImage(item);
-
-                return (
-                  <tr key={item.id} className="border-t border-coptic-gold-main/20">
-                    <td className="px-4 py-3">
-                      {preview ? (
-                        <Image
-                          src={preview}
-                          alt={item.title.trim() || mediaFileTypeLabel(item.fileType)}
-                          width={64}
-                          height={48}
-                          unoptimized
-                          className="h-12 w-16 rounded-md object-cover"
-                        />
-                      ) : (
-                        <span className="text-xs font-bold text-coptic-gold-dark">
-                          {mediaFileTypeLabel(item.fileType)}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 font-bold text-deep-red">
-                      {item.title.trim() || "—"}
-                    </td>
-                    <td className="px-4 py-3">{mediaFileTypeLabel(item.fileType)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(item)}
-                          className="inline-flex min-h-11 items-center rounded-full border border-coptic-gold-main px-3 text-xs font-bold text-coptic-gold-dark"
-                        >
-                          تعديل
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleDelete(item.id)}
-                          className="inline-flex min-h-11 items-center rounded-full bg-coptic-gold-main/15 px-3 text-xs font-bold text-coptic-gold-dark"
-                        >
-                          حذف
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+          );
+        })}
+      />
 
       <SlideOver
         open={open}
@@ -250,20 +318,50 @@ export default function MediaItemManager({
 
           <FileUpload
             key={editing ? `file-${editing.id}` : "file-new"}
-            label="الملف"
+            label="الملف (اختياري)"
             multiple={!editing}
             current={file}
             onUploaded={(files) => void handleUploaded(files)}
+            onClear={() => setFile(null)}
           />
 
           <ImageUpload
             key={editing ? `thumbnail-${editing.id}` : "thumbnail-new"}
             value={thumbnail}
             onChange={setThumbnail}
-            label="Thumbnail"
+            label="thumbnail"
             hint={null}
             preview="story"
           />
+
+          <label className="block space-y-2">
+            <span className="text-sm font-bold text-deep-red">
+              الرابط (اختياري)
+            </span>
+            <input
+              type="url"
+              dir="ltr"
+              value={link}
+              onChange={(event) => setLink(event.target.value)}
+              placeholder="https://example.com"
+              className="w-full rounded-xl border border-coptic-gold-main/40 bg-white px-3 py-2 text-left text-deep-red outline-none focus:ring-2 focus:ring-coptic-gold-main"
+              aria-label="رابط الملف"
+            />
+          </label>
+
+          <label className="block space-y-2">
+            <span className="text-sm font-bold text-deep-red">
+              تسمية الرابط (اختياري)
+            </span>
+            <input
+              type="text"
+              value={linkLabel}
+              onChange={(event) => setLinkLabel(event.target.value)}
+              placeholder="مثال: اقرأ المزيد"
+              className="w-full rounded-xl border border-coptic-gold-main/40 bg-white px-3 py-2 text-deep-red outline-none focus:ring-2 focus:ring-coptic-gold-main"
+              aria-label="تسمية الرابط"
+            />
+          </label>
 
           {error ? <p className="text-sm font-bold text-coptic-gold-dark">{error}</p> : null}
 

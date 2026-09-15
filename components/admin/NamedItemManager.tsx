@@ -6,6 +6,14 @@ import { useRouter } from "next/navigation";
 import ImageUpload, {
   type ImagePreviewVariant,
 } from "@/components/admin/ImageUpload";
+import {
+  AdminActions,
+  AdminMobileCard,
+  AdminPageHeader,
+  AdminResponsiveTable,
+  adminActionMuted,
+  adminActionOutline,
+} from "@/components/admin/admin-ui";
 import SlideOver from "@/components/admin/SlideOver";
 
 export type NamedItemRow = {
@@ -123,83 +131,124 @@ export default function NamedItemManager({
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-deep-red md:text-3xl">{title}</h1>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex min-h-11 items-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black"
-        >
-          {addLabel}
-        </button>
-      </div>
+      <AdminPageHeader
+        title={title}
+        action={
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black sm:w-auto"
+          >
+            {addLabel}
+          </button>
+        }
+      />
 
-      <div className="overflow-x-auto rounded-2xl border border-coptic-gold-main/40 bg-white/80">
-        <table className="min-w-full text-right text-sm">
-          <thead className="bg-gray-900 text-coptic-gold-main">
-            <tr>
-              <th className="px-4 py-3">الصورة</th>
-              <th className="px-4 py-3">الاسم</th>
-              <th className="px-4 py-3">الوصف</th>
-              <th className="px-4 py-3">الإجراء</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-deep-red/70">
-                  {emptyLabel}
-                </td>
-              </tr>
-            ) : (
-              items.map((item) => (
-                <tr key={item.id} className="border-t border-coptic-gold-main/20">
-                  <td className="px-4 py-3">
-                    {item.imageUrl ? (
-                      <Image
-                        src={item.imageUrl}
-                        alt={item.name}
-                        width={96}
-                        height={72}
-                        unoptimized
-                        className={
-                          preview === "activity"
-                            ? "h-16 w-24 rounded-2xl object-cover"
-                            : "h-16 w-[5.3rem] rounded-3xl object-cover"
-                        }
-                      />
-                    ) : (
-                      <span className="text-deep-red/50">بدون صورة</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 font-bold text-deep-red">{item.name}</td>
-                  <td className="max-w-xs px-4 py-3 text-deep-red/80">
-                    <p className="line-clamp-2">{item.description}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(item)}
-                        className="inline-flex min-h-11 items-center rounded-full border border-coptic-gold-main px-3 text-xs font-bold text-coptic-gold-dark"
-                      >
-                        تعديل
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(item.id)}
-                        className="inline-flex min-h-11 items-center rounded-full bg-coptic-gold-main/15 px-3 text-xs font-bold text-coptic-gold-dark"
-                      >
-                        حذف
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <AdminResponsiveTable
+        empty={items.length === 0}
+        emptyLabel={emptyLabel}
+        colSpan={4}
+        head={
+          <>
+            <th className="px-4 py-3">الصورة</th>
+            <th className="px-4 py-3">الاسم</th>
+            <th className="px-4 py-3">الوصف</th>
+            <th className="px-4 py-3">الإجراء</th>
+          </>
+        }
+        cards={items.map((item) => (
+          <AdminMobileCard key={item.id}>
+            <div className="flex gap-3">
+              {item.imageUrl ? (
+                <Image
+                  src={item.imageUrl}
+                  alt={item.name}
+                  width={96}
+                  height={72}
+                  unoptimized
+                  className={
+                    preview === "activity"
+                      ? "h-16 w-24 shrink-0 rounded-2xl object-cover"
+                      : "h-16 w-20 shrink-0 rounded-3xl object-cover"
+                  }
+                />
+              ) : (
+                <span className="flex h-16 w-20 shrink-0 items-center justify-center rounded-2xl bg-cream text-xs font-bold text-deep-red/50">
+                  بدون صورة
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-deep-red">{item.name}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-deep-red/80">
+                  {item.description}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3">
+              <AdminActions>
+                <button
+                  type="button"
+                  onClick={() => openEdit(item)}
+                  className={adminActionOutline}
+                >
+                  تعديل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(item.id)}
+                  className={adminActionMuted}
+                >
+                  حذف
+                </button>
+              </AdminActions>
+            </div>
+          </AdminMobileCard>
+        ))}
+        rows={items.map((item) => (
+          <tr key={item.id} className="border-t border-coptic-gold-main/20">
+            <td className="px-4 py-3">
+              {item.imageUrl ? (
+                <Image
+                  src={item.imageUrl}
+                  alt={item.name}
+                  width={96}
+                  height={72}
+                  unoptimized
+                  className={
+                    preview === "activity"
+                      ? "h-16 w-24 rounded-2xl object-cover"
+                      : "h-16 w-[5.3rem] rounded-3xl object-cover"
+                  }
+                />
+              ) : (
+                <span className="text-deep-red/50">بدون صورة</span>
+              )}
+            </td>
+            <td className="px-4 py-3 font-bold text-deep-red">{item.name}</td>
+            <td className="max-w-xs px-4 py-3 text-deep-red/80">
+              <p className="line-clamp-2">{item.description}</p>
+            </td>
+            <td className="px-4 py-3">
+              <AdminActions>
+                <button
+                  type="button"
+                  onClick={() => openEdit(item)}
+                  className={adminActionOutline}
+                >
+                  تعديل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(item.id)}
+                  className={adminActionMuted}
+                >
+                  حذف
+                </button>
+              </AdminActions>
+            </td>
+          </tr>
+        ))}
+      />
 
       <SlideOver
         open={open}

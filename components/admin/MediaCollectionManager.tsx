@@ -8,6 +8,15 @@ import {
   removeLibraryCollection,
   saveLibraryCollection,
 } from "@/actions/media";
+import {
+  AdminActions,
+  AdminMobileCard,
+  AdminPageHeader,
+  AdminResponsiveTable,
+  adminActionGold,
+  adminActionMuted,
+  adminActionOutline,
+} from "@/components/admin/admin-ui";
 import ImageUpload from "@/components/admin/ImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
 
@@ -24,6 +33,30 @@ const emptyForm = {
   description: "",
   imageUrl: "",
 };
+
+function CollectionActions({
+  collection,
+  onEdit,
+  onDelete,
+}: {
+  collection: MediaCollectionRow;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <AdminActions>
+      <Link href={`/admin/media/${collection.id}`} className={adminActionGold}>
+        الملفات
+      </Link>
+      <button type="button" onClick={onEdit} className={adminActionOutline}>
+        تعديل
+      </button>
+      <button type="button" onClick={onDelete} className={adminActionMuted}>
+        حذف
+      </button>
+    </AdminActions>
+  );
+}
 
 export default function MediaCollectionManager({
   collections,
@@ -93,97 +126,107 @@ export default function MediaCollectionManager({
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-deep-red md:text-3xl">
-          إدارة الوسائط والمكتبة
-        </h1>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex min-h-11 items-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black"
-        >
-          إضافة قسم
-        </button>
-      </div>
+      <AdminPageHeader
+        title="إدارة الوسائط والمكتبة"
+        action={
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black sm:w-auto"
+          >
+            إضافة قسم
+          </button>
+        }
+      />
 
       <p className="mb-6 text-sm leading-7 text-deep-red/75">
         أضف أقساماً مثل معرض الصور أو موسوعة الكتب، ثم افتح القسم لإضافة الملفات
         داخله.
       </p>
 
-      <div className="overflow-x-auto rounded-2xl border border-coptic-gold-main/40 bg-white/80">
-        <table className="min-w-full text-right text-sm">
-          <thead className="bg-gray-900 text-coptic-gold-main">
-            <tr>
-              <th className="px-4 py-3">الغلاف</th>
-              <th className="px-4 py-3">القسم</th>
-              <th className="px-4 py-3">عدد الملفات</th>
-              <th className="px-4 py-3">الإجراء</th>
-            </tr>
-          </thead>
-          <tbody>
-            {collections.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-deep-red/70">
-                  لا توجد أقسام بعد. أضف معرض الصور أو الكتب من الزر أعلاه.
-                </td>
-              </tr>
-            ) : (
-              collections.map((collection) => (
-                <tr key={collection.id} className="border-t border-coptic-gold-main/20">
-                  <td className="px-4 py-3">
-                    {collection.imageUrl ? (
-                      <Image
-                        src={collection.imageUrl}
-                        alt={collection.title}
-                        width={64}
-                        height={48}
-                        unoptimized
-                        className="h-12 w-16 rounded-md object-cover"
-                      />
-                    ) : (
-                      <span className="text-deep-red/50">بدون غلاف</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="font-bold text-deep-red">{collection.title}</p>
-                    <p className="line-clamp-2 text-deep-red/70">
-                      {collection.description || "—"}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3 font-bold text-coptic-gold-dark">
-                    {collection.itemCount}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Link
-                        href={`/admin/media/${collection.id}`}
-                        className="rounded-full bg-gray-900 px-3 py-1 text-xs font-bold text-coptic-gold-main"
-                      >
-                        الملفات
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => openEdit(collection)}
-                        className="inline-flex min-h-11 items-center rounded-full border border-coptic-gold-main px-3 text-xs font-bold text-coptic-gold-dark"
-                      >
-                        تعديل
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(collection.id)}
-                        className="inline-flex min-h-11 items-center rounded-full bg-coptic-gold-main/15 px-3 text-xs font-bold text-coptic-gold-dark"
-                      >
-                        حذف
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <AdminResponsiveTable
+        empty={collections.length === 0}
+        emptyLabel="لا توجد أقسام بعد. أضف معرض الصور أو الكتب من الزر أعلاه."
+        colSpan={4}
+        head={
+          <>
+            <th className="px-4 py-3">الغلاف</th>
+            <th className="px-4 py-3">القسم</th>
+            <th className="px-4 py-3">عدد الملفات</th>
+            <th className="px-4 py-3">الإجراء</th>
+          </>
+        }
+        cards={collections.map((collection) => (
+          <AdminMobileCard key={collection.id}>
+            <div className="flex gap-3">
+              {collection.imageUrl ? (
+                <Image
+                  src={collection.imageUrl}
+                  alt={collection.title}
+                  width={72}
+                  height={56}
+                  unoptimized
+                  className="h-14 w-16 shrink-0 rounded-md object-cover"
+                />
+              ) : (
+                <span className="flex h-14 w-16 shrink-0 items-center justify-center rounded-md bg-cream text-xs font-bold text-deep-red/50">
+                  بدون غلاف
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-deep-red">{collection.title}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-deep-red/70">
+                  {collection.description || "—"}
+                </p>
+                <p className="mt-1 text-xs font-bold text-coptic-gold-dark">
+                  عدد الملفات: {collection.itemCount}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3">
+              <CollectionActions
+                collection={collection}
+                onEdit={() => openEdit(collection)}
+                onDelete={() => void handleDelete(collection.id)}
+              />
+            </div>
+          </AdminMobileCard>
+        ))}
+        rows={collections.map((collection) => (
+          <tr key={collection.id} className="border-t border-coptic-gold-main/20">
+            <td className="px-4 py-3">
+              {collection.imageUrl ? (
+                <Image
+                  src={collection.imageUrl}
+                  alt={collection.title}
+                  width={64}
+                  height={48}
+                  unoptimized
+                  className="h-12 w-16 rounded-md object-cover"
+                />
+              ) : (
+                <span className="text-deep-red/50">بدون غلاف</span>
+              )}
+            </td>
+            <td className="px-4 py-3">
+              <p className="font-bold text-deep-red">{collection.title}</p>
+              <p className="line-clamp-2 text-deep-red/70">
+                {collection.description || "—"}
+              </p>
+            </td>
+            <td className="px-4 py-3 font-bold text-coptic-gold-dark">
+              {collection.itemCount}
+            </td>
+            <td className="px-4 py-3">
+              <CollectionActions
+                collection={collection}
+                onEdit={() => openEdit(collection)}
+                onDelete={() => void handleDelete(collection.id)}
+              />
+            </td>
+          </tr>
+        ))}
+      />
 
       <SlideOver
         open={open}

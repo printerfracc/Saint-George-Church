@@ -1,6 +1,6 @@
 import Image from "next/image";
 import PdfPreview from "@/components/public/PdfPreview";
-import { mediaFileTypeLabel, officePreviewUrl, pdfEmbedUrl } from "@/lib/media";
+import { mediaFileTypeLabel, mediaOpenUrl, officePreviewUrl } from "@/lib/media";
 
 export default function FilePreview({
   title,
@@ -11,7 +11,7 @@ export default function FilePreview({
   fileUrl: string;
   fileType: string;
 }) {
-  const openUrl = fileType === "pdf" ? pdfEmbedUrl(fileUrl) : fileUrl;
+  const openUrl = mediaOpenUrl(fileUrl, fileType);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/85 shadow-sm">

@@ -6,17 +6,21 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { MediaFileType } from "@/lib/cloudinary";
 import {
   mediaDownloadUrl,
+  mediaExternalLinkLabel,
   mediaFileTypeLabel,
   mediaGalleryImage,
+  mediaOpenUrl,
 } from "@/lib/media";
 
 export type GalleryItem = {
   id: string;
   title: string;
-  fileUrl: string;
+  fileUrl: string | null;
   fileName: string | null;
   fileType: MediaFileType;
   thumbnail: string | null;
+  link: string | null;
+  linkLabel: string | null;
 };
 
 function FileBadge({ fileType }: { fileType: string }) {
@@ -35,6 +39,26 @@ function GalleryPlaceholder({ fileType }: { fileType: string }) {
         {mediaFileTypeLabel(fileType)}
       </span>
     </div>
+  );
+}
+
+function ExternalLinkButton({
+  href,
+  label,
+}: {
+  href: string;
+  label?: string | null;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex min-h-11 items-center rounded-full border border-deep-red/20 bg-deep-red px-3 text-xs font-bold text-cream"
+      aria-label={mediaExternalLinkLabel(label)}
+    >
+      {mediaExternalLinkLabel(label)}
+    </a>
   );
 }
 
@@ -88,22 +112,29 @@ export default function MediaGallery({ items }: { items: GalleryItem[] }) {
                   ) : null}
                 </button>
                 <div className="flex flex-wrap gap-2 p-3">
-                  <a
-                    href={item.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-h-11 items-center rounded-full border border-coptic-gold-main px-3 text-xs font-bold text-coptic-gold-dark"
-                    aria-label="فتح الملف في تبويب جديد"
-                  >
-                    فتح
-                  </a>
-                  <a
-                    href={mediaDownloadUrl(item.fileUrl, item.fileName, item.fileType)}
-                    className="inline-flex min-h-11 items-center rounded-full bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-3 text-xs font-bold text-black"
-                    aria-label="تحميل الملف"
-                  >
-                    تحميل
-                  </a>
+                  {item.fileUrl ? (
+                    <>
+                      <a
+                        href={mediaOpenUrl(item.fileUrl, item.fileType)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-11 items-center rounded-full border border-coptic-gold-main px-3 text-xs font-bold text-coptic-gold-dark"
+                        aria-label="فتح الملف في تبويب جديد"
+                      >
+                        فتح
+                      </a>
+                      <a
+                        href={mediaDownloadUrl(item.fileUrl, item.fileName, item.fileType)}
+                        className="inline-flex min-h-11 items-center rounded-full bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-3 text-xs font-bold text-black"
+                        aria-label="تحميل الملف"
+                      >
+                        تحميل
+                      </a>
+                    </>
+                  ) : null}
+                  {item.link ? (
+                    <ExternalLinkButton href={item.link} label={item.linkLabel} />
+                  ) : null}
                 </div>
               </motion.article>
             </li>
@@ -125,7 +156,7 @@ export default function MediaGallery({ items }: { items: GalleryItem[] }) {
               initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.96, opacity: 0 }}
-              className="w-full max-w-3xl overflow-hidden rounded-3xl bg-cream shadow-2xl"
+              className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-cream shadow-2xl"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="relative aspect-video bg-[#1A0A10]">
@@ -153,20 +184,27 @@ export default function MediaGallery({ items }: { items: GalleryItem[] }) {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <a
-                    href={active.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-h-11 items-center rounded-full border border-coptic-gold-main px-4 text-xs font-bold text-coptic-gold-dark"
-                  >
-                    فتح في تبويب جديد
-                  </a>
-                  <a
-                    href={mediaDownloadUrl(active.fileUrl, active.fileName, active.fileType)}
-                    className="inline-flex min-h-11 items-center rounded-full bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-xs font-bold text-black"
-                  >
-                    تحميل
-                  </a>
+                  {active.fileUrl ? (
+                    <>
+                      <a
+                        href={mediaOpenUrl(active.fileUrl, active.fileType)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-11 items-center rounded-full border border-coptic-gold-main px-4 text-xs font-bold text-coptic-gold-dark"
+                      >
+                        فتح في تبويب جديد
+                      </a>
+                      <a
+                        href={mediaDownloadUrl(active.fileUrl, active.fileName, active.fileType)}
+                        className="inline-flex min-h-11 items-center rounded-full bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-xs font-bold text-black"
+                      >
+                        تحميل
+                      </a>
+                    </>
+                  ) : null}
+                  {active.link ? (
+                    <ExternalLinkButton href={active.link} label={active.linkLabel} />
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => setActiveId(null)}

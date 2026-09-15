@@ -153,11 +153,13 @@ model MediaItem {
   id           String          @id @default(cuid())
   collectionId String
   title        String          @default("")
-  fileUrl      String          @db.Text
+  fileUrl      String?         @db.Text
   fileName     String?
-  fileType     String
+  fileType     String          @default("link")
   thumbnail    String?         @db.Text
-  createdAt    DateTime        @default(now())
+  link         String?         @db.Text
+  linkLabel    String?
+  createdAt     DateTime        @default(now())
   collection   MediaCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@index([collectionId])

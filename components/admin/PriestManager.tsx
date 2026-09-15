@@ -6,6 +6,14 @@ import { createPriest, deletePriest, updatePriest } from "@/actions/priests";
 import ImageUpload from "@/components/admin/ImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
 import {
+  AdminActions,
+  AdminMobileCard,
+  AdminPageHeader,
+  AdminResponsiveTable,
+  adminActionMuted,
+  adminActionOutline,
+} from "@/components/admin/admin-ui";
+import {
   formatAdminDate,
   parseContactNumbers,
   toDateInputValue,
@@ -104,107 +112,152 @@ export default function PriestManager({ priests }: { priests: PriestRow[] }) {
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="bg-linear-to-r from-coptic-gold-dark to-coptic-gold-main bg-clip-text text-2xl font-bold text-transparent">
-          إدارة الكهنة
-        </h1>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex min-h-11 items-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black"
-        >
-          إضافة كاهن جديد
-        </button>
-      </div>
+      <AdminPageHeader
+        title={
+          <h1 className="bg-linear-to-r from-coptic-gold-dark to-coptic-gold-main bg-clip-text text-2xl font-bold text-transparent">
+            إدارة الكهنة
+          </h1>
+        }
+        action={
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-sm font-bold text-black sm:w-auto"
+          >
+            إضافة كاهن جديد
+          </button>
+        }
+      />
 
-      <div className="overflow-x-auto rounded-2xl border border-coptic-gold-main/40 bg-white/80">
-        <table className="min-w-full text-right text-sm">
-          <thead className="bg-gray-900 text-coptic-gold-main">
-            <tr>
-              <th className="px-4 py-3">الاسم</th>
-              <th className="px-4 py-3">تاريخ الرسامة</th>
-              <th className="px-4 py-3">مواعيد الاعترافات</th>
-              <th className="px-4 py-3">نبذه عن الكاهن</th>
-              <th className="px-4 py-3">أرقام التواصل</th>
-              <th className="px-4 py-3">الإجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {priests.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-8 text-center text-coptic-gold-dark/70"
+      <AdminResponsiveTable
+        empty={priests.length === 0}
+        emptyLabel="لا توجد بيانات"
+        colSpan={6}
+        head={
+          <>
+            <th className="px-4 py-3">الاسم</th>
+            <th className="px-4 py-3">تاريخ الرسامة</th>
+            <th className="px-4 py-3">مواعيد الاعترافات</th>
+            <th className="px-4 py-3">نبذه عن الكاهن</th>
+            <th className="px-4 py-3">أرقام التواصل</th>
+            <th className="px-4 py-3">الإجراءات</th>
+          </>
+        }
+        cards={priests.map((priest) => (
+          <AdminMobileCard key={priest.id}>
+            <div className="flex gap-3">
+              {priest.cloudinaryImageUrl ? (
+                <Image
+                  src={priest.cloudinaryImageUrl}
+                  alt={priest.name}
+                  width={72}
+                  height={72}
+                  unoptimized
+                  className="h-16 w-16 shrink-0 rounded-full border-2 border-coptic-gold-main object-cover"
+                />
+              ) : (
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-coptic-gold-main/40 bg-cream text-xs font-bold text-coptic-gold-dark">
+                  بدون
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-coptic-gold-dark">{priest.name}</p>
+                <p className="mt-1 text-xs text-coptic-gold-dark/80">
+                  الرسامة: {formatAdminDate(priest.ordinationDate)}
+                </p>
+                <p className="mt-1 text-sm text-coptic-gold-dark/80">
+                  {priest.confessionSchedule}
+                </p>
+              </div>
+            </div>
+            {priest.bio ? (
+              <p className="mt-3 line-clamp-3 text-sm text-coptic-gold-dark/80">
+                {priest.bio}
+              </p>
+            ) : null}
+            <p className="mt-2 text-sm text-coptic-gold-dark/80" dir="ltr">
+              {parseContactNumbers(priest.contactNumbers).join(" · ") || "—"}
+            </p>
+            <div className="mt-3">
+              <AdminActions>
+                <button
+                  type="button"
+                  onClick={() => openEdit(priest)}
+                  className={adminActionOutline}
                 >
-                  لا توجد بيانات
-                </td>
-              </tr>
-            ) : (
-              priests.map((priest) => (
-                <tr key={priest.id} className="border-t border-coptic-gold-main/20">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      {priest.cloudinaryImageUrl ? (
-                        <Image
-                          src={priest.cloudinaryImageUrl}
-                          alt={priest.name}
-                          width={112}
-                          height={112}
-                          unoptimized
-                          className="h-28 w-28 rounded-full border-4 border-coptic-gold-main object-cover"
-                        />
-                      ) : (
-                        <span className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-coptic-gold-main/40 bg-cream text-sm font-bold text-coptic-gold-dark">
-                          بدون
-                        </span>
-                      )}
-                      <span className="font-bold text-coptic-gold-dark">
-                        {priest.name}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-coptic-gold-dark/80">
-                    {formatAdminDate(priest.ordinationDate)}
-                  </td>
-                  <td className="px-4 py-3 text-coptic-gold-dark/80">
-                    {priest.confessionSchedule}
-                  </td>
-                  <td className="max-w-xs px-4 py-3 text-coptic-gold-dark/80">
-                    {priest.bio ? (
-                      <p className="line-clamp-3">{priest.bio}</p>
-                    ) : (
-                      <span className="text-coptic-gold-dark/40">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-coptic-gold-dark/80" dir="ltr">
-                    {parseContactNumbers(priest.contactNumbers).join(" · ") || (
-                      <span className="text-coptic-gold-dark/40">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(priest)}
-                        className="inline-flex min-h-11 items-center rounded-full border border-coptic-gold-main px-3 text-xs font-bold text-coptic-gold-dark transition-colors hover:bg-coptic-gold-main/15"
-                      >
-                        تعديل
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(priest.id)}
-                        className="inline-flex min-h-11 items-center rounded-full bg-coptic-gold-main/15 px-3 text-xs font-bold text-coptic-gold-dark"
-                      >
-                        حذف
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                  تعديل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(priest.id)}
+                  className={adminActionMuted}
+                >
+                  حذف
+                </button>
+              </AdminActions>
+            </div>
+          </AdminMobileCard>
+        ))}
+        rows={priests.map((priest) => (
+          <tr key={priest.id} className="border-t border-coptic-gold-main/20">
+            <td className="px-4 py-3">
+              <div className="flex items-center gap-3">
+                {priest.cloudinaryImageUrl ? (
+                  <Image
+                    src={priest.cloudinaryImageUrl}
+                    alt={priest.name}
+                    width={80}
+                    height={80}
+                    unoptimized
+                    className="h-20 w-20 rounded-full border-4 border-coptic-gold-main object-cover"
+                  />
+                ) : (
+                  <span className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-coptic-gold-main/40 bg-cream text-sm font-bold text-coptic-gold-dark">
+                    بدون
+                  </span>
+                )}
+                <span className="font-bold text-coptic-gold-dark">{priest.name}</span>
+              </div>
+            </td>
+            <td className="px-4 py-3 text-coptic-gold-dark/80">
+              {formatAdminDate(priest.ordinationDate)}
+            </td>
+            <td className="px-4 py-3 text-coptic-gold-dark/80">
+              {priest.confessionSchedule}
+            </td>
+            <td className="max-w-xs px-4 py-3 text-coptic-gold-dark/80">
+              {priest.bio ? (
+                <p className="line-clamp-3">{priest.bio}</p>
+              ) : (
+                <span className="text-coptic-gold-dark/40">—</span>
+              )}
+            </td>
+            <td className="px-4 py-3 text-coptic-gold-dark/80" dir="ltr">
+              {parseContactNumbers(priest.contactNumbers).join(" · ") || (
+                <span className="text-coptic-gold-dark/40">—</span>
+              )}
+            </td>
+            <td className="px-4 py-3">
+              <AdminActions>
+                <button
+                  type="button"
+                  onClick={() => openEdit(priest)}
+                  className={adminActionOutline}
+                >
+                  تعديل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(priest.id)}
+                  className={adminActionMuted}
+                >
+                  حذف
+                </button>
+              </AdminActions>
+            </td>
+          </tr>
+        ))}
+      />
 
       <SlideOver
         open={open}

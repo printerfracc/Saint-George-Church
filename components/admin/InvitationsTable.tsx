@@ -6,6 +6,12 @@ import {
   getInvitationStatus,
   invitationStatusLabel,
 } from "@/lib/invite-status";
+import {
+  AdminEmptyState,
+  AdminMobileCard,
+  AdminResponsiveTable,
+  adminActionOutline,
+} from "@/components/admin/admin-ui";
 
 export type InvitationRow = {
   id: string;
@@ -38,70 +44,90 @@ export default function InvitationsTable({
   }
 
   if (invitations.length === 0) {
-    return (
-      <p className="rounded-2xl border border-dashed border-gold/50 bg-white/60 px-4 py-8 text-center text-sm text-deep-red/70">
-        لا توجد دعوات بعد
-      </p>
-    );
+    return <AdminEmptyState>لا توجد دعوات بعد</AdminEmptyState>;
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-gold/50 bg-white/80 shadow-sm">
-      <table className="min-w-full text-right text-sm">
-        <caption className="sr-only">قائمة دعوات المسؤولين</caption>
-        <thead className="bg-gray-900 text-coptic-gold-main">
-          <tr>
-            <th className="px-4 py-3 font-bold">البريد الإلكتروني</th>
-            <th className="px-4 py-3 font-bold">تاريخ الإنشاء</th>
-            <th className="px-4 py-3 font-bold">الحالة</th>
-            <th className="px-4 py-3 font-bold">الإجراء</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invitations.map((invitation) => {
-            const status = getInvitationStatus(
-              invitation.used,
-              invitation.expiresAt,
-            );
+    <AdminResponsiveTable
+      empty={false}
+      emptyLabel="لا توجد دعوات بعد"
+      colSpan={4}
+      head={
+        <>
+          <th className="px-4 py-3 font-bold">البريد الإلكتروني</th>
+          <th className="px-4 py-3 font-bold">تاريخ الإنشاء</th>
+          <th className="px-4 py-3 font-bold">الحالة</th>
+          <th className="px-4 py-3 font-bold">الإجراء</th>
+        </>
+      }
+      cards={invitations.map((invitation) => {
+        const status = getInvitationStatus(invitation.used, invitation.expiresAt);
 
-            return (
-              <tr
-                key={invitation.id}
-                className="border-t border-gold/20 text-deep-red"
+        return (
+          <AdminMobileCard key={invitation.id}>
+            <p className="break-all font-bold text-deep-red" dir="ltr">
+              {invitation.email}
+            </p>
+            <p className="mt-1 text-sm text-deep-red/80">
+              {new Date(invitation.createdAt).toLocaleString("ar-EG")}
+            </p>
+            <p className="mt-2">
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-bold ${
+                  status === "active"
+                    ? "bg-green-100 text-green-800"
+                    : status === "used"
+                      ? "bg-gold/20 text-deep-red"
+                      : "bg-coptic-gold-main/15 text-coptic-gold-dark"
+                }`}
               >
-                <td className="px-4 py-3">{invitation.email}</td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  {new Date(invitation.createdAt).toLocaleString("ar-EG")}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-bold ${
-                      status === "active"
-                        ? "bg-green-100 text-green-800"
-                        : status === "used"
-                          ? "bg-gold/20 text-deep-red"
-                          : "bg-coptic-gold-main/15 text-coptic-gold-dark"
-                    }`}
-                  >
-                    {invitationStatusLabel[status]}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <button
-                    type="button"
-                    onClick={() => void copyWhatsAppLink(invitation)}
-                    className="inline-flex min-h-11 items-center rounded-full border border-coptic-gold-main bg-cream px-3 text-xs font-bold text-coptic-gold-dark transition hover:bg-coptic-gold-main/15"
-                  >
-                    {copiedId === invitation.id
-                      ? "تم نسخ الرابط"
-                      : "نسخ رابط واتساب"}
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                {invitationStatusLabel[status]}
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={() => void copyWhatsAppLink(invitation)}
+              className={`${adminActionOutline} mt-3`}
+            >
+              {copiedId === invitation.id ? "تم نسخ الرابط" : "نسخ رابط واتساب"}
+            </button>
+          </AdminMobileCard>
+        );
+      })}
+      rows={invitations.map((invitation) => {
+        const status = getInvitationStatus(invitation.used, invitation.expiresAt);
+
+        return (
+          <tr key={invitation.id} className="border-t border-gold/20 text-deep-red">
+            <td className="px-4 py-3">{invitation.email}</td>
+            <td className="whitespace-nowrap px-4 py-3">
+              {new Date(invitation.createdAt).toLocaleString("ar-EG")}
+            </td>
+            <td className="px-4 py-3">
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-bold ${
+                  status === "active"
+                    ? "bg-green-100 text-green-800"
+                    : status === "used"
+                      ? "bg-gold/20 text-deep-red"
+                      : "bg-coptic-gold-main/15 text-coptic-gold-dark"
+                }`}
+              >
+                {invitationStatusLabel[status]}
+              </span>
+            </td>
+            <td className="px-4 py-3">
+              <button
+                type="button"
+                onClick={() => void copyWhatsAppLink(invitation)}
+                className={adminActionOutline}
+              >
+                {copiedId === invitation.id ? "تم نسخ الرابط" : "نسخ رابط واتساب"}
+              </button>
+            </td>
+          </tr>
+        );
+      })}
+    />
   );
 }

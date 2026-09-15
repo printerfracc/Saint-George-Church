@@ -65,7 +65,7 @@ export default function InviteAdminForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="shrink-0 inline-flex min-h-11 items-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-5 text-sm font-bold text-black disabled:opacity-60"
+          className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-5 text-sm font-bold text-black disabled:opacity-60 sm:w-auto"
         >
           {isSubmitting ? "جاري الإرسال..." : "إرسال دعوة مسؤول"}
         </button>

@@ -31,7 +31,7 @@ export default function SlideOver({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "tween", duration: 0.25 }}
-            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-cream shadow-2xl"
+            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-cream shadow-2xl max-md:max-w-none"
             role="dialog"
             aria-modal="true"
             aria-labelledby="slide-over-title"

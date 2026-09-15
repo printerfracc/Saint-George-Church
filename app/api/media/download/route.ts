@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import {
-  isCloudinaryUrl,
-  mediaDownloadFileName,
-} from "@/lib/media";
+import { fetchCloudinaryAsset, isAllowedCloudinaryUrl } from "@/lib/cloudinary-asset";
+import { mediaDownloadFileName } from "@/lib/media";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 function contentTypeFor(fileType: string | null, fallback: string | null) {
   if (fileType === "pdf") return "application/pdf";
@@ -15,10 +14,11 @@ function contentTypeFor(fileType: string | null, fallback: string | null) {
   return fallback || "application/octet-stream";
 }
 
-function contentDisposition(fileName: string) {
+function contentDisposition(fileName: string, inline: boolean) {
   const ascii = fileName.replace(/[^\x20-\x7E]/g, "_") || "file";
   const encoded = encodeURIComponent(fileName);
-  return `attachment; filename="${ascii}"; filename*=UTF-8''${encoded}`;
+  const kind = inline ? "inline" : "attachment";
+  return `${kind}; filename="${ascii}"; filename*=UTF-8''${encoded}`;
 }
 
 export async function GET(request: Request) {
@@ -27,23 +27,22 @@ export async function GET(request: Request) {
   const fileName = search.get("name");
   const fileType = search.get("type");
 
-  if (!fileUrl || !isCloudinaryUrl(fileUrl)) {
+  if (!fileUrl || !isAllowedCloudinaryUrl(fileUrl)) {
     return NextResponse.json({ error: "رابط غير صالح" }, { status: 400 });
   }
 
-  const response = await fetch(fileUrl);
+  const response = await fetchCloudinaryAsset(fileUrl);
 
-  if (!response.ok) {
+  if (!response?.ok || !response.body) {
     return NextResponse.json({ error: "تعذر تحميل الملف" }, { status: 404 });
   }
 
-  const bytes = await response.arrayBuffer();
   const downloadName = mediaDownloadFileName(fileName, fileType);
 
-  return new NextResponse(bytes, {
+  return new NextResponse(response.body, {
     headers: {
       "Content-Type": contentTypeFor(fileType, response.headers.get("content-type")),
-      "Content-Disposition": contentDisposition(downloadName),
+      "Content-Disposition": contentDisposition(downloadName, false),
       "Cache-Control": "private, max-age=0, must-revalidate",
     },
   });

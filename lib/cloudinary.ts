@@ -17,7 +17,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
-export type MediaFileType = "image" | "pdf" | "word";
+export type MediaFileType = "image" | "pdf" | "word" | "link";
 
 export type CloudinaryUploadResult =
   | { success: true; url: string }
@@ -156,9 +156,10 @@ export async function uploadLibraryFileToCloudinary(
         .upload_stream(
           {
             folder: "saint-george-church/library",
-            resource_type: fileType === "word" ? "raw" : "image",
+            resource_type: fileType === "image" ? "image" : "raw",
             use_filename: true,
             unique_filename: true,
+            filename_override: file.name,
           },
           (error, result) => {
             if (error || !result?.secure_url) {

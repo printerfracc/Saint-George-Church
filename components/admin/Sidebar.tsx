@@ -39,7 +39,7 @@ export default function Sidebar({
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-coptic-gold-main/30 bg-gray-900 px-4 py-3 text-coptic-gold-light lg:hidden">
+      <header className="sticky top-0 z-30 flex w-full items-center justify-between border-b border-coptic-gold-main/30 bg-gray-900 px-4 py-3 text-coptic-gold-light lg:hidden">
         <button
           type="button"
           onClick={() => setIsOpen(true)}
@@ -48,7 +48,9 @@ export default function Sidebar({
         >
           القائمة
         </button>
-        <span className="text-sm font-bold text-coptic-gold-main">لوحة التحكم</span>
+        <span className="truncate text-sm font-bold text-coptic-gold-main">
+          لوحة التحكم
+        </span>
       </header>
 
       {isOpen ? (
@@ -61,7 +63,7 @@ export default function Sidebar({
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 right-0 z-50 flex w-72 flex-col border-l border-coptic-gold-main/20 bg-gray-900 text-cream transition-transform lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-[min(18rem,100%)] flex-col border-l border-coptic-gold-main/20 bg-gray-900 text-cream transition-transform lg:static lg:w-72 lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
         }`}
       >
@@ -69,15 +71,23 @@ export default function Sidebar({
           <span className="overflow-hidden rounded-md bg-cream">
             <ChurchLogo size={48} className="h-12 w-12" priority />
           </span>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-bold leading-6 text-coptic-gold-light">
               {CHURCH_NAME}
             </p>
             <p className="text-xs text-coptic-gold-main">لوحة الإدارة</p>
           </div>
+          <button
+            type="button"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-coptic-gold-main/50 text-sm font-bold text-coptic-gold-main lg:hidden"
+            aria-label="إغلاق القائمة"
+            onClick={() => setIsOpen(false)}
+          >
+            إغلاق
+          </button>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4" aria-label="قائمة لوحة التحكم">
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="قائمة لوحة التحكم">
           {items.map((item) => {
             const isActive =
               item.href === "/admin"

@@ -28,7 +28,7 @@ export default async function InvitationsPage() {
 
   return (
     <main className="px-4 py-8 md:px-8">
-      <h1 className="text-3xl font-bold text-deep-red">دعوات المسؤولين</h1>
+      <h1 className="text-2xl font-bold text-deep-red md:text-3xl">دعوات المسؤولين</h1>
       <p className="mt-2 mb-8 text-sm leading-7 text-deep-red/75">
         أرسل دعوة بالبريد، وإن تعذر الإرسال استخدم رابط واتساب من الجدول.
       </p>

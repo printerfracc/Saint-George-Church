@@ -103,7 +103,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <main className="px-4 py-8 md:px-8">
-      <h1 className="bg-linear-to-r from-coptic-gold-dark to-coptic-gold-main bg-clip-text text-3xl font-bold text-transparent">
+      <h1 className="bg-linear-to-r from-coptic-gold-dark to-coptic-gold-main bg-clip-text text-2xl font-bold break-words text-transparent md:text-3xl">
         مرحباً، {userName}
       </h1>
       <p className="mt-2 mb-8 text-sm leading-7 text-coptic-gold-dark/80">
