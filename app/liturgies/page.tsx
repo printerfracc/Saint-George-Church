@@ -43,7 +43,11 @@ export default async function LiturgiesPage() {
         {visibleSections
           .filter((section) => section.key === "SCHEDULE")
           .map((section) => (
-            <section key={section.key} aria-labelledby={`liturgy-${section.key}`}>
+            <section
+              key={section.key}
+              id="schedule"
+              aria-labelledby={`liturgy-${section.key}`}
+            >
               <h2
                 id={`liturgy-${section.key}`}
                 className="text-2xl font-bold text-coptic-gold-dark"
@@ -55,7 +59,7 @@ export default async function LiturgiesPage() {
             </section>
           ))}
 
-        <section aria-labelledby="liturgy-LIVE">
+        <section id="live" aria-labelledby="liturgy-LIVE">
           <h2 id="liturgy-LIVE" className="text-2xl font-bold text-coptic-gold-dark">
             البث المباشر
           </h2>
@@ -66,7 +70,11 @@ export default async function LiturgiesPage() {
         {visibleSections
           .filter((section) => section.key !== "SCHEDULE")
           .map((section) => (
-            <section key={section.key} aria-labelledby={`liturgy-${section.key}`}>
+            <section
+              key={section.key}
+              id="rites"
+              aria-labelledby={`liturgy-${section.key}`}
+            >
               <h2
                 id={`liturgy-${section.key}`}
                 className="text-2xl font-bold text-coptic-gold-dark"

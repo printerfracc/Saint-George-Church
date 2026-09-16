@@ -10,11 +10,6 @@ const cards = [
     description: "جدول القداس الإلهي والصلوات الأسبوعية",
   },
   {
-    href: "/clinics",
-    title: "العيادات",
-    description: "العيادات والخدمات الطبية للكنيسة",
-  },
-  {
     href: "/live",
     title: "البث المباشر",
     description: "تابع القداسات والفعاليات لحظة بلحظة",
@@ -40,7 +35,7 @@ export default function QuickAccessCards() {
           <div className="mx-auto mt-3 w-20 border-b-4 border-coptic-gold-main" />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
             <motion.div
               key={card.href}

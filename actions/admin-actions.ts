@@ -51,6 +51,7 @@ function requiredDate(value: FormDataEntryValue | string | null, label: string) 
 }
 
 function revalidateAdmin() {
+  revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/admin/priests");

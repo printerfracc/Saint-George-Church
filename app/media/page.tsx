@@ -33,11 +33,17 @@ export default async function MediaPage() {
       </p>
 
       {collections.length === 0 ? (
-        <p className="mt-10 rounded-2xl border border-dashed border-coptic-gold-main/50 bg-white/70 px-4 py-10 text-center text-deep-red/70">
+        <p
+          id="library"
+          className="mt-10 rounded-2xl border border-dashed border-coptic-gold-main/50 bg-white/70 px-4 py-10 text-center text-deep-red/70"
+        >
           سيتم نشر أقسام الوسائط والمكتبة قريباً.
         </p>
       ) : (
-        <ul className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <ul
+          id="library"
+          className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+        >
           {collections.map((collection) => (
             <li key={collection.id}>
               <article className="overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm transition hover:-translate-y-0.5 hover:border-coptic-gold-main">

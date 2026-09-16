@@ -75,7 +75,7 @@ export default function ContactPageView() {
       </motion.div>
 
       <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <SectionCard title="حجز المواعيد" delay={0.05}>
+        <SectionCard id="booking" title="حجز المواعيد" delay={0.05}>
           <p className="text-sm leading-8 text-deep-red/80 md:text-base">
             يمكن حجز مواعيد المناسبات التالية:
           </p>
@@ -121,7 +121,7 @@ export default function ContactPageView() {
           <PrayerRequestForm />
         </SectionCard>
 
-        <SectionCard title="المساهمات والتبرعات" delay={0.08}>
+        <SectionCard id="donations" title="المساهمات والتبرعات" delay={0.08}>
           <blockquote className="space-y-3 rounded-2xl border border-coptic-gold-main/30 bg-cream px-4 py-4 text-center">
             <p className="text-sm font-bold leading-8 text-deep-red">
               «مُشْتَرِكِينَ فِي احْتِيَاجَاتِ الْقِدِّيسِينَ»
@@ -171,7 +171,7 @@ export default function ContactPageView() {
           </div>
         </SectionCard>
 
-        <SectionCard title="العنوان والتواصل" delay={0.16}>
+        <SectionCard id="location" title="العنوان والتواصل" delay={0.16}>
           <div className="grid gap-3 md:grid-cols-2">
             <a
               href={toWhatsAppUrl("01200434061")}

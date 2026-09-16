@@ -32,11 +32,17 @@ export default async function SectorsPage() {
       </p>
 
       {sectors.length === 0 ? (
-        <p className="mt-10 rounded-2xl border border-dashed border-coptic-gold-main/50 bg-white/70 px-4 py-10 text-center text-deep-red/70">
+        <p
+          id="sectors"
+          className="mt-10 rounded-2xl border border-dashed border-coptic-gold-main/50 bg-white/70 px-4 py-10 text-center text-deep-red/70"
+        >
           سيتم نشر قطاعات الخدمات قريباً.
         </p>
       ) : (
-        <ul className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <ul
+          id="sectors"
+          className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+        >
           {sectors.map((sector) => {
             const title = sector.title.trim();
             const description = sector.description.trim();
@@ -44,6 +50,7 @@ export default async function SectorsPage() {
             return (
               <li
                 key={sector.id}
+                id={`sector-${sector.id}`}
                 className="overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm"
               >
                 {sector.imageUrl ? (

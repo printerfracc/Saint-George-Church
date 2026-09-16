@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function LivePage() {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pt-28 pb-16">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pt-36 pb-16">
       <div className="mb-6 flex justify-center">
         <ChurchLogo size={96} className="h-20 w-20" />
       </div>

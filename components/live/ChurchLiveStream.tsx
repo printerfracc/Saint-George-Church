@@ -1,7 +1,7 @@
 import LiveChatOption from "@/components/live/LiveChatOption";
 import { getAppUrl } from "@/lib/app-url";
 import { YOUTUBE_STREAMS_URL } from "@/lib/church";
-import { getYouTubeLiveStatus } from "@/lib/youtube";
+import { checkLiveStreamStatus } from "@/lib/youtube";
 
 function ChannelLink({ label }: { label: string }) {
   return (
@@ -18,9 +18,20 @@ function ChannelLink({ label }: { label: string }) {
 }
 
 export default async function ChurchLiveStream() {
-  const live = await getYouTubeLiveStatus();
+  let status: Awaited<ReturnType<typeof checkLiveStreamStatus>>;
 
-  if (live.isLive && live.videoId) {
+  try {
+    status = await checkLiveStreamStatus();
+  } catch {
+    status = { isLive: false };
+  }
+
+  const isLive = "isLive" in status && status.isLive;
+  const liveVideo = isLive ? status.items?.[0] : undefined;
+  const videoId = liveVideo?.id?.videoId;
+  const title = liveVideo?.snippet?.title;
+
+  if (isLive && videoId) {
     const embedDomain = new URL(getAppUrl()).hostname;
 
     return (
@@ -33,21 +44,23 @@ export default async function ChurchLiveStream() {
           <ChannelLink label="قناة الكنيسة على يوتيوب" />
         </div>
 
-        {live.title ? (
-          <h3 className="mb-4 text-lg font-bold text-deep-red">{live.title}</h3>
+        {title ? (
+          <h3 className="mb-4 text-lg font-bold text-deep-red">{title}</h3>
         ) : null}
 
-        <div className="relative w-full overflow-hidden rounded-2xl border border-coptic-gold-main/50 bg-black shadow-lg aspect-video">
+        <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-2xl bg-black">
           <iframe
-            src={`https://www.youtube.com/embed/${live.videoId}?autoplay=1&rel=0`}
-            title={live.title ?? "البث المباشر من الكنيسة"}
+            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+            title={title ?? "البث المباشر من الكنيسة"}
+            width="100%"
+            height="100%"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
-            className="absolute inset-0 h-full w-full"
+            className="absolute inset-0 h-full w-full border-0"
           />
         </div>
 
-        <LiveChatOption videoId={live.videoId} embedDomain={embedDomain} />
+        <LiveChatOption videoId={videoId} embedDomain={embedDomain} />
       </div>
     );
   }

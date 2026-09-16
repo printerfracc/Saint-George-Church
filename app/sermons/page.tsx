@@ -32,7 +32,7 @@ export default async function SermonsPage() {
   }
 
   return (
-    <main className="flex-1 bg-cream pt-20">
+    <main id="sermons" className="flex-1 bg-cream pt-20">
       <LatestSermons
         sermons={sermons}
         title="أرشيف العظات"

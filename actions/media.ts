@@ -31,6 +31,7 @@ async function ensureAdmin(): Promise<MediaActionResult | true> {
 }
 
 function revalidateMedia(collectionId?: string) {
+  revalidatePath("/", "layout");
   revalidatePath("/admin");
   revalidatePath("/admin/media");
   revalidatePath("/media");

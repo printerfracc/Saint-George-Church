@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Cairo } from "next/font/google";
 import Footer from "@/components/Footer";
+import LiveNowBanner from "@/components/LiveNowBanner";
 import Navbar from "@/components/Navbar";
 import { getAppUrl } from "@/lib/app-url";
+import { getNavEntries } from "@/lib/nav-data";
 import {
   CHURCH_LOGO,
   CHURCH_NAME,
@@ -12,7 +14,6 @@ import {
   CHURCH_SEO_KEYWORDS,
   CHURCH_SHORT_NAME,
 } from "@/lib/church";
-import { getYouTubeLiveStatus, type YouTubeLiveStatus } from "@/lib/youtube";
 import "./globals.css";
 
 const cairo = Cairo({
@@ -74,16 +75,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let live: YouTubeLiveStatus = { isLive: false, videoId: null, title: null };
-
-  try {
-    live = await getYouTubeLiveStatus();
-  } catch {
-    live = { isLive: false, videoId: null, title: null };
-  }
-
   const pathname = (await headers()).get("x-pathname") ?? "";
   const isAdminRoute = pathname.startsWith("/admin");
+  const navEntries = isAdminRoute
+    ? { sectorItems: [], mediaItems: [] }
+    : await getNavEntries();
 
   return (
     <html
@@ -93,7 +89,15 @@ export default async function RootLayout({
       className={`${cairo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-cream text-deep-red font-sans">
-        {isAdminRoute ? null : <Navbar isLive={live.isLive} />}
+        {isAdminRoute ? null : (
+          <div className="fixed top-0 z-50 w-full overflow-visible">
+            <LiveNowBanner />
+            <Navbar
+              sectorItems={navEntries.sectorItems}
+              mediaItems={navEntries.mediaItems}
+            />
+          </div>
+        )}
         {children}
         {isAdminRoute ? null : <Footer />}
       </body>

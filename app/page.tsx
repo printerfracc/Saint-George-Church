@@ -15,6 +15,7 @@ import {
 import { priestDateValue } from "@/lib/admin-labels";
 import { findDynamicContentByKey } from "@/lib/dynamic-content";
 import { prisma } from "@/lib/prisma";
+import { checkLiveStreamStatus } from "@/lib/youtube";
 import { ensurePriestColumns } from "@/actions/priests";
 
 export const revalidate = 60;
@@ -28,7 +29,7 @@ async function loadOr<T>(loader: () => Promise<T>, fallback: T) {
 }
 
 export default async function Home() {
-  const [heroRecord, storyRecord, relicRecords, activityRecords, priestRecords, newsRecords] =
+  const [heroRecord, storyRecord, relicRecords, activityRecords, priestRecords, newsRecords, liveStatus] =
     await Promise.all([
       loadOr(() => findDynamicContentByKey("hero"), null),
       loadOr(() => findDynamicContentByKey("church_story"), null),
@@ -68,6 +69,7 @@ export default async function Home() {
         },
         [],
       ),
+      loadOr(checkLiveStreamStatus, { isLive: false }),
     ]);
 
   const hero = heroRecord
@@ -159,6 +161,7 @@ export default async function Home() {
         imageUrl={hero?.imageUrl}
         title={hero?.title}
         subtitle={hero?.content}
+        isLive={"isLive" in liveStatus && liveStatus.isLive}
       />
       <HomePageSections
         news={news}

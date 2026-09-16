@@ -146,7 +146,20 @@ function NewsSection({ news }: { news: HomeNewsItem[] }) {
   const [index, setIndex] = useState(0);
 
   if (news.length === 0) {
-    return null;
+    return (
+      <motion.section
+        {...fadeIn}
+        id="news"
+        aria-labelledby="news-heading"
+        className="relative bg-[#f3ead3] px-4 py-16 md:px-6 md:py-20"
+      >
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-l from-transparent via-coptic-gold-main to-transparent" />
+        <div className="mx-auto w-full max-w-6xl">
+          <SectionHeading id="news-heading" title="أخبار الكنيسة" />
+          <EmptyFallback title="أخبار الكنيسة" />
+        </div>
+      </motion.section>
+    );
   }
 
   const count = news.length;
@@ -160,6 +173,7 @@ function NewsSection({ news }: { news: HomeNewsItem[] }) {
   return (
     <motion.section
       {...fadeIn}
+      id="news"
       aria-labelledby="news-heading"
       className="relative bg-[#f3ead3] px-4 py-16 md:px-6 md:py-20"
     >
@@ -309,6 +323,7 @@ function ChurchStorySection({
   return (
     <motion.section
       {...fadeIn}
+      id="story"
       aria-labelledby="church-story-heading"
       className="bg-cream px-4 py-16 md:px-6 md:py-20"
     >
@@ -362,6 +377,7 @@ function RelicsSection({ relics }: { relics: HomeNamedItem[] }) {
   return (
     <motion.section
       {...fadeIn}
+      id="relics"
       aria-labelledby="relics-heading"
       className="bg-[#3a0d0d] px-4 py-16 text-cream md:px-6 md:py-20"
     >
@@ -420,6 +436,7 @@ function PriestsSection({ priests }: { priests: HomePriest[] }) {
   return (
     <motion.section
       {...fadeIn}
+      id="priests"
       aria-labelledby="priests-heading"
       className="bg-cream px-4 py-16 md:px-6 md:py-20"
     >
@@ -530,6 +547,7 @@ function ServicesSection({ activities }: { activities: HomeNamedItem[] }) {
   return (
     <motion.section
       {...fadeIn}
+      id="activities"
       aria-labelledby="services-heading"
       className="bg-[#f3ead3] px-4 py-16 md:px-6 md:py-20"
     >
