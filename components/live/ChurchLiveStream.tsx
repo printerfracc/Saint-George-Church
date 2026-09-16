@@ -1,7 +1,10 @@
 import LiveChatOption from "@/components/live/LiveChatOption";
 import { getAppUrl } from "@/lib/app-url";
 import { YOUTUBE_STREAMS_URL } from "@/lib/church";
-import { checkLiveStreamStatus } from "@/lib/youtube";
+import {
+  checkLiveStreamStatus,
+  type LiveStreamCheckResult,
+} from "@/lib/youtube";
 
 function ChannelLink({ label }: { label: string }) {
   return (
@@ -17,8 +20,14 @@ function ChannelLink({ label }: { label: string }) {
   );
 }
 
+function isLiveSearchResult(
+  status: LiveStreamCheckResult,
+): status is Extract<LiveStreamCheckResult, { isLive: boolean }> {
+  return "isLive" in status && status.isLive;
+}
+
 export default async function ChurchLiveStream() {
-  let status: Awaited<ReturnType<typeof checkLiveStreamStatus>>;
+  let status: LiveStreamCheckResult;
 
   try {
     status = await checkLiveStreamStatus();
@@ -26,43 +35,44 @@ export default async function ChurchLiveStream() {
     status = { isLive: false };
   }
 
-  const isLive = "isLive" in status && status.isLive;
-  const liveVideo = isLive ? status.items?.[0] : undefined;
-  const videoId = liveVideo?.id?.videoId;
-  const title = liveVideo?.snippet?.title;
+  if (isLiveSearchResult(status)) {
+    const liveVideo = status.items?.[0];
+    const videoId = liveVideo?.id?.videoId;
+    const title = liveVideo?.snippet?.title;
 
-  if (isLive && videoId) {
-    const embedDomain = new URL(getAppUrl()).hostname;
+    if (videoId) {
+      const embedDomain = new URL(getAppUrl()).hostname;
 
-    return (
-      <div className="mt-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="inline-flex min-h-11 items-center gap-2 rounded-full bg-coptic-gold-main px-3 text-xs font-bold text-black">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-black" />
-            البث جارٍ الآن
-          </p>
-          <ChannelLink label="قناة الكنيسة على يوتيوب" />
+      return (
+        <div className="mt-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="inline-flex min-h-11 items-center gap-2 rounded-full bg-coptic-gold-main px-3 text-xs font-bold text-black">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-black" />
+              البث جارٍ الآن
+            </p>
+            <ChannelLink label="قناة الكنيسة على يوتيوب" />
+          </div>
+
+          {title ? (
+            <h3 className="mb-4 text-lg font-bold text-deep-red">{title}</h3>
+          ) : null}
+
+          <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-2xl bg-black">
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+              title={title ?? "البث المباشر من الكنيسة"}
+              width="100%"
+              height="100%"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="absolute inset-0 h-full w-full border-0"
+            />
+          </div>
+
+          <LiveChatOption videoId={videoId} embedDomain={embedDomain} />
         </div>
-
-        {title ? (
-          <h3 className="mb-4 text-lg font-bold text-deep-red">{title}</h3>
-        ) : null}
-
-        <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-2xl bg-black">
-          <iframe
-            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
-            title={title ?? "البث المباشر من الكنيسة"}
-            width="100%"
-            height="100%"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            className="absolute inset-0 h-full w-full border-0"
-          />
-        </div>
-
-        <LiveChatOption videoId={videoId} embedDomain={embedDomain} />
-      </div>
-    );
+      );
+    }
   }
 
   return (
