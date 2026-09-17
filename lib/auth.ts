@@ -22,13 +22,13 @@ function pickJwtUserId(token: JWT) {
 
 function applyUserToToken(
   token: JWT,
-  user: { id: string; email: string; role: JWT["role"] },
+  user: { id: string; email?: string | null; role: JWT["role"] },
 ) {
   token.sub = user.id;
   token.id = user.id;
   token.userId = user.id;
   token.role = user.role;
-  token.email = user.email;
+  token.email = user.email ?? "";
 }
 
 export const authOptions: NextAuthOptions = {
