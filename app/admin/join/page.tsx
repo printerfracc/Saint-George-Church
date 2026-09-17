@@ -1,8 +1,10 @@
 import ChurchLogo from "@/components/ChurchLogo";
 import JoinInviteForm from "@/components/admin/JoinInviteForm";
 import { CHURCH_NAME } from "@/lib/church";
+import { inviteRoleLabels } from "@/lib/admin-labels";
 import { getInvitationStatus } from "@/lib/invite-status";
 import { prisma } from "@/lib/prisma";
+import { isInviteAssignableRole } from "@/lib/roles";
 
 export const metadata = {
   title: "إكمال دعوة المسؤول",
@@ -49,7 +51,11 @@ export default async function JoinPage({ searchParams }: JoinPageProps) {
         <div className="mb-2 h-1 w-16 rounded-full bg-gold" />
         <h1 className="text-2xl font-bold text-deep-red">إكمال التسجيل</h1>
         <p className="mt-2 text-sm leading-7 text-deep-red/75">
-          أنشئ حساب المسؤول الخاص بك للوصول إلى لوحة التحكم.
+          أنشئ حسابك للوصول إلى لوحة التحكم
+          {isInviteAssignableRole(invite.role)
+            ? ` بصلاحية ${inviteRoleLabels[invite.role]}`
+            : ""}
+          .
         </p>
         <JoinInviteForm token={invite.token} email={invite.email} />
       </section>

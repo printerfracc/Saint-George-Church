@@ -1,17 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { buildInviteUrl } from "@/lib/app-url";
 import {
   buildWhatsAppInviteLink,
   getInvitationStatus,
   invitationStatusLabel,
 } from "@/lib/invite-status";
+import { inviteRoleLabels, roleLabels } from "@/lib/admin-labels";
 import {
   AdminEmptyState,
   AdminMobileCard,
   AdminResponsiveTable,
   adminActionOutline,
 } from "@/components/admin/admin-ui";
+import type { Role } from "@prisma/client";
 
 export type InvitationRow = {
   id: string;
@@ -20,7 +23,16 @@ export type InvitationRow = {
   createdAt: string;
   expiresAt: string;
   used: boolean;
+  role: Role;
 };
+
+function inviteRoleLabel(role: Role) {
+  if (role === "ADMIN" || role === "TAWZE3A_ADMIN") {
+    return inviteRoleLabels[role];
+  }
+
+  return roleLabels[role];
+}
 
 export default function InvitationsTable({
   invitations,
@@ -31,16 +43,26 @@ export default function InvitationsTable({
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  function currentAppUrl() {
+    if (typeof window !== "undefined" && window.location.origin) {
+      return window.location.origin;
+    }
+
+    return appUrl;
+  }
+
   async function copyWhatsAppLink(invitation: InvitationRow) {
-    const inviteUrl = `${appUrl}/admin/join?token=${invitation.token}`;
+    const inviteUrl = buildInviteUrl(currentAppUrl(), invitation.token);
     const whatsappUrl = buildWhatsAppInviteLink(inviteUrl);
 
     try {
-      await navigator.clipboard.writeText(whatsappUrl);
+      await navigator.clipboard.writeText(inviteUrl);
       setCopiedId(invitation.id);
     } catch {
-      window.prompt("انسخ رابط واتساب:", whatsappUrl);
+      window.prompt("انسخ رابط الدعوة:", inviteUrl);
     }
+
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   }
 
   if (invitations.length === 0) {
@@ -51,10 +73,11 @@ export default function InvitationsTable({
     <AdminResponsiveTable
       empty={false}
       emptyLabel="لا توجد دعوات بعد"
-      colSpan={4}
+      colSpan={5}
       head={
         <>
           <th className="px-4 py-3 font-bold">البريد الإلكتروني</th>
+          <th className="px-4 py-3 font-bold">الصلاحية</th>
           <th className="px-4 py-3 font-bold">تاريخ الإنشاء</th>
           <th className="px-4 py-3 font-bold">الحالة</th>
           <th className="px-4 py-3 font-bold">الإجراء</th>
@@ -67,6 +90,9 @@ export default function InvitationsTable({
           <AdminMobileCard key={invitation.id}>
             <p className="break-all font-bold text-deep-red" dir="ltr">
               {invitation.email}
+            </p>
+            <p className="mt-1 text-sm font-bold text-coptic-gold-dark">
+              {inviteRoleLabel(invitation.role)}
             </p>
             <p className="mt-1 text-sm text-deep-red/80">
               {new Date(invitation.createdAt).toLocaleString("ar-EG")}
@@ -100,6 +126,7 @@ export default function InvitationsTable({
         return (
           <tr key={invitation.id} className="border-t border-gold/20 text-deep-red">
             <td className="px-4 py-3">{invitation.email}</td>
+            <td className="px-4 py-3">{inviteRoleLabel(invitation.role)}</td>
             <td className="whitespace-nowrap px-4 py-3">
               {new Date(invitation.createdAt).toLocaleString("ar-EG")}
             </td>

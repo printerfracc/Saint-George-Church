@@ -3,6 +3,7 @@
 import { hash } from "bcryptjs";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { isInviteAssignableRole } from "@/lib/roles";
 
 export type AcceptInviteState = {
   error?: string;
@@ -51,6 +52,7 @@ export async function acceptInvite(
       return { error: "هذا البريد مسجّل بالفعل" };
     }
 
+    const assignedRole = isInviteAssignableRole(invite.role) ? invite.role : "ADMIN";
     const hashedPassword = await hash(password, 12);
 
     await prisma.$transaction([
@@ -59,7 +61,7 @@ export async function acceptInvite(
           name,
           email: invite.email,
           password: hashedPassword,
-          role: "ADMIN",
+          role: assignedRole,
         },
       }),
       prisma.inviteToken.update({

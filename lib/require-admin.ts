@@ -8,6 +8,10 @@ export async function requireAdmin() {
     return null;
   }
 
+  if (session.user.role !== "SUPER_ADMIN" && session.user.role !== "ADMIN") {
+    return null;
+  }
+
   return session;
 }
 
@@ -15,6 +19,16 @@ export async function requireSuperAdmin() {
   const session = await requireAdmin();
 
   if (!session || session.user.role !== "SUPER_ADMIN") {
+    return null;
+  }
+
+  return session;
+}
+
+export async function requireTawze3aAdmin() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id || session.user.role !== "TAWZE3A_ADMIN") {
     return null;
   }
 

@@ -20,6 +20,7 @@ const config: Config = {
         "coptic-gold-light": "#E5C07B",
         "coptic-gold-main": "#D4AF37",
         "coptic-gold-dark": "#997A15",
+        "coptic-red-main": "#8B1E3F",
       },
     },
   },

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import InviteAdminForm from "@/components/admin/InviteAdminForm";
 import InvitationsTable from "@/components/admin/InvitationsTable";
-import { getAppUrl } from "@/lib/app-url";
+import { getRequestAppUrl } from "@/lib/request-app-url";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin } from "@/lib/require-admin";
 
@@ -38,7 +38,7 @@ export default async function InvitationsPage() {
       <section className="mt-8" aria-label="الدعوات السابقة">
         <h2 className="mb-4 text-xl font-bold text-deep-red">الدعوات السابقة</h2>
         <InvitationsTable
-          appUrl={getAppUrl()}
+          appUrl={await getRequestAppUrl()}
           invitations={invitations.map((invitation) => ({
             id: invitation.id,
             email: invitation.email,
@@ -46,6 +46,7 @@ export default async function InvitationsPage() {
             createdAt: invitation.createdAt.toISOString(),
             expiresAt: invitation.expiresAt.toISOString(),
             used: invitation.used,
+            role: invitation.role,
           }))}
         />
       </section>

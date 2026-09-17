@@ -78,7 +78,7 @@ export default async function RootLayout({
   const pathname = (await headers()).get("x-pathname") ?? "";
   const isAdminRoute = pathname.startsWith("/admin");
   const navEntries = isAdminRoute
-    ? { sectorItems: [], mediaItems: [] }
+    ? { sectorItems: [], mediaItems: [], showTawze3a: false }
     : await getNavEntries();
 
   return (
@@ -95,6 +95,7 @@ export default async function RootLayout({
             <Navbar
               sectorItems={navEntries.sectorItems}
               mediaItems={navEntries.mediaItems}
+              showTawze3a={navEntries.showTawze3a}
             />
           </div>
         )}

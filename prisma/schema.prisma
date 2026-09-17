@@ -13,6 +13,7 @@ datasource db {
 enum Role {
   SUPER_ADMIN
   ADMIN
+  TAWZE3A_ADMIN
 }
 
 enum ServiceType {
@@ -40,6 +41,7 @@ model InviteToken {
   id        String   @id @default(cuid())
   token     String   @unique
   email     String
+  role      Role     @default(ADMIN)
   expiresAt DateTime
   createdBy String
   used      Boolean  @default(false)
@@ -182,4 +184,58 @@ model PrayerRequest {
   name      String
   message   String   @db.Text
   createdAt DateTime @default(now())
+}
+
+model Servant {
+  id          String               @id @default(cuid())
+  name        String
+  phone       String?              @unique
+  nationalId  String?
+  status      String?
+  newUser     Boolean?             @default(false)
+  assignments ServantAssignment[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+}
+
+model Tawze3a {
+  id          String   @id @default(cuid())
+  title       String
+  isPublished Boolean  @default(false)
+  khedmat     Khedma[]
+  createdAt   DateTime @default(now())
+}
+
+model Khedma {
+  id         String           @id @default(cuid())
+  tawze3aId  String
+  tawze3a    Tawze3a          @relation(fields: [tawze3aId], references: [id], onDelete: Cascade)
+  name       String
+  order      Int              @default(0)
+  categories KhedmaCategory[]
+
+  @@index([tawze3aId])
+}
+
+model KhedmaCategory {
+  id          String               @id @default(cuid())
+  khedmaId    String
+  khedma      Khedma               @relation(fields: [khedmaId], references: [id], onDelete: Cascade)
+  label       String
+  roleType    String
+  order       Int                  @default(0)
+  assignments ServantAssignment[]
+
+  @@index([khedmaId])
+}
+
+model ServantAssignment {
+  id         String         @id @default(cuid())
+  categoryId String
+  category   KhedmaCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  servantId  String
+  servant    Servant        @relation(fields: [servantId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@index([servantId])
 }

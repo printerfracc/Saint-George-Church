@@ -24,6 +24,15 @@ export default async function AdminLayout({
     redirect("/admin/login");
   }
 
+  const isTawze3aRoute =
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/servants") ||
+    pathname.startsWith("/admin/tawze3a");
+
+  if (session.user.role === "TAWZE3A_ADMIN" && !isTawze3aRoute) {
+    redirect("/admin");
+  }
+
   return (
     <div className="flex min-h-dvh flex-col bg-cream lg:flex-row">
       <Sidebar

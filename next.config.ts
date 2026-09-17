@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  serverExternalPackages: ["xlsx"],
   images: {
     remotePatterns: [
       {

@@ -35,6 +35,8 @@ const cards = [
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
   const userName = session?.user?.name ?? "مسؤول";
+  const canManageTawze3a = session?.user?.role === "TAWZE3A_ADMIN";
+  const isTawze3aOnly = session?.user?.role === "TAWZE3A_ADMIN";
 
   let counts = {
     content: 0,
@@ -49,56 +51,58 @@ export default async function AdminDashboardPage() {
     sermons: 0,
   };
 
-  try {
-    const [
-      content,
-      liturgies,
-      relics,
-      activities,
-      priests,
-      services,
-      media,
-      prayers,
-      news,
-      sermons,
-    ] = await Promise.all([
-      listContent(),
-      listLiturgyEntries(),
-      listRelics(),
-      listActivities(),
-      listPriests(),
-      listServices(),
-      listLibraryCollections(),
-      listPrayerRequests(),
-      listNewsEvents(),
-      listSermons(),
-    ]);
+  if (!isTawze3aOnly) {
+    try {
+      const [
+        content,
+        liturgies,
+        relics,
+        activities,
+        priests,
+        services,
+        media,
+        prayers,
+        news,
+        sermons,
+      ] = await Promise.all([
+        listContent(),
+        listLiturgyEntries(),
+        listRelics(),
+        listActivities(),
+        listPriests(),
+        listServices(),
+        listLibraryCollections(),
+        listPrayerRequests(),
+        listNewsEvents(),
+        listSermons(),
+      ]);
 
-    counts = {
-      content: content.length,
-      liturgies: liturgies.filter((entry) => entry.section !== "LIVE").length,
-      relics: relics.length,
-      activities: activities.length,
-      priests: priests.length,
-      services: services.length,
-      media: media.length,
-      prayers: prayers.length,
-      news: news.length,
-      sermons: sermons.length,
-    };
-  } catch {
-    counts = {
-      content: 0,
-      liturgies: 0,
-      relics: 0,
-      activities: 0,
-      priests: 0,
-      services: 0,
-      media: 0,
-      prayers: 0,
-      news: 0,
-      sermons: 0,
-    };
+      counts = {
+        content: content.length,
+        liturgies: liturgies.filter((entry) => entry.section !== "LIVE").length,
+        relics: relics.length,
+        activities: activities.length,
+        priests: priests.length,
+        services: services.length,
+        media: media.length,
+        prayers: prayers.length,
+        news: news.length,
+        sermons: sermons.length,
+      };
+    } catch {
+      counts = {
+        content: 0,
+        liturgies: 0,
+        relics: 0,
+        activities: 0,
+        priests: 0,
+        services: 0,
+        media: 0,
+        prayers: 0,
+        news: 0,
+        sermons: 0,
+      };
+    }
   }
 
   return (
@@ -111,20 +115,40 @@ export default async function AdminDashboardPage() {
       </p>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {cards.map((card) => (
-          <Link
-            key={card.href}
-            href={card.href}
-            className="flex min-h-11 flex-col rounded-2xl border border-coptic-gold-main/40 bg-white/80 p-5 shadow-sm transition hover:-translate-y-1 hover:border-coptic-gold-main"
-          >
-            <p className="text-sm font-bold text-coptic-gold-dark/80">
-              {card.label}
-            </p>
-            <p className="mt-3 text-4xl font-bold text-coptic-gold-dark">
-              {counts[card.key]}
-            </p>
-          </Link>
-        ))}
+        {!isTawze3aOnly
+          ? cards.map((card) => (
+              <Link
+                key={card.href}
+                href={card.href}
+                className="flex min-h-11 flex-col rounded-2xl border border-coptic-gold-main/40 bg-white/80 p-5 shadow-sm transition hover:-translate-y-1 hover:border-coptic-gold-main"
+              >
+                <p className="text-sm font-bold text-coptic-gold-dark/80">
+                  {card.label}
+                </p>
+                <p className="mt-3 text-4xl font-bold text-coptic-gold-dark">
+                  {counts[card.key]}
+                </p>
+              </Link>
+            ))
+          : null}
+        {canManageTawze3a ? (
+          <>
+            <Link
+              href="/admin/tawze3a"
+              className="flex min-h-11 flex-col rounded-2xl border border-coptic-gold-main/40 bg-white/80 p-5 shadow-sm transition hover:-translate-y-1 hover:border-coptic-gold-main"
+            >
+              <p className="text-sm font-bold text-coptic-gold-dark/80">إدارة التوزيعة</p>
+              <p className="mt-3 text-base font-bold text-coptic-gold-dark">التوزيعات</p>
+            </Link>
+            <Link
+              href="/admin/servants"
+              className="flex min-h-11 flex-col rounded-2xl border border-coptic-gold-main/40 bg-white/80 p-5 shadow-sm transition hover:-translate-y-1 hover:border-coptic-gold-main"
+            >
+              <p className="text-sm font-bold text-coptic-gold-dark/80">إضافة الخدام</p>
+              <p className="mt-3 text-base font-bold text-coptic-gold-dark">سجل الخدام</p>
+            </Link>
+          </>
+        ) : null}
       </div>
     </main>
   );

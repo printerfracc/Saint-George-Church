@@ -35,6 +35,7 @@ function withOverview(
 function buildNavItems(
   sectorItems: NavSubItem[],
   mediaItems: NavSubItem[],
+  showTawze3a: boolean,
 ): NavItem[] {
   return [
     withOverview("الرئيسية", "/", [
@@ -51,6 +52,13 @@ function buildNavItems(
     ]),
     withOverview("قطاعات الخدمات", "/sectors", sectorItems),
     withOverview("الوسائط والمكتبة", "/media", mediaItems),
+    ...(showTawze3a
+      ? [
+          withOverview("توزيعة الخدام", "/tawze3a", [
+            { title: "دخول الخدام", href: "/tawze3a/login" },
+          ]),
+        ]
+      : []),
     withOverview("تواصل معنا", "/contact", [
       { title: "حجز المواعيد", href: "/contact#booking" },
       { title: "طلب صلاة أو زيارة افتقاد", href: "/contact#prayer-request" },
@@ -103,17 +111,19 @@ function ChevronIcon({ className }: { className?: string }) {
 export default function Navbar({
   sectorItems = [],
   mediaItems = [],
+  showTawze3a = false,
 }: {
   sectorItems?: NavSubItem[];
   mediaItems?: NavSubItem[];
+  showTawze3a?: boolean;
 }) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [desktopOpen, setDesktopOpen] = useState<string | null>(null);
   const navItems = useMemo(
-    () => buildNavItems(sectorItems, mediaItems),
-    [sectorItems, mediaItems],
+    () => buildNavItems(sectorItems, mediaItems, showTawze3a),
+    [sectorItems, mediaItems, showTawze3a],
   );
 
   useEffect(() => {

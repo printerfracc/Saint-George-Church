@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { inviteAdmin } from "@/actions/invite-admin";
+import { inviteRoleLabels } from "@/lib/admin-labels";
+import type { InviteAssignableRole } from "@/lib/roles";
 
 export default function InviteAdminForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<InviteAssignableRole>("ADMIN");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [inviteUrl, setInviteUrl] = useState("");
@@ -19,7 +22,7 @@ export default function InviteAdminForm() {
     setInviteUrl("");
     setIsError(false);
 
-    const result = await inviteAdmin(email);
+    const result = await inviteAdmin(email, role);
 
     setIsSubmitting(false);
 
@@ -30,6 +33,7 @@ export default function InviteAdminForm() {
     }
 
     setEmail("");
+    setRole("ADMIN");
     setInviteUrl(result.inviteUrl);
     setMessage(
       result.emailSent
@@ -46,30 +50,50 @@ export default function InviteAdminForm() {
     >
       <h2 className="text-lg font-bold text-deep-red">إرسال دعوة جديدة</h2>
       <p className="mt-2 text-sm leading-7 text-deep-red/75">
-        أدخل بريد المسؤول الجديد. سيتم إنشاء رابط صالح لمدة 48 ساعة.
+        أدخل بريد المسؤول الجديد واختر الصلاحية. سيتم إنشاء رابط صالح لمدة 48 ساعة.
       </p>
 
       <label className="mt-4 block text-sm font-bold text-deep-red" htmlFor="invite-email">
         البريد الإلكتروني
       </label>
-      <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-        <input
-          id="invite-email"
-          type="email"
-          required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="admin@example.com"
-          className="w-full rounded-xl border border-deep-red/20 bg-cream px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
-        />
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-5 text-sm font-bold text-black disabled:opacity-60 sm:w-auto"
-        >
-          {isSubmitting ? "جاري الإرسال..." : "إرسال دعوة مسؤول"}
-        </button>
-      </div>
+      <input
+        id="invite-email"
+        type="email"
+        required
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        placeholder="admin@example.com"
+        className="mt-2 w-full rounded-xl border border-deep-red/20 bg-cream px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
+      />
+
+      <fieldset className="mt-4">
+        <legend className="text-sm font-bold text-deep-red">الصلاحية</legend>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+          {(["ADMIN", "TAWZE3A_ADMIN"] as const).map((value) => (
+            <label
+              key={value}
+              className="inline-flex min-h-11 flex-1 items-center gap-2 rounded-xl border border-deep-red/20 bg-cream px-4 py-3 text-sm font-bold text-deep-red"
+            >
+              <input
+                type="radio"
+                name="role"
+                value={value}
+                checked={role === value}
+                onChange={() => setRole(value)}
+              />
+              {inviteRoleLabels[value]}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-5 text-sm font-bold text-black disabled:opacity-60 sm:w-auto"
+      >
+        {isSubmitting ? "جاري الإرسال..." : "إرسال الدعوة"}
+      </button>
 
       {message ? (
         <div

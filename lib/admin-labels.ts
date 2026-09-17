@@ -3,6 +3,12 @@ import type { Role } from "@prisma/client";
 export const roleLabels: Record<Role, string> = {
   SUPER_ADMIN: "مسؤول أعلى",
   ADMIN: "مسؤول",
+  TAWZE3A_ADMIN: "مسؤول التوزيعة",
+};
+
+export const inviteRoleLabels: Record<"ADMIN" | "TAWZE3A_ADMIN", string> = {
+  ADMIN: "أدمن عام",
+  TAWZE3A_ADMIN: "أدمن التوزيعة",
 };
 
 export function formatAdminDate(value: string | Date) {

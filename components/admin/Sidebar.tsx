@@ -20,7 +20,10 @@ const navItems = [
   { href: "/admin/media", label: "الوسائط والمكتبة" },
   { href: "/admin/prayer-requests", label: "طلبات الصلاة والافتقاد" },
   { href: "/admin/news", label: "الأخبار" },
+  { href: "/admin/tawze3a", label: "إدارة التوزيعة", tawze3aRolesOnly: true },
+  { href: "/admin/servants", label: "إضافة الخدام", tawze3aRolesOnly: true },
   { href: "/admin/invitations", label: "الدعوات", superAdminOnly: true },
+  { href: "/admin/users", label: "إدارة الحسابات", superAdminOnly: true },
 ] as const;
 
 export default function Sidebar({
@@ -33,9 +36,21 @@ export default function Sidebar({
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  const items = navItems.filter(
-    (item) => !("superAdminOnly" in item && item.superAdminOnly) || userRole === "SUPER_ADMIN",
-  );
+  const items = navItems.filter((item) => {
+    if ("superAdminOnly" in item && item.superAdminOnly) {
+      return userRole === "SUPER_ADMIN";
+    }
+
+    if ("tawze3aRolesOnly" in item && item.tawze3aRolesOnly) {
+      return userRole === "TAWZE3A_ADMIN";
+    }
+
+    if (userRole === "TAWZE3A_ADMIN") {
+      return item.href === "/admin";
+    }
+
+    return true;
+  });
 
   return (
     <>
