@@ -121,57 +121,67 @@ export default function MediaItemManager({
     setIsSaving(true);
     setError("");
 
-    for (const uploaded of files) {
-      const result = await saveLibraryItem({
-        collectionId,
-        title: "",
-        fileUrl: uploaded.url,
-        fileName: uploaded.fileName,
-        fileType: uploaded.fileType,
-        thumbnail: null,
-        imageDisplayMode: "NORMAL",
-        link: null,
-        linkLabel: null,
-      });
+    try {
+      for (const uploaded of files) {
+        const result = await saveLibraryItem({
+          collectionId,
+          title: "",
+          fileUrl: uploaded.url,
+          fileName: uploaded.fileName,
+          fileType: uploaded.fileType,
+          thumbnail: null,
+          imageDisplayMode: "NORMAL",
+          link: null,
+          linkLabel: null,
+        });
 
-      if (!result.success) {
-        setIsSaving(false);
-        setError(result.error);
-        return;
+        if (!result.success) {
+          setError(result.error);
+          return;
+        }
       }
-    }
 
-    setIsSaving(false);
-    setOpen(false);
-    router.refresh();
+      setOpen(false);
+      router.refresh();
+    } catch {
+      setError(
+        "فشل حفظ الملف. قد يكون حجم الملف كبيراً جداً (الحد الأقصى 4.5 ميجابايت).",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   async function handleSave() {
     setIsSaving(true);
     setError("");
 
-    const result = await saveLibraryItem({
-      id: editing?.id,
-      collectionId,
-      title,
-      fileUrl: file?.url ?? null,
-      fileName: file?.fileName ?? null,
-      fileType: file?.fileType ?? "link",
-      thumbnail,
-      imageDisplayMode,
-      link,
-      linkLabel,
-    });
+    try {
+      const result = await saveLibraryItem({
+        id: editing?.id,
+        collectionId,
+        title,
+        fileUrl: file?.url ?? null,
+        fileName: file?.fileName ?? null,
+        fileType: file?.fileType ?? "link",
+        thumbnail,
+        imageDisplayMode,
+        link,
+        linkLabel,
+      });
 
-    setIsSaving(false);
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
 
-    if (!result.success) {
-      setError(result.error);
-      return;
+      setOpen(false);
+      router.refresh();
+    } catch {
+      setError("فشل حفظ الملف. حاول مرة أخرى.");
+    } finally {
+      setIsSaving(false);
     }
-
-    setOpen(false);
-    router.refresh();
   }
 
   async function handleDelete(id: string) {

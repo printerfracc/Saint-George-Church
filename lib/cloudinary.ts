@@ -15,7 +15,19 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/gif",
 ]);
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_LIBRARY_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
+export const LIBRARY_UPLOAD_FOLDER = "saint-george-church/library";
+
+export type LibraryUploadSignature = {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  fileName: string;
+};
 
 export type MediaFileType = "image" | "pdf" | "word" | "link";
 
@@ -51,7 +63,7 @@ export function validateImageFile(file: File | null): string | null {
     return "يُسمح برفع الصور فقط (JPG أو PNG أو WEBP أو GIF)";
   }
 
-  if (file.size > MAX_FILE_SIZE_BYTES) {
+  if (file.size > MAX_IMAGE_SIZE_BYTES) {
     return "حجم الصورة أكبر من 10 ميغابايت";
   }
 
@@ -85,8 +97,8 @@ export function validateLibraryFile(file: File | null): string | null {
     return "يُسمح برفع الصور أو ملفات PDF أو Word فقط";
   }
 
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    return "حجم الملف أكبر من 10 ميغابايت";
+  if (file.size > MAX_LIBRARY_FILE_SIZE_BYTES) {
+    return "حجم الملف يتخطى 10 ميجابايت. يرجى ضغط الملف.";
   }
 
   return null;
@@ -155,8 +167,8 @@ export async function uploadLibraryFileToCloudinary(
       cloudinary.uploader
         .upload_stream(
           {
-            folder: "saint-george-church/library",
-            resource_type: fileType === "image" ? "image" : "raw",
+            folder: LIBRARY_UPLOAD_FOLDER,
+            resource_type: "auto",
             use_filename: true,
             unique_filename: true,
             filename_override: file.name,
@@ -182,6 +194,39 @@ export async function uploadLibraryFileToCloudinary(
   } catch {
     return { success: false, error: "فشل الرفع" };
   }
+}
+
+function sanitizeUploadFileName(fileName: string) {
+  const trimmed = fileName.trim().replace(/[/\\]/g, "");
+  return trimmed.slice(0, 180) || "file";
+}
+
+export function createLibraryUploadSignature(
+  fileName: string,
+): LibraryUploadSignature {
+  assertCloudinaryConfig();
+
+  const safeName = sanitizeUploadFileName(fileName);
+  const timestamp = Math.round(Date.now() / 1000);
+  const params = {
+    timestamp,
+    folder: LIBRARY_UPLOAD_FOLDER,
+    use_filename: true,
+    unique_filename: true,
+    filename_override: safeName,
+  };
+
+  return {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME as string,
+    apiKey: process.env.CLOUDINARY_API_KEY as string,
+    timestamp,
+    signature: cloudinary.utils.api_sign_request(
+      params,
+      process.env.CLOUDINARY_API_SECRET as string,
+    ),
+    folder: LIBRARY_UPLOAD_FOLDER,
+    fileName: safeName,
+  };
 }
 
 export { cloudinary };

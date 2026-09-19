@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { uploadMedia } from "@/actions/upload-media";
+import { VERCEL_UPLOAD_LIMIT_BYTES } from "@/lib/media";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error";
 
@@ -104,6 +105,12 @@ export default function ImageUpload({
       return;
     }
 
+    if (file.size > VERCEL_UPLOAD_LIMIT_BYTES) {
+      setStatus("error");
+      setErrorMessage("حجم الملف يتخطى 4.5 ميجابايت. يرجى ضغط الملف.");
+      return;
+    }
+
     setStatus("uploading");
     setErrorMessage("");
 
@@ -123,7 +130,9 @@ export default function ImageUpload({
       setStatus("success");
     } catch {
       setStatus("error");
-      setErrorMessage("فشل الرفع");
+      setErrorMessage(
+        "فشل رفع الملف. قد يكون حجم الملف كبيراً جداً (الحد الأقصى 4.5 ميجابايت).",
+      );
     }
   }
 
@@ -199,7 +208,7 @@ export default function ImageUpload({
           </span>
           {preview === "circle" ? null : (
             <span className="mt-2 text-sm text-deep-red/70">
-              JPG أو PNG أو WEBP بحد أقصى 10 ميغابايت
+              JPG أو PNG أو WEBP بحد أقصى 4.5 ميجابايت
             </span>
           )}
           <input

@@ -3,6 +3,43 @@ import { getAppUrl } from "@/lib/app-url";
 
 export type { MediaFileType };
 
+/** Vercel serverless request body limit for Server Actions. */
+export const VERCEL_UPLOAD_LIMIT_BYTES = 4.5 * 1024 * 1024;
+
+/** Cloudinary free-plan upload cap used for direct browser uploads. */
+export const CLOUDINARY_UPLOAD_LIMIT_BYTES = 10 * 1024 * 1024;
+
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+
+const WORD_TYPES = new Set([
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+export function detectLibraryFileType(file: File): MediaFileType | null {
+  const name = file.name.toLowerCase();
+
+  if (ALLOWED_IMAGE_TYPES.has(file.type) || /\.(jpe?g|png|webp|gif)$/.test(name)) {
+    return "image";
+  }
+
+  if (file.type === "application/pdf" || name.endsWith(".pdf")) {
+    return "pdf";
+  }
+
+  if (WORD_TYPES.has(file.type) || /\.(docx?)$/.test(name)) {
+    return "word";
+  }
+
+  return null;
+}
+
 export function mediaFileTypeLabel(type: string) {
   if (type === "pdf") return "ملف PDF";
   if (type === "word") return "ملف Word";
@@ -72,6 +109,13 @@ export function cloudinaryPdfPageImage(fileUrl: string) {
   if (fileUrl.includes("/raw/upload/")) {
     return fileUrl.replace(
       "/raw/upload/",
+      "/image/upload/f_jpg,pg_1,q_auto,w_1400/",
+    );
+  }
+
+  if (fileUrl.includes("/auto/upload/")) {
+    return fileUrl.replace(
+      "/auto/upload/",
       "/image/upload/f_jpg,pg_1,q_auto,w_1400/",
     );
   }

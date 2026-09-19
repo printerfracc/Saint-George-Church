@@ -1,10 +1,21 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import Image from "next/image";
-import { uploadLibraryMedia } from "@/actions/upload-media";
-import type { MediaFileType } from "@/lib/cloudinary";
-import { mediaFileTypeLabel } from "@/lib/media";
+import { getLibraryUploadSignature } from "@/actions/upload-media";
+import { uploadLibraryFileFromBrowser } from "@/lib/cloudinary-browser";
+import {
+  CLOUDINARY_UPLOAD_LIMIT_BYTES,
+  detectLibraryFileType,
+  mediaFileTypeLabel,
+  type MediaFileType,
+} from "@/lib/media";
+
+const toast = {
+  error(message: string, show: (value: string) => void) {
+    show(message);
+  },
+};
 
 export type UploadedLibraryFile = {
   url: string;
@@ -33,9 +44,49 @@ export default function FileUpload({
   const [error, setError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
+  function showError(message: string) {
+    toast.error(message, setError);
+    setStatus("");
+  }
+
+  function resetFileInput() {
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  }
+
+  function isOverCloudinaryLimit(file: File) {
+    return file.size > CLOUDINARY_UPLOAD_LIMIT_BYTES;
+  }
+
+  function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (file && isOverCloudinaryLimit(file)) {
+      showError("حجم الملف يتخطى 10 ميجابايت. يرجى ضغط الملف.");
+      resetFileInput();
+      return;
+    }
+
+    void handleFiles(event.target.files);
+  }
+
   async function handleFiles(fileList: FileList | null) {
     const files = Array.from(fileList ?? []);
     if (files.length === 0) {
+      return;
+    }
+
+    const oversized = files.find(isOverCloudinaryLimit);
+    if (oversized) {
+      showError("حجم الملف يتخطى 10 ميجابايت. يرجى ضغط الملف.");
+      resetFileInput();
+      return;
+    }
+
+    const unsupported = files.find((file) => !detectLibraryFileType(file));
+    if (unsupported) {
+      showError("يُسمح برفع الصور أو ملفات PDF أو Word فقط");
+      resetFileInput();
       return;
     }
 
@@ -45,35 +96,44 @@ export default function FileUpload({
 
     const uploaded: UploadedLibraryFile[] = [];
 
-    for (const file of files) {
-      const formData = new FormData();
-      formData.append("file", file);
+    try {
+      for (const file of files) {
+        const fileType = detectLibraryFileType(file);
+        if (!fileType) {
+          showError("نوع الملف غير مدعوم");
+          setIsUploading(false);
+          return;
+        }
 
-      const result = await uploadLibraryMedia(formData);
-      if (!result.success) {
-        setError(result.error);
-        setStatus("");
-        setIsUploading(false);
-        return;
+        const signed = await getLibraryUploadSignature(file.name);
+        if (!signed.success) {
+          showError(signed.error);
+          setIsUploading(false);
+          return;
+        }
+
+        const url = await uploadLibraryFileFromBrowser(file, signed);
+
+        uploaded.push({
+          url,
+          fileName: file.name,
+          fileType,
+        });
       }
 
-      uploaded.push({
-        url: result.url,
-        fileName: result.fileName,
-        fileType: result.fileType,
-      });
-    }
-
-    onUploaded(uploaded);
-    setStatus(
-      uploaded.length === 1
-        ? `تم رفع ${mediaFileTypeLabel(uploaded[0].fileType)}`
-        : `تم رفع ${uploaded.length} ملفات`,
-    );
-    setIsUploading(false);
-
-    if (inputRef.current) {
-      inputRef.current.value = "";
+      onUploaded(uploaded);
+      setStatus(
+        uploaded.length === 1
+          ? `تم رفع ${mediaFileTypeLabel(uploaded[0].fileType)}`
+          : `تم رفع ${uploaded.length} ملفات`,
+      );
+    } catch {
+      setIsUploading(false);
+      toast.error("فشل رفع الملف. حاول مرة أخرى.", setError);
+      setStatus("");
+    } finally {
+      setIsUploading(false);
+      resetFileInput();
     }
   }
 
@@ -129,9 +189,7 @@ export default function FileUpload({
                   className="sr-only"
                   aria-label="تغيير الملف"
                   disabled={isUploading}
-                  onChange={(event) => {
-                    void handleFiles(event.target.files);
-                  }}
+                  onChange={handleInputChange}
                 />
               </label>
               {onClear ? (
@@ -171,7 +229,7 @@ export default function FileUpload({
             اسحب الملفات هنا أو اضغط للاختيار
           </span>
           <span className="mt-2 text-sm text-deep-red/70">
-            صور أو PDF أو Word بحد أقصى 10 ميغابايت لكل ملف
+            صور أو PDF أو Word بحد أقصى 10 ميجابايت لكل ملف
           </span>
           <input
             ref={inputRef}
@@ -181,14 +239,19 @@ export default function FileUpload({
             className="sr-only"
             aria-label="اختيار ملفات"
             disabled={isUploading}
-            onChange={(event) => {
-              void handleFiles(event.target.files);
-            }}
+            onChange={handleInputChange}
           />
         </label>
       )}
       {status ? <p className="text-sm font-medium text-green-700">{status}</p> : null}
-      {error ? <p className="text-sm font-bold text-coptic-gold-dark">{error}</p> : null}
+      {error ? (
+        <p
+          role="alert"
+          className="rounded-xl border border-deep-red/30 bg-deep-red/10 px-3 py-2 text-sm font-bold text-deep-red"
+        >
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
