@@ -9,6 +9,7 @@ import {
   CHURCH_OG_IMAGE,
   CHURCH_PHONE_NUMBERS,
   CHURCH_SEO_DESCRIPTION,
+  CHURCH_SITE_URL,
   YOUTUBE_CHANNEL_URL,
   toInternationalPhone,
 } from "@/lib/church";
@@ -130,8 +131,8 @@ export default async function Home() {
     alternateName: CHURCH_ALTERNATE_NAMES,
     description: CHURCH_SEO_DESCRIPTION,
     url: siteUrl,
-    image: `${siteUrl}${CHURCH_OG_IMAGE}`,
-    logo: `${siteUrl}${CHURCH_LOGO}`,
+    image: `${CHURCH_SITE_URL}${CHURCH_OG_IMAGE}`,
+    logo: `${CHURCH_SITE_URL}${CHURCH_LOGO}`,
     telephone: CHURCH_PHONE_NUMBERS.map(toInternationalPhone),
     address: {
       "@type": "PostalAddress",

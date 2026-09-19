@@ -206,8 +206,8 @@ export async function sendChurchEmail({
     html,
     attachments: [
       {
-        filename: "logo.png",
-        content: readFileSync(join(process.cwd(), "public", "logo.png")),
+        filename: "icon.png",
+        content: readFileSync(join(process.cwd(), "public", "icon.png")),
         cid: LOGO_CID,
         contentType: "image/png",
         contentDisposition: "inline",

@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
-    "/*": ["./public/logo.png"],
+    "/*": ["./public/icon.png", "./public/google-thumbnail.jpg"],
   },
   experimental: {
     serverActions: {

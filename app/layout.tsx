@@ -13,6 +13,7 @@ import {
   CHURCH_SEO_DESCRIPTION,
   CHURCH_SEO_KEYWORDS,
   CHURCH_SHORT_NAME,
+  CHURCH_SITE_URL,
 } from "@/lib/church";
 import "./globals.css";
 
@@ -30,9 +31,8 @@ export const metadata: Metadata = {
   description: CHURCH_SEO_DESCRIPTION,
   keywords: CHURCH_SEO_KEYWORDS,
   icons: {
-    icon: [{ url: CHURCH_LOGO, type: "image/png" }],
+    icon: CHURCH_LOGO,
     apple: CHURCH_LOGO,
-    shortcut: CHURCH_LOGO,
   },
   openGraph: {
     type: "website",
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     description: CHURCH_SEO_DESCRIPTION,
     images: [
       {
-        url: CHURCH_OG_IMAGE,
+        url: `${CHURCH_SITE_URL}${CHURCH_OG_IMAGE}`,
         width: 1200,
         height: 1200,
         type: "image/jpeg",
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     description: CHURCH_SEO_DESCRIPTION,
     images: [
       {
-        url: CHURCH_OG_IMAGE,
+        url: `${CHURCH_SITE_URL}${CHURCH_OG_IMAGE}`,
         width: 1200,
         height: 1200,
         alt: CHURCH_NAME,
