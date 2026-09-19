@@ -2,11 +2,13 @@ import { randomUUID } from "node:crypto";
 import { connect } from "@tidbcloud/serverless";
 import type { MediaFileType } from "@/lib/cloudinary";
 import { parseImageDisplayMode, type ImageDisplayMode } from "@/lib/image-display";
+import { resolveUniqueSlug } from "@/lib/slug";
 
 export type MediaCollectionRecord = {
   id: string;
   title: string;
   description: string;
+  slug: string | null;
   imageUrl: string | null;
   imageDisplayMode: ImageDisplayMode;
   createdAt: Date;
@@ -51,6 +53,7 @@ let linkColumnsReady = false;
 let optionalFileReady = false;
 let orderColumnReady = false;
 let imageDisplayModeReady = false;
+let slugColumnReady = false;
 
 async function execute(sql: string, args: unknown[] = []) {
   await db().execute(sql, args);
@@ -68,9 +71,11 @@ async function ensureTables() {
         id VARCHAR(191) NOT NULL,
         title VARCHAR(191) NOT NULL,
         description TEXT NOT NULL,
+        slug VARCHAR(191) NULL,
         imageUrl TEXT NULL,
         createdAt DATETIME(3) NOT NULL,
-        PRIMARY KEY (id)
+        PRIMARY KEY (id),
+        UNIQUE KEY MediaCollection_slug_key (slug)
       )
     `);
 
@@ -183,6 +188,24 @@ async function ensureTables() {
     imageDisplayModeReady = true;
   }
 
+  if (!slugColumnReady) {
+    try {
+      await execute("ALTER TABLE MediaCollection ADD COLUMN slug VARCHAR(191) NULL");
+    } catch {
+      // Column may already exist.
+    }
+
+    try {
+      await execute(
+        "CREATE UNIQUE INDEX MediaCollection_slug_key ON MediaCollection (slug)",
+      );
+    } catch {
+      // Index may already exist.
+    }
+
+    slugColumnReady = true;
+  }
+
   try {
     await execute(
       "ALTER TABLE MediaItem ADD COLUMN imageDisplayMode VARCHAR(32) NOT NULL DEFAULT 'NORMAL'",
@@ -200,6 +223,7 @@ export async function listMediaCollections() {
       c.id,
       c.title,
       c.description,
+      c.slug,
       c.imageUrl,
       c.imageDisplayMode,
       c.createdAt,
@@ -215,6 +239,7 @@ export async function listMediaCollections() {
     id: string;
     title: string;
     description: string;
+    slug?: string | null;
     imageUrl: string | null;
     imageDisplayMode?: string | null;
     createdAt: Date | string;
@@ -231,11 +256,28 @@ export async function listMediaCollections() {
     id: row.id,
     title: row.title,
     description: row.description,
+    slug: row.slug ?? null,
     imageUrl: row.imageUrl,
     imageDisplayMode: parseImageDisplayMode(row.imageDisplayMode),
     createdAt: toDate(row.createdAt),
     itemCount: Number(row.itemCount),
   }));
+}
+
+async function isMediaSlugTaken(slug: string, excludeId?: string) {
+  await ensureTables();
+
+  const rows = excludeId
+    ? await query<{ id: string }>(
+        "SELECT id FROM MediaCollection WHERE slug = ? AND id != ? LIMIT 1",
+        [slug, excludeId],
+      )
+    : await query<{ id: string }>(
+        "SELECT id FROM MediaCollection WHERE slug = ? LIMIT 1",
+        [slug],
+      );
+
+  return rows.length > 0;
 }
 
 export async function getMediaCollection(id: string) {
@@ -245,17 +287,18 @@ export async function getMediaCollection(id: string) {
     id: string;
     title: string;
     description: string;
+    slug?: string | null;
     imageUrl: string | null;
     imageDisplayMode?: string | null;
     createdAt: Date | string;
   }>(
     `
-      SELECT id, title, description, imageUrl, imageDisplayMode, createdAt
+      SELECT id, title, description, slug, imageUrl, imageDisplayMode, createdAt
       FROM MediaCollection
-      WHERE id = ?
+      WHERE slug = ? OR id = ?
       LIMIT 1
     `,
-    [id],
+    [id, id],
   );
 
   const row = rows[0];
@@ -267,6 +310,7 @@ export async function getMediaCollection(id: string) {
     id: row.id,
     title: row.title,
     description: row.description,
+    slug: row.slug ?? null,
     imageUrl: row.imageUrl,
     imageDisplayMode: parseImageDisplayMode(row.imageDisplayMode),
     createdAt: toDate(row.createdAt),
@@ -277,6 +321,7 @@ export async function getMediaCollection(id: string) {
 export async function createMediaCollection(data: {
   title: string;
   description: string;
+  slug?: string | null;
   imageUrl: string | null;
   imageDisplayMode?: string | null;
 }) {
@@ -286,11 +331,15 @@ export async function createMediaCollection(data: {
     "SELECT COALESCE(MAX(`order`), -1) + 1 AS nextOrder FROM MediaCollection",
   );
   const order = Number(nextRows[0]?.nextOrder ?? 0);
+  const slug = await resolveUniqueSlug(data.slug, data.title, (value) =>
+    isMediaSlugTaken(value),
+  );
 
   const created: MediaCollectionRecord = {
     id: randomUUID(),
     title: data.title,
     description: data.description,
+    slug,
     imageUrl: data.imageUrl,
     imageDisplayMode: parseImageDisplayMode(data.imageDisplayMode),
     createdAt: new Date(),
@@ -299,13 +348,14 @@ export async function createMediaCollection(data: {
 
   await execute(
     `
-      INSERT INTO MediaCollection (id, title, description, imageUrl, imageDisplayMode, \`order\`, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO MediaCollection (id, title, description, slug, imageUrl, imageDisplayMode, \`order\`, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       created.id,
       created.title,
       created.description,
+      created.slug,
       created.imageUrl,
       created.imageDisplayMode,
       order,
@@ -321,26 +371,34 @@ export async function updateMediaCollection(
   data: {
     title: string;
     description: string;
+    slug?: string | null;
     imageUrl: string | null;
     imageDisplayMode?: string | null;
   },
 ) {
   await ensureTables();
 
+  const slug = await resolveUniqueSlug(data.slug, data.title, (value) =>
+    isMediaSlugTaken(value, id),
+  );
+
   await execute(
     `
       UPDATE MediaCollection
-      SET title = ?, description = ?, imageUrl = ?, imageDisplayMode = ?
+      SET title = ?, description = ?, slug = ?, imageUrl = ?, imageDisplayMode = ?
       WHERE id = ?
     `,
     [
       data.title,
       data.description,
+      slug,
       data.imageUrl,
       parseImageDisplayMode(data.imageDisplayMode),
       id,
     ],
   );
+
+  return { slug };
 }
 
 export async function deleteMediaCollection(id: string) {

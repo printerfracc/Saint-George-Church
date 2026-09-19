@@ -1,10 +1,12 @@
 import { parseImageDisplayMode, type ImageDisplayMode } from "@/lib/image-display";
 import { prisma } from "@/lib/prisma";
+import { resolveUniqueSlug } from "@/lib/slug";
 
 export type ServiceRecord = {
   id: string;
   title: string;
   description: string;
+  slug: string | null;
   imageUrl: string | null;
   parentId: string | null;
   childCount: number;
@@ -19,13 +21,14 @@ export type ServiceParentOption = {
 };
 
 export type ServiceDetail = ServiceRecord & {
-  parent: { id: string; title: string } | null;
+  parent: { id: string; title: string; slug: string | null } | null;
   children: ServiceRecord[];
 };
 
 export type ServiceRecordInput = {
   title: string;
   description: string;
+  slug?: string | null;
   imageUrl: string | null;
   parentId?: string | null;
   imageDisplayMode?: string | null;
@@ -44,6 +47,7 @@ function toRecord(row: {
   id: string;
   title: string;
   description: string;
+  slug?: string | null;
   schedule?: string | null;
   imageUrl?: string | null;
   parentId?: string | null;
@@ -56,12 +60,25 @@ function toRecord(row: {
     id: row.id,
     title: row.title,
     description: row.description,
+    slug: row.slug ?? null,
     imageUrl: asImageUrl(row.imageUrl) ?? asImageUrl(row.schedule),
     parentId: row.parentId ?? null,
     childCount: row._count?.children ?? row.children?.length ?? 0,
     imageDisplayMode: parseImageDisplayMode(row.imageDisplayMode),
     createdAt: toDate(row.createdAt),
   };
+}
+
+async function isServiceSlugTaken(slug: string, excludeId?: string) {
+  const existing = await prisma.service.findFirst({
+    where: {
+      slug,
+      ...(excludeId ? { NOT: { id: excludeId } } : {}),
+    },
+    select: { id: true },
+  });
+
+  return Boolean(existing);
 }
 
 const serviceListInclude = {
@@ -160,10 +177,10 @@ export async function listServiceParentOptions() {
 }
 
 export async function getServiceRecord(id: string): Promise<ServiceDetail | null> {
-  const row = await prisma.service.findUnique({
-    where: { id },
+  const row = await prisma.service.findFirst({
+    where: { OR: [{ slug: id }, { id }] },
     include: {
-      parent: { select: { id: true, title: true } },
+      parent: { select: { id: true, title: true, slug: true } },
       children: {
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
         include: serviceListInclude,
@@ -189,11 +206,15 @@ export async function createServiceRecord(data: ServiceRecordInput) {
     where: { parentId },
     _max: { order: true },
   });
+  const slug = await resolveUniqueSlug(data.slug, data.title, (value) =>
+    isServiceSlugTaken(value),
+  );
 
   return prisma.service.create({
     data: {
       title: data.title,
       description: data.description,
+      slug,
       schedule: data.imageUrl ?? "",
       type: "OTHER",
       order: (maxOrder._max.order ?? -1) + 1,
@@ -205,12 +226,16 @@ export async function createServiceRecord(data: ServiceRecordInput) {
 
 export async function updateServiceRecord(id: string, data: ServiceRecordInput) {
   const parentId = await assertValidParent(data.parentId?.trim() || null, id);
+  const slug = await resolveUniqueSlug(data.slug, data.title, (value) =>
+    isServiceSlugTaken(value, id),
+  );
 
   return prisma.service.update({
     where: { id },
     data: {
       title: data.title,
       description: data.description,
+      slug,
       schedule: data.imageUrl ?? "",
       parentId,
       imageDisplayMode: parseImageDisplayMode(data.imageDisplayMode),

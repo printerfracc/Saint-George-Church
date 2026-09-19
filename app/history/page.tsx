@@ -1,10 +1,12 @@
 import Image from "next/image";
 import PlaceholderPage from "@/components/public/PlaceholderPage";
 import { findDynamicContentByKey } from "@/lib/dynamic-content";
+import { publicPageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "قصة الكنيسة",
-};
+export const metadata = publicPageMetadata(
+  "قصة الكنيسة",
+  "تعرّف على قصة كنيسة الشهيد العظيم مارجرجس بالمطرية وتاريخها الروحي في حي المطرية.",
+);
 
 export const revalidate = 60;
 

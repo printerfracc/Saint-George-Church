@@ -1,8 +1,10 @@
 import PrayerRequestForm from "@/components/home/PrayerRequestForm";
+import { publicPageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "طلبات الصلاة",
-};
+export const metadata = publicPageMetadata(
+  "طلبات الصلاة",
+  "أرسل طلب صلاة إلى كنيسة الشهيد العظيم مارجرجس بالمطرية، وسنصلي من أجلكم في الكنيسة.",
+);
 
 export default function PrayerRequestsPage() {
   return (

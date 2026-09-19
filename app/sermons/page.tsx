@@ -1,9 +1,11 @@
 import LatestSermons from "@/components/home/LatestSermons";
 import { prisma } from "@/lib/prisma";
+import { publicPageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "أرشيف العظات",
-};
+export const metadata = publicPageMetadata(
+  "أرشيف العظات",
+  "أرشيف عظات كنيسة الشهيد العظيم مارجرجس بالمطرية للاستماع والتحميل.",
+);
 
 export default async function SermonsPage() {
   let sermons: {

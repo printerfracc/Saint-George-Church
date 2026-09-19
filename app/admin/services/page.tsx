@@ -18,6 +18,7 @@ export default async function AdminServicesPage() {
           id: service.id,
           title: service.title,
           description: service.description,
+          slug: service.slug,
           imageUrl: service.imageUrl,
           parentId: service.parentId,
           childCount: service.childCount,

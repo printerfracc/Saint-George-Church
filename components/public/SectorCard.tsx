@@ -4,12 +4,14 @@ import { imageDisplayFrameClass } from "@/lib/image-display";
 
 export default function SectorCard({
   id,
+  slug,
   title,
   imageUrl,
   childCount,
   imageDisplayMode,
 }: {
   id: string;
+  slug?: string | null;
   title: string;
   imageUrl: string | null;
   childCount: number;
@@ -20,7 +22,7 @@ export default function SectorCard({
 
   return (
     <article className="overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm transition hover:-translate-y-0.5 hover:border-coptic-gold-main">
-      <Link href={`/sectors/${id}`} className="block">
+      <Link href={`/sectors/${slug || id}`} className="block">
         {imageUrl ? (
           <div className={frameClass}>
             <Image

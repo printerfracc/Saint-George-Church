@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import Sidebar from "@/components/admin/Sidebar";
 import { authOptions } from "@/lib/auth";
 
+export const metadata = { robots: { index: false, follow: false } };
+
 const publicAdminPaths = ["/admin/login", "/admin/join"];
 
 export default async function AdminLayout({

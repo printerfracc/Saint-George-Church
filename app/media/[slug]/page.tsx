@@ -4,29 +4,33 @@ import ChurchLogo from "@/components/ChurchLogo";
 import MediaGallery from "@/components/public/MediaGallery";
 import ReadMoreText from "@/components/public/ReadMoreText";
 import { getLibraryCollection } from "@/actions/media";
+import { recordPageMetadata } from "@/lib/seo";
 
 export const revalidate = 60;
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
-  const collection = await getLibraryCollection(id).catch(() => null);
+  const { slug } = await params;
+  const collection = await getLibraryCollection(slug).catch(() => null);
 
-  return {
-    title: collection?.title ?? "الوسائط والمكتبة",
-  };
+  return recordPageMetadata({
+    title: collection?.title,
+    description: collection?.description,
+    imageUrl: collection?.imageUrl,
+    fallbackTitle: "الوسائط والمكتبة",
+  });
 }
 
 export default async function MediaCollectionPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
-  const collection = await getLibraryCollection(id).catch(() => null);
+  const { slug } = await params;
+  const collection = await getLibraryCollection(slug).catch(() => null);
 
   if (!collection) {
     notFound();

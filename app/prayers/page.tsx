@@ -1,9 +1,11 @@
 import LiturgyScheduleTable from "@/components/public/LiturgyScheduleTable";
 import { listLiturgyEntries } from "@/actions/liturgies";
+import { publicPageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "مواعيد القداسات",
-};
+export const metadata = publicPageMetadata(
+  "مواعيد القداسات",
+  "جدول مواعيد القداسات والصلوات في كنيسة الشهيد العظيم مارجرجس بالمطرية.",
+);
 
 export const revalidate = 60;
 

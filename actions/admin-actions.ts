@@ -53,7 +53,7 @@ function requiredDate(value: FormDataEntryValue | string | null, label: string) 
   return date;
 }
 
-function revalidateAdmin(serviceId?: string) {
+function revalidateAdmin(serviceId?: string, slug?: string | null) {
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/admin");
@@ -70,17 +70,23 @@ function revalidateAdmin(serviceId?: string) {
     revalidatePath(`/admin/services/${serviceId}`);
     revalidatePath(`/sectors/${serviceId}`);
   }
+
+  if (slug && slug !== serviceId) {
+    revalidatePath(`/sectors/${slug}`);
+  }
 }
 
 function parseServiceData(data: {
   title?: string | null;
   description?: string | null;
+  slug?: string | null;
   imageUrl?: string | null;
   parentId?: string | null;
   imageDisplayMode?: string | null;
 }) {
   const title = data.title?.trim() ?? "";
   const description = data.description?.trim() ?? "";
+  const slug = data.slug?.trim() || null;
   const imageUrl = data.imageUrl?.trim() || null;
   const parentId = data.parentId?.trim() || null;
   const imageDisplayMode = parseImageDisplayMode(data.imageDisplayMode);
@@ -89,7 +95,7 @@ function parseServiceData(data: {
     throw new Error("يرجى إدخال اسم القطاع");
   }
 
-  return { title, description, imageUrl, parentId, imageDisplayMode };
+  return { title, description, slug, imageUrl, parentId, imageDisplayMode };
 }
 
 export async function listServices(parentId: string | null = null) {
@@ -119,6 +125,7 @@ export async function getService(id: string) {
 export async function createService(data: {
   title: string;
   description: string;
+  slug?: string | null;
   imageUrl?: string | null;
   parentId?: string | null;
   imageDisplayMode?: string | null;
@@ -128,8 +135,8 @@ export async function createService(data: {
 
   try {
     const parsed = parseServiceData(data);
-    await createServiceRecord(parsed);
-    revalidateAdmin(parsed.parentId ?? undefined);
+    const created = await createServiceRecord(parsed);
+    revalidateAdmin(parsed.parentId ?? created.id, created.slug);
     return { success: true };
   } catch (error) {
     return {
@@ -144,6 +151,7 @@ export async function updateService(
   data: {
     title: string;
     description: string;
+    slug?: string | null;
     imageUrl?: string | null;
     parentId?: string | null;
     imageDisplayMode?: string | null;
@@ -154,8 +162,8 @@ export async function updateService(
 
   try {
     const parsed = parseServiceData(data);
-    await updateServiceRecord(id, parsed);
-    revalidateAdmin(id);
+    const updated = await updateServiceRecord(id, parsed);
+    revalidateAdmin(id, updated.slug);
     if (parsed.parentId) {
       revalidateAdmin(parsed.parentId);
     }

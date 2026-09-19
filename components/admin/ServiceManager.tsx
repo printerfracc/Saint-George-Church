@@ -27,6 +27,7 @@ export type ServiceRow = {
   id: string;
   title: string;
   description: string;
+  slug: string | null;
   imageUrl: string | null;
   parentId: string | null;
   childCount: number;
@@ -42,6 +43,7 @@ export type ServiceParentOption = {
 const emptyForm = {
   title: "",
   description: "",
+  slug: "",
   imageUrl: "",
   parentId: "",
   imageDisplayMode: "NORMAL" as ImageDisplayMode,
@@ -101,6 +103,7 @@ export default function ServiceManager({
     setForm({
       title: service.title,
       description: service.description,
+      slug: service.slug ?? "",
       imageUrl: service.imageUrl ?? "",
       parentId: service.parentId ?? "",
       imageDisplayMode: service.imageDisplayMode,
@@ -116,6 +119,7 @@ export default function ServiceManager({
     const data = {
       title: form.title,
       description: form.description,
+      slug: form.slug,
       imageUrl: form.imageUrl,
       parentId: form.parentId || null,
       imageDisplayMode: form.imageDisplayMode,
@@ -257,6 +261,24 @@ export default function ServiceManager({
               className="w-full rounded-xl border border-coptic-gold-main/40 bg-white px-3 py-2 text-deep-red outline-none focus:ring-2 focus:ring-coptic-gold-main"
               aria-label="اسم القطاع"
             />
+          </label>
+
+          <label className="block space-y-2">
+            <span className="text-sm font-bold text-deep-red">رابط الصفحة بالإنجليزية</span>
+            <input
+              type="text"
+              dir="ltr"
+              value={form.slug}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, slug: event.target.value }))
+              }
+              className="w-full rounded-xl border border-coptic-gold-main/40 bg-white px-3 py-2 text-left text-deep-red outline-none focus:ring-2 focus:ring-coptic-gold-main"
+              aria-label="رابط الصفحة بالإنجليزية"
+              placeholder="youth-meeting"
+            />
+            <span className="block text-xs leading-6 text-deep-red/70">
+              مثال: youth-meeting. إذا تُرك فارغاً سيتم إنشاؤه تلقائياً.
+            </span>
           </label>
 
           <label className="block space-y-2">

@@ -9,8 +9,8 @@ export type NavSubItem = {
 };
 
 function toNavItems(
-  entries: Array<{ id: string; title: string }>,
-  hrefFor: (id: string) => string,
+  entries: Array<{ id: string; title: string; slug?: string | null }>,
+  hrefFor: (entry: { id: string; slug?: string | null }) => string,
 ) {
   return entries.flatMap((entry) => {
     const title = entry.title.trim();
@@ -18,7 +18,7 @@ function toNavItems(
       return [];
     }
 
-    return [{ title, href: hrefFor(entry.id) }];
+    return [{ title, href: hrefFor(entry) }];
   });
 }
 
@@ -34,8 +34,8 @@ export async function getNavEntries() {
     ]);
 
     return {
-      sectorItems: toNavItems(sectors, (id) => `/sectors/${id}`),
-      mediaItems: toNavItems(collections, (id) => `/media/${id}`),
+      sectorItems: toNavItems(sectors, (item) => `/sectors/${item.slug || item.id}`),
+      mediaItems: toNavItems(collections, (item) => `/media/${item.slug || item.id}`),
       showTawze3a: Boolean(publishedTawze3a),
     };
   } catch {

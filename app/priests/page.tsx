@@ -12,10 +12,12 @@ import {
 import { prisma } from "@/lib/prisma";
 import { hasFilledText } from "@/lib/content";
 import { ensurePriestColumns } from "@/actions/priests";
+import { publicPageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "الآباء الكهنة",
-};
+export const metadata = publicPageMetadata(
+  "الآباء الكهنة",
+  "آباء كهنة كنيسة الشهيد العظيم مارجرجس بالمطرية: نبذة تعريفية، مواعيد الاعتراف، ووسائل التواصل.",
+);
 
 export default async function PriestsPage() {
   let priests: Awaited<ReturnType<typeof prisma.priest.findMany>> = [];

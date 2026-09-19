@@ -6,29 +6,34 @@ import ReadMoreText from "@/components/public/ReadMoreText";
 import { getService } from "@/actions/admin-actions";
 import SectorCard from "@/components/public/SectorCard";
 import { imageDisplayFrameClass } from "@/lib/image-display";
+import { recordPageMetadata } from "@/lib/seo";
+import { publicItemPath } from "@/lib/slug";
 
 export const revalidate = 60;
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
-  const sector = await getService(id);
+  const { slug } = await params;
+  const sector = await getService(slug);
 
-  return {
-    title: sector?.title ?? "قطاعات الخدمات",
-  };
+  return recordPageMetadata({
+    title: sector?.title,
+    description: sector?.description,
+    imageUrl: sector?.imageUrl,
+    fallbackTitle: "قطاعات الخدمات",
+  });
 }
 
 export default async function SectorDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
-  const sector = await getService(id);
+  const { slug } = await params;
+  const sector = await getService(slug);
 
   if (!sector) {
     notFound();
@@ -37,7 +42,7 @@ export default async function SectorDetailPage({
   const title = sector.title.trim() || "قطاع خدمة";
   const description = sector.description.trim();
   const hasChildren = sector.children.length > 0;
-  const backHref = sector.parent ? `/sectors/${sector.parent.id}` : "/sectors";
+  const backHref = sector.parent ? publicItemPath("sectors", sector.parent) : "/sectors";
   const backLabel = sector.parent ? sector.parent.title : "قطاعات الخدمات";
 
   return (
@@ -61,6 +66,7 @@ export default async function SectorDetailPage({
             <li key={child.id}>
               <SectorCard
                 id={child.id}
+                slug={child.slug}
                 title={child.title}
                 imageUrl={child.imageUrl}
                 childCount={child.childCount}

@@ -1,10 +1,12 @@
 import ChurchLogo from "@/components/ChurchLogo";
 import SectorCard from "@/components/public/SectorCard";
 import { listServices } from "@/actions/admin-actions";
+import { publicPageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "قطاعات الخدمات",
-};
+export const metadata = publicPageMetadata(
+  "قطاعات الخدمات",
+  "قطاعات الخدمة في كنيسة الشهيد العظيم مارجرجس بالمطرية: مدارس الأحد، الشباب، الافتقاد، والخدمات المختلفة كما تُنشر من إدارة الموقع.",
+);
 
 export const revalidate = 60;
 
@@ -46,6 +48,7 @@ export default async function SectorsPage() {
             <li key={sector.id}>
               <SectorCard
                 id={sector.id}
+                slug={sector.slug}
                 title={sector.title}
                 imageUrl={sector.imageUrl}
                 childCount={sector.childCount}

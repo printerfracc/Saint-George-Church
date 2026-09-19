@@ -1,9 +1,11 @@
 import ReadMoreText from "@/components/public/ReadMoreText";
 import { prisma } from "@/lib/prisma";
+import { publicPageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "العيادات",
-};
+export const metadata = publicPageMetadata(
+  "العيادات",
+  "عيادات كنيسة الشهيد العظيم مارجرجس بالمطرية ومواعيد الخدمة الطبية.",
+);
 
 export default async function ClinicsPage() {
   let clinics: { id: string; title: string; description: string; schedule: string }[] =

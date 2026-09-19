@@ -4,10 +4,13 @@ import ChurchLogo from "@/components/ChurchLogo";
 import ReadMoreText from "@/components/public/ReadMoreText";
 import { listLibraryCollections } from "@/actions/media";
 import { imageDisplayFrameClass } from "@/lib/image-display";
+import { publicPageMetadata } from "@/lib/seo";
+import { publicItemPath } from "@/lib/slug";
 
-export const metadata = {
-  title: "الوسائط والمكتبة",
-};
+export const metadata = publicPageMetadata(
+  "الوسائط والمكتبة",
+  "مكتبة الوسائط لكنيسة الشهيد العظيم مارجرجس بالمطرية: صور، كتب، وملفات روحية تُنشر من إدارة الموقع.",
+);
 
 export const revalidate = 60;
 
@@ -48,7 +51,7 @@ export default async function MediaPage() {
           {collections.map((collection) => (
             <li key={collection.id}>
               <article className="overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm transition hover:-translate-y-0.5 hover:border-coptic-gold-main">
-                <Link href={`/media/${collection.id}`} className="block">
+                <Link href={publicItemPath("media", collection)} className="block">
                   {collection.imageUrl ? (
                     <div className={imageDisplayFrameClass(collection.imageDisplayMode)}>
                       <Image

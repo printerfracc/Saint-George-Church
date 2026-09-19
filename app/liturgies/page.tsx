@@ -5,10 +5,12 @@ import LiturgyScheduleTable from "@/components/public/LiturgyScheduleTable";
 import ReadMoreText from "@/components/public/ReadMoreText";
 import { listLiturgyEntries } from "@/actions/liturgies";
 import { PUBLIC_LITURGY_SECTIONS } from "@/lib/liturgies";
+import { publicPageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "صلوات الكنيسة",
-};
+export const metadata = publicPageMetadata(
+  "صلوات الكنيسة",
+  "صلوات كنيسة الشهيد العظيم مارجرجس بالمطرية: مواعيد القداسات، البث المباشر، والطقوس الكنسية.",
+);
 
 export const revalidate = 60;
 

@@ -31,6 +31,7 @@ export default async function AdminServiceChildrenPage({
           id: child.id,
           title: child.title,
           description: child.description,
+          slug: child.slug,
           imageUrl: child.imageUrl,
           parentId: child.parentId,
           childCount: child.childCount,

@@ -31,7 +31,7 @@ async function ensureAdmin(): Promise<MediaActionResult | true> {
   return true;
 }
 
-function revalidateMedia(collectionId?: string) {
+function revalidateMedia(collectionId?: string, slug?: string | null) {
   revalidatePath("/", "layout");
   revalidatePath("/admin");
   revalidatePath("/admin/media");
@@ -40,6 +40,10 @@ function revalidateMedia(collectionId?: string) {
   if (collectionId) {
     revalidatePath(`/admin/media/${collectionId}`);
     revalidatePath(`/media/${collectionId}`);
+  }
+
+  if (slug && slug !== collectionId) {
+    revalidatePath(`/media/${slug}`);
   }
 }
 
@@ -58,7 +62,7 @@ export async function getLibraryCollection(id: string) {
       return null;
     }
 
-    const items = await listMediaItems(id);
+    const items = await listMediaItems(collection.id);
     return { ...collection, items };
   } catch {
     return null;
@@ -69,6 +73,7 @@ export async function saveLibraryCollection(data: {
   id?: string;
   title: string;
   description: string;
+  slug?: string | null;
   imageUrl?: string | null;
   imageDisplayMode?: string | null;
 }): Promise<MediaActionResult> {
@@ -77,6 +82,7 @@ export async function saveLibraryCollection(data: {
 
   const title = data.title.trim();
   const description = data.description.trim();
+  const slug = data.slug?.trim() || null;
   const imageUrl = data.imageUrl?.trim() || null;
   const imageDisplayMode = parseImageDisplayMode(data.imageDisplayMode);
 
@@ -86,16 +92,23 @@ export async function saveLibraryCollection(data: {
 
   try {
     if (data.id) {
-      await updateMediaCollection(data.id, { title, description, imageUrl, imageDisplayMode });
-      revalidateMedia(data.id);
+      const updated = await updateMediaCollection(data.id, {
+        title,
+        description,
+        slug,
+        imageUrl,
+        imageDisplayMode,
+      });
+      revalidateMedia(data.id, updated.slug);
     } else {
       const created = await createMediaCollection({
         title,
         description,
+        slug,
         imageUrl,
         imageDisplayMode,
       });
-      revalidateMedia(created.id);
+      revalidateMedia(created.id, created.slug);
     }
 
     return { success: true };
