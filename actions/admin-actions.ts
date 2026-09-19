@@ -3,9 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
+import { parseImageDisplayMode } from "@/lib/image-display";
 import {
   createServiceRecord,
   deleteServiceRecord,
+  getServiceRecord,
+  listServiceParentOptions,
   listServiceRecords,
   updateServiceRecord,
 } from "@/lib/service-db";
@@ -50,39 +53,66 @@ function requiredDate(value: FormDataEntryValue | string | null, label: string) 
   return date;
 }
 
-function revalidateAdmin() {
+function revalidateAdmin(serviceId?: string) {
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/admin/priests");
   revalidatePath("/admin/services");
+  revalidatePath("/admin/services", "layout");
   revalidatePath("/admin/news");
   revalidatePath("/admin/sermons");
   revalidatePath("/sectors");
+  revalidatePath("/sectors", "layout");
   revalidatePath("/services");
+
+  if (serviceId) {
+    revalidatePath(`/admin/services/${serviceId}`);
+    revalidatePath(`/sectors/${serviceId}`);
+  }
 }
 
 function parseServiceData(data: {
   title?: string | null;
   description?: string | null;
   imageUrl?: string | null;
+  parentId?: string | null;
+  imageDisplayMode?: string | null;
 }) {
   const title = data.title?.trim() ?? "";
   const description = data.description?.trim() ?? "";
   const imageUrl = data.imageUrl?.trim() || null;
+  const parentId = data.parentId?.trim() || null;
+  const imageDisplayMode = parseImageDisplayMode(data.imageDisplayMode);
 
   if (!title) {
     throw new Error("يرجى إدخال اسم القطاع");
   }
 
-  return { title, description, imageUrl };
+  return { title, description, imageUrl, parentId, imageDisplayMode };
 }
 
-export async function listServices() {
+export async function listServices(parentId: string | null = null) {
   try {
-    return await listServiceRecords();
+    return await listServiceRecords(parentId);
   } catch {
     return [];
+  }
+}
+
+export async function listServiceParents() {
+  try {
+    return await listServiceParentOptions();
+  } catch {
+    return [];
+  }
+}
+
+export async function getService(id: string) {
+  try {
+    return await getServiceRecord(id);
+  } catch {
+    return null;
   }
 }
 
@@ -90,13 +120,16 @@ export async function createService(data: {
   title: string;
   description: string;
   imageUrl?: string | null;
+  parentId?: string | null;
+  imageDisplayMode?: string | null;
 }): Promise<AdminActionResult> {
   const auth = await ensureAdmin();
   if (auth !== true) return auth;
 
   try {
-    await createServiceRecord(parseServiceData(data));
-    revalidateAdmin();
+    const parsed = parseServiceData(data);
+    await createServiceRecord(parsed);
+    revalidateAdmin(parsed.parentId ?? undefined);
     return { success: true };
   } catch (error) {
     return {
@@ -112,14 +145,20 @@ export async function updateService(
     title: string;
     description: string;
     imageUrl?: string | null;
+    parentId?: string | null;
+    imageDisplayMode?: string | null;
   },
 ): Promise<AdminActionResult> {
   const auth = await ensureAdmin();
   if (auth !== true) return auth;
 
   try {
-    await updateServiceRecord(id, parseServiceData(data));
-    revalidateAdmin();
+    const parsed = parseServiceData(data);
+    await updateServiceRecord(id, parsed);
+    revalidateAdmin(id);
+    if (parsed.parentId) {
+      revalidateAdmin(parsed.parentId);
+    }
     return { success: true };
   } catch (error) {
     return {
@@ -135,7 +174,7 @@ export async function deleteService(id: string): Promise<AdminActionResult> {
 
   try {
     await deleteServiceRecord(id);
-    revalidateAdmin();
+    revalidateAdmin(id);
     return { success: true };
   } catch {
     return { success: false, error: "تعذر حذف القطاع" };

@@ -3,6 +3,7 @@ import Link from "next/link";
 import ChurchLogo from "@/components/ChurchLogo";
 import ReadMoreText from "@/components/public/ReadMoreText";
 import { listLibraryCollections } from "@/actions/media";
+import { imageDisplayFrameClass } from "@/lib/image-display";
 
 export const metadata = {
   title: "الوسائط والمكتبة",
@@ -49,7 +50,7 @@ export default async function MediaPage() {
               <article className="overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm transition hover:-translate-y-0.5 hover:border-coptic-gold-main">
                 <Link href={`/media/${collection.id}`} className="block">
                   {collection.imageUrl ? (
-                    <div className="relative aspect-video">
+                    <div className={imageDisplayFrameClass(collection.imageDisplayMode)}>
                       <Image
                         src={collection.imageUrl}
                         alt={collection.title}

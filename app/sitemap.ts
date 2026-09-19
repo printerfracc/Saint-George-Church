@@ -28,10 +28,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   try {
-    const collections = await prisma.mediaCollection.findMany({
-      select: { id: true, createdAt: true },
-      orderBy: { order: "asc" },
-    });
+    const [collections, sectors] = await Promise.all([
+      prisma.mediaCollection.findMany({
+        select: { id: true, createdAt: true },
+        orderBy: { order: "asc" },
+      }),
+      prisma.service.findMany({
+        select: { id: true, createdAt: true },
+        orderBy: { order: "asc" },
+      }),
+    ]);
 
     const mediaEntries: MetadataRoute.Sitemap = collections.map((collection) => ({
       url: `${baseUrl}/media/${collection.id}`,
@@ -40,7 +46,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }));
 
-    return [...staticEntries, ...mediaEntries];
+    const sectorEntries: MetadataRoute.Sitemap = sectors.map((sector) => ({
+      url: `${baseUrl}/sectors/${sector.id}`,
+      lastModified: sector.createdAt,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    }));
+
+    return [...staticEntries, ...mediaEntries, ...sectorEntries];
   } catch {
     return staticEntries;
   }

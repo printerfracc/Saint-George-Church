@@ -2,6 +2,24 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 
+function normalizePublicMultiline(text?: string | null) {
+  return (text ?? "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/\u2028/g, "\n")
+    .replace(/\u2029/g, "\n\n")
+    .replace(/[^\S\n]+\n/g, "\n")
+    .trim()
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+const collapsedClampStyle = (lineCount: number) =>
+  ({
+    display: "-webkit-box",
+    overflow: "hidden",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: lineCount,
+  }) as React.CSSProperties;
+
 export default function ReadMoreText({
   text,
   lines = 4,
@@ -13,24 +31,26 @@ export default function ReadMoreText({
   className?: string;
   buttonClassName?: string;
 }) {
-  const formatted = (text ?? "").replace(/\r\n/g, "\n").trim();
-  const textRef = useRef<HTMLDivElement>(null);
+  const formatted = normalizePublicMultiline(text);
+  const paragraphs = formatted.split(/\n{2,}/).filter(Boolean);
+  const collapsedText = paragraphs.join("\n");
+  const clampRef = useRef<HTMLParagraphElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
 
   useLayoutEffect(() => {
-    const element = textRef.current;
+    const element = clampRef.current;
 
     if (!element || expanded) {
       return;
     }
 
     function measure() {
-      if (!textRef.current) {
+      if (!clampRef.current) {
         return;
       }
 
-      setCanExpand(textRef.current.scrollHeight > textRef.current.clientHeight + 2);
+      setCanExpand(clampRef.current.scrollHeight > clampRef.current.clientHeight + 2);
     }
 
     measure();
@@ -39,7 +59,7 @@ export default function ReadMoreText({
     observer.observe(element);
 
     return () => observer.disconnect();
-  }, [formatted, expanded, lines]);
+  }, [collapsedText, expanded, lines]);
 
   if (!formatted) {
     return null;
@@ -47,19 +67,24 @@ export default function ReadMoreText({
 
   return (
     <div>
-      <div
-        ref={textRef}
-        style={
-          expanded
-            ? undefined
-            : {
-                maxHeight: `calc(${lines} * 1lh)`,
-                overflow: "hidden",
-              }
-        }
-        className={`whitespace-pre-line wrap-break-word ${className}`.trim()}
-      >
-        {formatted}
+      <div className={`wrap-break-word ${className}`.trim()}>
+        {expanded ? (
+          <div className="space-y-3">
+            {paragraphs.map((paragraph, index) => (
+              <p key={`${index}-${paragraph.slice(0, 24)}`} className="whitespace-pre-line">
+                {paragraph}
+              </p>
+            ))}
+          </div>
+        ) : (
+          <p
+            ref={clampRef}
+            style={collapsedClampStyle(lines)}
+            className="whitespace-pre-line"
+          >
+            {collapsedText}
+          </p>
+        )}
       </div>
       {canExpand ? (
         <button

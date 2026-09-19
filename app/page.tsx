@@ -99,6 +99,7 @@ export default async function Home() {
     name: activity.name,
     description: activity.description,
     imageUrl: activity.imageUrl,
+    link: activity.link,
   }));
 
   const priests = priestRecords.map((priest) => ({

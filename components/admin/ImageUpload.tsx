@@ -12,7 +12,8 @@ export type ImagePreviewVariant =
   | "relic"
   | "activity"
   | "hero"
-  | "wide";
+  | "wide"
+  | "portrait";
 
 type ImageUploadProps = {
   value?: string;
@@ -65,6 +66,12 @@ const previewFrames: Record<
     frame:
       "relative aspect-video overflow-hidden rounded-2xl border border-gold/50 bg-white",
     drop: "flex min-h-48 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-8 text-center sm:min-h-56",
+    image: "object-cover",
+  },
+  portrait: {
+    frame:
+      "relative mx-auto aspect-[450/730] w-full max-w-[225px] overflow-hidden rounded-2xl border border-gold/50 bg-white",
+    drop: "flex aspect-[450/730] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 text-center",
     image: "object-cover",
   },
 };

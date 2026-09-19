@@ -34,7 +34,7 @@ export async function getNavEntries() {
     ]);
 
     return {
-      sectorItems: toNavItems(sectors, (id) => `/sectors#sector-${id}`),
+      sectorItems: toNavItems(sectors, (id) => `/sectors/${id}`),
       mediaItems: toNavItems(collections, (id) => `/media/${id}`),
       showTawze3a: Boolean(publishedTawze3a),
     };

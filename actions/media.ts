@@ -14,6 +14,7 @@ import {
   updateMediaItem,
 } from "@/lib/media-db";
 import { requireAdmin } from "@/lib/require-admin";
+import { parseImageDisplayMode } from "@/lib/image-display";
 import { normalizeExternalUrl } from "@/lib/media";
 
 export type MediaActionResult =
@@ -69,6 +70,7 @@ export async function saveLibraryCollection(data: {
   title: string;
   description: string;
   imageUrl?: string | null;
+  imageDisplayMode?: string | null;
 }): Promise<MediaActionResult> {
   const auth = await ensureAdmin();
   if (auth !== true) return auth;
@@ -76,6 +78,7 @@ export async function saveLibraryCollection(data: {
   const title = data.title.trim();
   const description = data.description.trim();
   const imageUrl = data.imageUrl?.trim() || null;
+  const imageDisplayMode = parseImageDisplayMode(data.imageDisplayMode);
 
   if (!title) {
     return { success: false, error: "يرجى إدخال اسم القسم" };
@@ -83,10 +86,15 @@ export async function saveLibraryCollection(data: {
 
   try {
     if (data.id) {
-      await updateMediaCollection(data.id, { title, description, imageUrl });
+      await updateMediaCollection(data.id, { title, description, imageUrl, imageDisplayMode });
       revalidateMedia(data.id);
     } else {
-      const created = await createMediaCollection({ title, description, imageUrl });
+      const created = await createMediaCollection({
+        title,
+        description,
+        imageUrl,
+        imageDisplayMode,
+      });
       revalidateMedia(created.id);
     }
 
@@ -122,6 +130,7 @@ export async function saveLibraryItem(data: {
   fileName?: string | null;
   fileType?: MediaFileType | null;
   thumbnail?: string | null;
+  imageDisplayMode?: string | null;
   link?: string | null;
   linkLabel?: string | null;
 }): Promise<MediaActionResult> {
@@ -145,6 +154,7 @@ export async function saveLibraryItem(data: {
   }
 
   const savedLinkLabel = link ? linkLabel : null;
+  const imageDisplayMode = parseImageDisplayMode(data.imageDisplayMode);
 
   try {
     if (data.id) {
@@ -154,6 +164,7 @@ export async function saveLibraryItem(data: {
         fileName: fileUrl ? data.fileName?.trim() || null : null,
         fileType,
         thumbnail,
+        imageDisplayMode,
         link,
         linkLabel: savedLinkLabel,
       });
@@ -165,6 +176,7 @@ export async function saveLibraryItem(data: {
         fileName: fileUrl ? data.fileName?.trim() || null : null,
         fileType,
         thumbnail,
+        imageDisplayMode,
         link,
         linkLabel: savedLinkLabel,
       });

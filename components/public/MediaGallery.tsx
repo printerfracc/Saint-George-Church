@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import type { MediaFileType } from "@/lib/cloudinary";
+import { imageDisplayFrameClass } from "@/lib/image-display";
 import {
   mediaDownloadUrl,
   mediaExternalLinkLabel,
@@ -19,6 +20,7 @@ export type GalleryItem = {
   fileName: string | null;
   fileType: MediaFileType;
   thumbnail: string | null;
+  imageDisplayMode?: string | null;
   link: string | null;
   linkLabel: string | null;
 };
@@ -89,7 +91,7 @@ export default function MediaGallery({ items }: { items: GalleryItem[] }) {
                   className="group block w-full text-right"
                   aria-label={label || mediaFileTypeLabel(item.fileType)}
                 >
-                  <div className="relative aspect-4/3 bg-[#1A0A10]">
+                  <div className={`${imageDisplayFrameClass(item.imageDisplayMode, "relative aspect-4/3")} bg-[#1A0A10]`}>
                     {preview ? (
                       <Image
                         src={preview}
@@ -159,7 +161,7 @@ export default function MediaGallery({ items }: { items: GalleryItem[] }) {
               className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-cream shadow-2xl"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="relative aspect-video bg-[#1A0A10]">
+              <div className={`${imageDisplayFrameClass(active.imageDisplayMode, "relative aspect-video")} bg-[#1A0A10]`}>
                 {activePreview ? (
                   <Image
                     src={activePreview}

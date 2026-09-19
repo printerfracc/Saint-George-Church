@@ -1,18 +1,15 @@
 import ServiceManager from "@/components/admin/ServiceManager";
-import { listServices } from "@/actions/admin-actions";
+import { listServiceParents, listServices } from "@/actions/admin-actions";
 
 export const metadata = {
   title: "إدارة الخدمات",
 };
 
 export default async function AdminServicesPage() {
-  let services: Awaited<ReturnType<typeof listServices>> = [];
-
-  try {
-    services = await listServices();
-  } catch {
-    services = [];
-  }
+  const [services, parentOptions] = await Promise.all([
+    listServices(null),
+    listServiceParents(),
+  ]);
 
   return (
     <main className="px-4 py-8 md:px-8">
@@ -22,7 +19,11 @@ export default async function AdminServicesPage() {
           title: service.title,
           description: service.description,
           imageUrl: service.imageUrl,
+          parentId: service.parentId,
+          childCount: service.childCount,
+          imageDisplayMode: service.imageDisplayMode,
         }))}
+        parentOptions={parentOptions}
       />
     </main>
   );

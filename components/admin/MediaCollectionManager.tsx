@@ -17,14 +17,17 @@ import {
   adminActionOutline,
 } from "@/components/admin/admin-ui";
 import DraggableList from "@/components/admin/DraggableList";
+import ImageDisplayModeField from "@/components/admin/ImageDisplayModeField";
 import ImageUpload from "@/components/admin/ImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
+import type { ImageDisplayMode } from "@/lib/image-display";
 
 export type MediaCollectionRow = {
   id: string;
   title: string;
   description: string;
   imageUrl: string | null;
+  imageDisplayMode: ImageDisplayMode;
   itemCount: number;
 };
 
@@ -32,6 +35,7 @@ const emptyForm = {
   title: "",
   description: "",
   imageUrl: "",
+  imageDisplayMode: "NORMAL" as ImageDisplayMode,
 };
 
 function CollectionActions({
@@ -102,6 +106,7 @@ export default function MediaCollectionManager({
       title: collection.title,
       description: collection.description,
       imageUrl: collection.imageUrl ?? "",
+      imageDisplayMode: collection.imageDisplayMode,
     });
     setError("");
     setOpen(true);
@@ -116,6 +121,7 @@ export default function MediaCollectionManager({
       title: form.title,
       description: form.description,
       imageUrl: form.imageUrl,
+      imageDisplayMode: form.imageDisplayMode,
     });
 
     setIsSaving(false);
@@ -246,7 +252,13 @@ export default function MediaCollectionManager({
               setForm((current) => ({ ...current, imageUrl: url }))
             }
             label="صورة الغلاف (اختياري)"
-            preview="wide"
+            preview={form.imageDisplayMode === "PORTRAIT_450_730" ? "portrait" : "wide"}
+          />
+          <ImageDisplayModeField
+            value={form.imageDisplayMode}
+            onChange={(imageDisplayMode) =>
+              setForm((current) => ({ ...current, imageDisplayMode }))
+            }
           />
 
           {error ? <p className="text-sm font-bold text-coptic-gold-dark">{error}</p> : null}

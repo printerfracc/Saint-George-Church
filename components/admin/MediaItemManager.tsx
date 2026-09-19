@@ -16,9 +16,11 @@ import DraggableList from "@/components/admin/DraggableList";
 import FileUpload, {
   type UploadedLibraryFile,
 } from "@/components/admin/FileUpload";
+import ImageDisplayModeField from "@/components/admin/ImageDisplayModeField";
 import ImageUpload from "@/components/admin/ImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
 import type { MediaFileType } from "@/lib/cloudinary";
+import type { ImageDisplayMode } from "@/lib/image-display";
 import { mediaFileTypeLabel, mediaGalleryImage } from "@/lib/media";
 
 export type MediaItemRow = {
@@ -28,6 +30,7 @@ export type MediaItemRow = {
   fileName: string | null;
   fileType: MediaFileType;
   thumbnail: string | null;
+  imageDisplayMode: ImageDisplayMode;
   link: string | null;
   linkLabel: string | null;
 };
@@ -48,6 +51,8 @@ export default function MediaItemManager({
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<UploadedLibraryFile | null>(null);
   const [thumbnail, setThumbnail] = useState("");
+  const [imageDisplayMode, setImageDisplayMode] =
+    useState<ImageDisplayMode>("NORMAL");
   const [link, setLink] = useState("");
   const [linkLabel, setLinkLabel] = useState("");
   const [error, setError] = useState("");
@@ -75,6 +80,7 @@ export default function MediaItemManager({
     setTitle("");
     setFile(null);
     setThumbnail("");
+    setImageDisplayMode("NORMAL");
     setLink("");
     setLinkLabel("");
     setError("");
@@ -99,6 +105,7 @@ export default function MediaItemManager({
         : null,
     );
     setThumbnail(item.thumbnail ?? "");
+    setImageDisplayMode(item.imageDisplayMode ?? "NORMAL");
     setLink(item.link ?? "");
     setLinkLabel(item.linkLabel ?? "");
     setError("");
@@ -122,6 +129,7 @@ export default function MediaItemManager({
         fileName: uploaded.fileName,
         fileType: uploaded.fileType,
         thumbnail: null,
+        imageDisplayMode: "NORMAL",
         link: null,
         linkLabel: null,
       });
@@ -150,6 +158,7 @@ export default function MediaItemManager({
       fileName: file?.fileName ?? null,
       fileType: file?.fileType ?? "link",
       thumbnail,
+      imageDisplayMode,
       link,
       linkLabel,
     });
@@ -295,7 +304,11 @@ export default function MediaItemManager({
             onChange={setThumbnail}
             label="thumbnail"
             hint={null}
-            preview="story"
+            preview={imageDisplayMode === "PORTRAIT_450_730" ? "portrait" : "story"}
+          />
+          <ImageDisplayModeField
+            value={imageDisplayMode}
+            onChange={setImageDisplayMode}
           />
 
           <label className="block space-y-2">

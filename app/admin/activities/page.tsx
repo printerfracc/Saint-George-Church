@@ -27,12 +27,14 @@ export default async function AdminActivitiesPage() {
         emptyLabel="لا توجد أنشطة بعد"
         deleteConfirm="هل تريد حذف هذا النشاط؟"
         preview="activity"
+        showLinkField
         reorderModel="ChurchActivity"
         items={activities.map((activity) => ({
           id: activity.id,
           name: activity.name,
           description: activity.description,
           imageUrl: activity.imageUrl,
+          link: activity.link,
         }))}
         onCreate={createActivity}
         onUpdate={updateActivity}

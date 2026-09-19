@@ -1,12 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { connect } from "@tidbcloud/serverless";
 import type { MediaFileType } from "@/lib/cloudinary";
+import { parseImageDisplayMode, type ImageDisplayMode } from "@/lib/image-display";
 
 export type MediaCollectionRecord = {
   id: string;
   title: string;
   description: string;
   imageUrl: string | null;
+  imageDisplayMode: ImageDisplayMode;
   createdAt: Date;
   itemCount: number;
 };
@@ -19,6 +21,7 @@ export type MediaItemRecord = {
   fileName: string | null;
   fileType: MediaFileType;
   thumbnail: string | null;
+  imageDisplayMode: ImageDisplayMode;
   link: string | null;
   linkLabel: string | null;
   createdAt: Date;
@@ -47,6 +50,7 @@ let thumbnailColumnReady = false;
 let linkColumnsReady = false;
 let optionalFileReady = false;
 let orderColumnReady = false;
+let imageDisplayModeReady = false;
 
 async function execute(sql: string, args: unknown[] = []) {
   await db().execute(sql, args);
@@ -166,6 +170,26 @@ async function ensureTables() {
 
     orderColumnReady = true;
   }
+
+  if (!imageDisplayModeReady) {
+    try {
+      await execute(
+        "ALTER TABLE MediaCollection ADD COLUMN imageDisplayMode VARCHAR(32) NOT NULL DEFAULT 'NORMAL'",
+      );
+    } catch {
+      // Column may already exist.
+    }
+
+    imageDisplayModeReady = true;
+  }
+
+  try {
+    await execute(
+      "ALTER TABLE MediaItem ADD COLUMN imageDisplayMode VARCHAR(32) NOT NULL DEFAULT 'NORMAL'",
+    );
+  } catch {
+    // Column may already exist.
+  }
 }
 
 export async function listMediaCollections() {
@@ -177,6 +201,7 @@ export async function listMediaCollections() {
       c.title,
       c.description,
       c.imageUrl,
+      c.imageDisplayMode,
       c.createdAt,
       (
         SELECT COUNT(*)
@@ -191,6 +216,7 @@ export async function listMediaCollections() {
     title: string;
     description: string;
     imageUrl: string | null;
+    imageDisplayMode?: string | null;
     createdAt: Date | string;
     itemCount: number | string;
   }>;
@@ -206,6 +232,7 @@ export async function listMediaCollections() {
     title: row.title,
     description: row.description,
     imageUrl: row.imageUrl,
+    imageDisplayMode: parseImageDisplayMode(row.imageDisplayMode),
     createdAt: toDate(row.createdAt),
     itemCount: Number(row.itemCount),
   }));
@@ -219,10 +246,11 @@ export async function getMediaCollection(id: string) {
     title: string;
     description: string;
     imageUrl: string | null;
+    imageDisplayMode?: string | null;
     createdAt: Date | string;
   }>(
     `
-      SELECT id, title, description, imageUrl, createdAt
+      SELECT id, title, description, imageUrl, imageDisplayMode, createdAt
       FROM MediaCollection
       WHERE id = ?
       LIMIT 1
@@ -240,6 +268,7 @@ export async function getMediaCollection(id: string) {
     title: row.title,
     description: row.description,
     imageUrl: row.imageUrl,
+    imageDisplayMode: parseImageDisplayMode(row.imageDisplayMode),
     createdAt: toDate(row.createdAt),
     itemCount: 0,
   };
@@ -249,6 +278,7 @@ export async function createMediaCollection(data: {
   title: string;
   description: string;
   imageUrl: string | null;
+  imageDisplayMode?: string | null;
 }) {
   await ensureTables();
 
@@ -259,21 +289,25 @@ export async function createMediaCollection(data: {
 
   const created: MediaCollectionRecord = {
     id: randomUUID(),
-    ...data,
+    title: data.title,
+    description: data.description,
+    imageUrl: data.imageUrl,
+    imageDisplayMode: parseImageDisplayMode(data.imageDisplayMode),
     createdAt: new Date(),
     itemCount: 0,
   };
 
   await execute(
     `
-      INSERT INTO MediaCollection (id, title, description, imageUrl, \`order\`, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO MediaCollection (id, title, description, imageUrl, imageDisplayMode, \`order\`, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `,
     [
       created.id,
       created.title,
       created.description,
       created.imageUrl,
+      created.imageDisplayMode,
       order,
       toSqlDate(created.createdAt),
     ],
@@ -288,6 +322,7 @@ export async function updateMediaCollection(
     title: string;
     description: string;
     imageUrl: string | null;
+    imageDisplayMode?: string | null;
   },
 ) {
   await ensureTables();
@@ -295,10 +330,16 @@ export async function updateMediaCollection(
   await execute(
     `
       UPDATE MediaCollection
-      SET title = ?, description = ?, imageUrl = ?
+      SET title = ?, description = ?, imageUrl = ?, imageDisplayMode = ?
       WHERE id = ?
     `,
-    [data.title, data.description, data.imageUrl, id],
+    [
+      data.title,
+      data.description,
+      data.imageUrl,
+      parseImageDisplayMode(data.imageDisplayMode),
+      id,
+    ],
   );
 }
 
@@ -313,7 +354,7 @@ export async function listMediaItems(collectionId: string) {
   await ensureTables();
 
   const selectSql = `
-    SELECT id, collectionId, title, fileUrl, fileName, fileType, thumbnail, link, linkLabel, createdAt
+    SELECT id, collectionId, title, fileUrl, fileName, fileType, thumbnail, imageDisplayMode, link, linkLabel, createdAt
     FROM MediaItem
     WHERE collectionId = ?
   `;
@@ -326,6 +367,7 @@ export async function listMediaItems(collectionId: string) {
     fileName: string | null;
     fileType: string;
     thumbnail: string | null;
+    imageDisplayMode?: string | null;
     link: string | null;
     linkLabel: string | null;
     createdAt: Date | string;
@@ -347,6 +389,7 @@ export async function listMediaItems(collectionId: string) {
     fileName: row.fileName,
     fileType: (row.fileType || "link") as MediaFileType,
     thumbnail: row.thumbnail ?? null,
+    imageDisplayMode: parseImageDisplayMode(row.imageDisplayMode),
     link: row.link ?? null,
     linkLabel: row.linkLabel ?? null,
     createdAt: toDate(row.createdAt),
@@ -360,6 +403,7 @@ export async function createMediaItem(data: {
   fileName: string | null;
   fileType: MediaFileType;
   thumbnail: string | null;
+  imageDisplayMode?: string | null;
   link: string | null;
   linkLabel: string | null;
 }) {
@@ -373,14 +417,22 @@ export async function createMediaItem(data: {
 
   const created: MediaItemRecord = {
     id: randomUUID(),
-    ...data,
+    collectionId: data.collectionId,
+    title: data.title,
+    fileUrl: data.fileUrl,
+    fileName: data.fileName,
+    fileType: data.fileType,
+    thumbnail: data.thumbnail,
+    imageDisplayMode: parseImageDisplayMode(data.imageDisplayMode),
+    link: data.link,
+    linkLabel: data.linkLabel,
     createdAt: new Date(),
   };
 
   await execute(
     `
-      INSERT INTO MediaItem (id, collectionId, title, fileUrl, fileName, fileType, thumbnail, link, linkLabel, \`order\`, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO MediaItem (id, collectionId, title, fileUrl, fileName, fileType, thumbnail, imageDisplayMode, link, linkLabel, \`order\`, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       created.id,
@@ -390,6 +442,7 @@ export async function createMediaItem(data: {
       created.fileName,
       created.fileType,
       created.thumbnail,
+      created.imageDisplayMode,
       created.link,
       created.linkLabel,
       order,
@@ -408,6 +461,7 @@ export async function updateMediaItem(
     fileName: string | null;
     fileType: MediaFileType;
     thumbnail: string | null;
+    imageDisplayMode?: string | null;
     link: string | null;
     linkLabel: string | null;
   },
@@ -417,7 +471,7 @@ export async function updateMediaItem(
   await execute(
     `
       UPDATE MediaItem
-      SET title = ?, fileUrl = ?, fileName = ?, fileType = ?, thumbnail = ?, link = ?, linkLabel = ?
+      SET title = ?, fileUrl = ?, fileName = ?, fileType = ?, thumbnail = ?, imageDisplayMode = ?, link = ?, linkLabel = ?
       WHERE id = ?
     `,
     [
@@ -426,6 +480,7 @@ export async function updateMediaItem(
       data.fileName,
       data.fileType,
       data.thumbnail,
+      parseImageDisplayMode(data.imageDisplayMode),
       data.link,
       data.linkLabel,
       id,

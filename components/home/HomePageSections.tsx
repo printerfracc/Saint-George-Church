@@ -38,6 +38,7 @@ export type HomeNamedItem = {
   name: string;
   description: string;
   imageUrl: string | null;
+  link?: string | null;
 };
 
 export type HomeNewsItem = {
@@ -484,18 +485,22 @@ function PriestsSection({ priests }: { priests: HomePriest[] }) {
                   </p>
                   {priest.deathDate ? (
                     <p className="mt-1 text-sm text-coptic-gold-main">
-                      تاريخ الوفاة: {formatPartialDate(priest.deathDate)}
+                      تاريخ النياحة: {formatPartialDate(priest.deathDate)}
                     </p>
                   ) : null}
 
                   {priest.bio ? (
-                    <ReadMoreText
-                      text={priest.bio}
-                      lines={3}
-                      className="mt-3 text-sm leading-7 text-deep-red/70"
-                      buttonClassName="text-coptic-gold-dark"
-                    />
-                  ) : null}
+                    <div className="mt-3 min-h-28">
+                      <ReadMoreText
+                        text={priest.bio}
+                        lines={3}
+                        className="text-sm leading-7 text-deep-red/70"
+                        buttonClassName="text-coptic-gold-dark"
+                      />
+                    </div>
+                  ) : (
+                    <div className="mt-3 min-h-28" />
+                  )}
 
                   {hasFilledText(priest.confessionSchedule) || phones.length > 0 ? (
                     <div className="mt-auto flex flex-col gap-2 border-t border-coptic-gold-main/20 pt-4">
@@ -561,41 +566,62 @@ function ServicesSection({ activities }: { activities: HomeNamedItem[] }) {
           <EmptyFallback title="خدمات وأنشطة الكنيسة المتنوعة" />
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {activities.map((activity) => (
-              <motion.article
-                key={activity.id}
-                {...fadeIn}
-                whileHover={{ scale: 1.04, y: -4 }}
-                whileTap={{ scale: 0.98 }}
-                className="overflow-hidden rounded-2xl border border-coptic-gold-main/50 bg-white/80 shadow-sm"
-              >
-                <div className="relative aspect-16/10 bg-cream">
-                  {activity.imageUrl ? (
-                    <Image
-                      src={activity.imageUrl}
-                      alt={activity.name}
-                      fill
-                      unoptimized
-                      className="object-cover"
+            {activities.map((activity) => {
+              const href = activity.link?.trim() || "";
+              const isExternal = /^https?:\/\//i.test(href);
+              const card = (
+                <>
+                  <div className="relative aspect-16/10 bg-cream">
+                    {activity.imageUrl ? (
+                      <Image
+                        src={activity.imageUrl}
+                        alt={activity.name}
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm font-bold text-coptic-gold-dark">
+                        بدون صورة
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <h3 className="text-lg font-bold text-coptic-gold-dark">
+                      {activity.name}
+                    </h3>
+                    <ReadMoreText
+                      text={activity.description}
+                      className="mt-2 whitespace-pre-line text-sm leading-7 text-deep-red/75"
+                      buttonClassName="text-coptic-gold-dark"
                     />
+                  </div>
+                </>
+              );
+
+              return (
+                <motion.article
+                  key={activity.id}
+                  {...fadeIn}
+                  whileHover={{ scale: 1.04, y: -4 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="overflow-hidden rounded-2xl border border-coptic-gold-main/50 bg-white/80 shadow-sm"
+                >
+                  {href ? (
+                    <Link
+                      href={href}
+                      className="block group"
+                      target={isExternal ? "_blank" : "_self"}
+                      rel={isExternal ? "noopener noreferrer" : undefined}
+                    >
+                      {card}
+                    </Link>
                   ) : (
-                    <div className="flex h-full items-center justify-center text-sm font-bold text-coptic-gold-dark">
-                      بدون صورة
-                    </div>
+                    <div className="block">{card}</div>
                   )}
-                </div>
-                <div className="p-5">
-                  <h3 className="text-lg font-bold text-coptic-gold-dark">
-                    {activity.name}
-                  </h3>
-                  <ReadMoreText
-                    text={activity.description}
-                    className="mt-2 whitespace-pre-line text-sm leading-7 text-deep-red/75"
-                    buttonClassName="text-coptic-gold-dark"
-                  />
-                </div>
-              </motion.article>
-            ))}
+                </motion.article>
+              );
+            })}
           </div>
         )}
       </div>

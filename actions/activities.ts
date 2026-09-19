@@ -12,6 +12,7 @@ export type ActivityData = {
   name: string;
   description: string;
   imageUrl?: string | null;
+  link?: string | null;
 };
 
 async function ensureAdmin(): Promise<ActivityActionResult | true> {
@@ -28,6 +29,8 @@ function parseActivityData(data: ActivityData) {
   const name = data.name.trim();
   const description = data.description.trim();
   const imageUrl = data.imageUrl?.trim() || null;
+  const rawLink = data.link?.trim() || null;
+  const link = parseActivityLink(rawLink);
 
   if (!name) {
     throw new Error("يرجى إدخال الاسم");
@@ -37,7 +40,23 @@ function parseActivityData(data: ActivityData) {
     throw new Error("يرجى إدخال الوصف");
   }
 
-  return { name, description, imageUrl };
+  return { name, description, imageUrl, link };
+}
+
+function parseActivityLink(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  if (value.startsWith("/") && !value.startsWith("//")) {
+    return value;
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  throw new Error("يمكنك كتابة رابط داخلي يبدأ بـ / أو رابط خارجي كامل.");
 }
 
 function revalidateActivities() {

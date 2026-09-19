@@ -21,6 +21,7 @@ export type NamedItemRow = {
   name: string;
   description: string;
   imageUrl: string | null;
+  link?: string | null;
 };
 
 type ActionResult = { success: true } | { success: false; error: string };
@@ -36,6 +37,7 @@ type NamedItemManagerProps = {
     name: string;
     description: string;
     imageUrl?: string | null;
+    link?: string | null;
   }) => Promise<ActionResult>;
   onUpdate: (
     id: string,
@@ -43,16 +45,19 @@ type NamedItemManagerProps = {
       name: string;
       description: string;
       imageUrl?: string | null;
+      link?: string | null;
     },
   ) => Promise<ActionResult>;
   onDelete: (id: string) => Promise<ActionResult>;
   preview?: ImagePreviewVariant;
+  showLinkField?: boolean;
 };
 
 const emptyForm = {
   name: "",
   description: "",
   imageUrl: "",
+  link: "",
 };
 
 export default function NamedItemManager({
@@ -66,6 +71,7 @@ export default function NamedItemManager({
   onUpdate,
   onDelete,
   preview = "wide",
+  showLinkField = false,
 }: NamedItemManagerProps) {
   const router = useRouter();
   const [rows, setRows] = useState(items);
@@ -106,6 +112,7 @@ export default function NamedItemManager({
       name: item.name,
       description: item.description,
       imageUrl: item.imageUrl ?? "",
+      link: item.link ?? "",
     });
     setError("");
     setOpen(true);
@@ -119,6 +126,7 @@ export default function NamedItemManager({
       name: form.name,
       description: form.description,
       imageUrl: form.imageUrl,
+      ...(showLinkField ? { link: form.link } : {}),
     };
 
     const result = editing
@@ -252,6 +260,25 @@ export default function NamedItemManager({
               aria-label="الوصف"
             />
           </label>
+
+          {showLinkField ? (
+            <label className="block space-y-2">
+              <span className="text-sm font-bold text-deep-red">رابط التوجيه (اختياري)</span>
+              <input
+                type="text"
+                dir="ltr"
+                value={form.link}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, link: event.target.value }))
+                }
+                className="w-full rounded-xl border border-coptic-gold-main/40 bg-white px-3 py-2 text-left text-deep-red outline-none focus:ring-2 focus:ring-coptic-gold-main"
+                aria-label="رابط التوجيه"
+              />
+              <span className="block text-xs leading-6 text-deep-red/70">
+                يمكنك كتابة رابط داخلي يبدأ بـ / أو رابط خارجي كامل.
+              </span>
+            </label>
+          ) : null}
 
           <ImageUpload
             value={form.imageUrl}

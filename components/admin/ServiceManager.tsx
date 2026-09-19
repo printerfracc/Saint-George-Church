@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   createService,
   deleteService,
   updateService,
 } from "@/actions/admin-actions";
+import ImageDisplayModeField from "@/components/admin/ImageDisplayModeField";
+import type { ImageDisplayMode } from "@/lib/image-display";
 import { updateItemOrder } from "@/actions/reorder";
 import DraggableList from "@/components/admin/DraggableList";
 import ImageUpload from "@/components/admin/ImageUpload";
@@ -15,6 +18,7 @@ import SlideOver from "@/components/admin/SlideOver";
 import {
   AdminActions,
   AdminPageHeader,
+  adminActionGold,
   adminActionMuted,
   adminActionOutline,
 } from "@/components/admin/admin-ui";
@@ -24,15 +28,38 @@ export type ServiceRow = {
   title: string;
   description: string;
   imageUrl: string | null;
+  parentId: string | null;
+  childCount: number;
+  imageDisplayMode: ImageDisplayMode;
+};
+
+export type ServiceParentOption = {
+  id: string;
+  title: string;
+  depth: number;
 };
 
 const emptyForm = {
   title: "",
   description: "",
   imageUrl: "",
+  parentId: "",
+  imageDisplayMode: "NORMAL" as ImageDisplayMode,
 };
 
-export default function ServiceManager({ services }: { services: ServiceRow[] }) {
+export default function ServiceManager({
+  services,
+  parentOptions,
+  currentParent = null,
+  backHref = "/admin/services",
+  backLabel = "العودة إلى القطاعات",
+}: {
+  services: ServiceRow[];
+  parentOptions: ServiceParentOption[];
+  currentParent?: { id: string; title: string } | null;
+  backHref?: string;
+  backLabel?: string;
+}) {
   const router = useRouter();
   const [rows, setRows] = useState(services);
   const [open, setOpen] = useState(false);
@@ -61,7 +88,10 @@ export default function ServiceManager({ services }: { services: ServiceRow[] })
 
   function openCreate() {
     setEditing(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      parentId: currentParent?.id ?? "",
+    });
     setError("");
     setOpen(true);
   }
@@ -72,6 +102,8 @@ export default function ServiceManager({ services }: { services: ServiceRow[] })
       title: service.title,
       description: service.description,
       imageUrl: service.imageUrl ?? "",
+      parentId: service.parentId ?? "",
+      imageDisplayMode: service.imageDisplayMode,
     });
     setError("");
     setOpen(true);
@@ -85,6 +117,8 @@ export default function ServiceManager({ services }: { services: ServiceRow[] })
       title: form.title,
       description: form.description,
       imageUrl: form.imageUrl,
+      parentId: form.parentId || null,
+      imageDisplayMode: form.imageDisplayMode,
     };
 
     const result = editing
@@ -103,7 +137,7 @@ export default function ServiceManager({ services }: { services: ServiceRow[] })
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("هل تريد حذف هذا القطاع؟")) {
+    if (!window.confirm("هل تريد حذف هذا القطاع وجميع الأقسام التابعة له؟")) {
       return;
     }
 
@@ -116,10 +150,24 @@ export default function ServiceManager({ services }: { services: ServiceRow[] })
     router.refresh();
   }
 
+  const dropdownOptions = parentOptions.filter((option) => option.id !== editing?.id);
+
   return (
     <>
       <AdminPageHeader
-        title="إدارة قطاعات الخدمات"
+        title={currentParent ? currentParent.title : "إدارة قطاعات الخدمات"}
+        description={
+          currentParent ? (
+            <p className="mt-2">
+              <Link
+                href={backHref}
+                className="text-sm font-bold text-coptic-gold-dark hover:text-deep-red"
+              >
+                {backLabel}
+              </Link>
+            </p>
+          ) : undefined
+        }
         action={
           <button
             type="button"
@@ -134,7 +182,11 @@ export default function ServiceManager({ services }: { services: ServiceRow[] })
       <DraggableList
         items={rows}
         onReorder={handleReorder}
-        emptyLabel="لا توجد قطاعات بعد. أضف القطاع من الزر أعلاه."
+        emptyLabel={
+          currentParent
+            ? "لا توجد أقسام فرعية بعد. أضف قسماً من الزر أعلاه."
+            : "لا توجد قطاعات بعد. أضف القطاع من الزر أعلاه."
+        }
       >
         {(service) => (
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
@@ -158,9 +210,17 @@ export default function ServiceManager({ services }: { services: ServiceRow[] })
                 <p className="mt-1 line-clamp-2 text-sm text-deep-red/80">
                   {service.description || "—"}
                 </p>
+                {service.childCount > 0 ? (
+                  <p className="mt-1 text-xs font-bold text-coptic-gold-dark">
+                    {service.childCount} قسم فرعي
+                  </p>
+                ) : null}
               </div>
             </div>
             <AdminActions>
+              <Link href={`/admin/services/${service.id}`} className={adminActionGold}>
+                فتح
+              </Link>
               <button
                 type="button"
                 onClick={() => openEdit(service)}
@@ -200,6 +260,25 @@ export default function ServiceManager({ services }: { services: ServiceRow[] })
           </label>
 
           <label className="block space-y-2">
+            <span className="text-sm font-bold text-deep-red">القسم الرئيسي (اختياري)</span>
+            <select
+              value={form.parentId}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, parentId: event.target.value }))
+              }
+              className="w-full rounded-xl border border-coptic-gold-main/40 bg-white px-3 py-2 text-deep-red outline-none focus:ring-2 focus:ring-coptic-gold-main"
+              aria-label="القسم الرئيسي"
+            >
+              <option value="">بدون قسم رئيسي (قطاع أساسي)</option>
+              {dropdownOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {`${"— ".repeat(option.depth)}${option.title}`}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block space-y-2">
             <span className="text-sm font-bold text-deep-red">الوصف (اختياري)</span>
             <textarea
               value={form.description}
@@ -221,7 +300,13 @@ export default function ServiceManager({ services }: { services: ServiceRow[] })
               setForm((current) => ({ ...current, imageUrl: url }))
             }
             label="الصورة"
-            preview="wide"
+            preview={form.imageDisplayMode === "PORTRAIT_450_730" ? "portrait" : "wide"}
+          />
+          <ImageDisplayModeField
+            value={form.imageDisplayMode}
+            onChange={(imageDisplayMode) =>
+              setForm((current) => ({ ...current, imageDisplayMode }))
+            }
           />
 
           {error ? <p className="text-sm font-bold text-coptic-gold-dark">{error}</p> : null}

@@ -1,6 +1,5 @@
-import Image from "next/image";
 import ChurchLogo from "@/components/ChurchLogo";
-import ReadMoreText from "@/components/public/ReadMoreText";
+import SectorCard from "@/components/public/SectorCard";
 import { listServices } from "@/actions/admin-actions";
 
 export const metadata = {
@@ -13,7 +12,7 @@ export default async function SectorsPage() {
   let sectors: Awaited<ReturnType<typeof listServices>> = [];
 
   try {
-    sectors = await listServices();
+    sectors = await listServices(null);
   } catch {
     sectors = [];
   }
@@ -43,44 +42,17 @@ export default async function SectorsPage() {
           id="sectors"
           className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
         >
-          {sectors.map((sector) => {
-            const title = sector.title.trim();
-            const description = sector.description.trim();
-
-            return (
-              <li
-                key={sector.id}
-                id={`sector-${sector.id}`}
-                className="overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm"
-              >
-                {sector.imageUrl ? (
-                  <div className="relative aspect-video">
-                    <Image
-                      src={sector.imageUrl}
-                      alt={title || "قطاع خدمة"}
-                      fill
-                      unoptimized
-                      className="object-cover"
-                    />
-                  </div>
-                ) : null}
-                {title || description ? (
-                  <div className="p-5">
-                    {title ? (
-                      <h2 className="text-lg font-bold text-deep-red">{title}</h2>
-                    ) : null}
-                    {description ? (
-                      <ReadMoreText
-                        text={description}
-                        className="mt-2 whitespace-pre-line text-sm leading-7 text-deep-red/75"
-                        buttonClassName="text-coptic-gold-dark"
-                      />
-                    ) : null}
-                  </div>
-                ) : null}
-              </li>
-            );
-          })}
+          {sectors.map((sector) => (
+            <li key={sector.id}>
+              <SectorCard
+                id={sector.id}
+                title={sector.title}
+                imageUrl={sector.imageUrl}
+                childCount={sector.childCount}
+                imageDisplayMode={sector.imageDisplayMode}
+              />
+            </li>
+          ))}
         </ul>
       )}
     </main>

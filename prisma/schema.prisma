@@ -92,6 +92,12 @@ model Service {
   order       Int         @default(0)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  parentId          String?
+  parent            Service?  @relation("ServiceHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children          Service[] @relation("ServiceHierarchy")
+  imageDisplayMode  String    @default("NORMAL")
+
+  @@index([parentId])
 }
 
 model NewsEvent {
@@ -128,6 +134,7 @@ model ChurchActivity {
   name        String
   description String   @db.Text
   imageUrl    String?
+  link        String?
   order       Int      @default(0)
   createdAt   DateTime @default(now())
 }
@@ -153,13 +160,14 @@ model LiturgyEntry {
 }
 
 model MediaCollection {
-  id          String      @id @default(cuid())
-  title       String
-  description String      @db.Text
-  imageUrl    String?     @db.Text
-  order       Int         @default(0)
-  createdAt   DateTime    @default(now())
-  items       MediaItem[]
+  id                String      @id @default(cuid())
+  title             String
+  description       String      @db.Text
+  imageUrl          String?     @db.Text
+  imageDisplayMode  String      @default("NORMAL")
+  order             Int         @default(0)
+  createdAt         DateTime    @default(now())
+  items             MediaItem[]
 }
 
 model MediaItem {
@@ -169,9 +177,10 @@ model MediaItem {
   fileUrl      String?         @db.Text
   fileName     String?
   fileType     String          @default("link")
-  thumbnail    String?         @db.Text
-  link         String?         @db.Text
-  linkLabel    String?
+  thumbnail         String?         @db.Text
+  imageDisplayMode  String          @default("NORMAL")
+  link              String?         @db.Text
+  linkLabel         String?
   order        Int             @default(0)
   createdAt     DateTime        @default(now())
   collection   MediaCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)

@@ -79,7 +79,7 @@ export default async function PriestsPage() {
                   </p>
                   {priestDateValue(priest.deathDateText, priest.deathDate) ? (
                     <p className="mt-1 text-sm text-coptic-gold-main">
-                      تاريخ الوفاة: {formatPartialDate(priestDateValue(priest.deathDateText, priest.deathDate))}
+                      تاريخ النياحة: {formatPartialDate(priestDateValue(priest.deathDateText, priest.deathDate))}
                     </p>
                   ) : null}
 
@@ -91,7 +91,7 @@ export default async function PriestsPage() {
                       <ReadMoreText
                         text={priest.bio}
                         lines={5}
-                        className="mt-1 font-light italic leading-8 text-coptic-gold-dark"
+                        className="mt-1 font-light italic leading-7 text-coptic-gold-dark"
                         buttonClassName="text-coptic-gold-dark"
                       />
                     </div>
