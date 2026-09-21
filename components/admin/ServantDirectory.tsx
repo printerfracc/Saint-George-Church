@@ -12,7 +12,6 @@ import {
   type ServantAssignmentChip,
   type ServantRecord,
 } from "@/actions/servants-crud";
-import { deleteAllTawze3aData } from "@/actions/cleanup";
 import MultiSelectFilter from "@/components/admin/MultiSelectFilter";
 import type { ServantRoleOption } from "@/lib/servant-roles";
 import {
@@ -121,8 +120,6 @@ export default function ServantDirectory({
   const [deleting, setDeleting] = useState<ServantRow | null>(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [showDeleteAll, setShowDeleteAll] = useState(false);
-  const [showClearRoles, setShowClearRoles] = useState(false);
-  const [isClearingRoles, setIsClearingRoles] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const skipFilterSync = useRef(false);
   const incomingRoleKey = serializeIdList(roleIds);
@@ -311,22 +308,6 @@ export default function ServantDirectory({
     router.refresh();
   }
 
-  async function confirmClearRoles() {
-    setIsClearingRoles(true);
-    setError("");
-
-    const result = await deleteAllTawze3aData();
-    setIsClearingRoles(false);
-
-    if (!result.success) {
-      setError(result.error);
-      return;
-    }
-
-    setShowClearRoles(false);
-    router.refresh();
-  }
-
   async function handleExport() {
     setIsExporting(true);
     setError("");
@@ -423,14 +404,6 @@ export default function ServantDirectory({
               className={adminActionDanger}
             >
               حذف الكل
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowClearRoles(true)}
-              disabled={isClearingRoles}
-              className={adminActionOutline}
-            >
-              مسح الرتب القديمة
             </button>
           </div>
         </div>
@@ -709,61 +682,6 @@ export default function ServantDirectory({
                   type="button"
                   disabled={isDeletingAll}
                   onClick={() => setShowDeleteAll(false)}
-                  className={adminActionOutline}
-                >
-                  إلغاء
-                </button>
-              </div>
-            </motion.div>
-          </>
-        ) : null}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showClearRoles ? (
-          <>
-            <motion.button
-              type="button"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/40"
-              aria-label="إغلاق تأكيد مسح الرتب"
-              onClick={() => {
-                if (!isClearingRoles) {
-                  setShowClearRoles(false);
-                }
-              }}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 16 }}
-              className="fixed inset-x-4 top-[20vh] z-50 mx-auto w-auto max-w-md rounded-2xl bg-cream p-5 shadow-2xl"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="clear-roles-title"
-            >
-              <h2 id="clear-roles-title" className="text-lg font-bold text-deep-red">
-                مسح الرتب القديمة
-              </h2>
-              <p className="mt-3 text-sm leading-7 text-deep-red/80">
-                هتتمسح كل الرتب والتعيينات والخدمات، عشان قائمة الرتب تبقى فاضية وتعتمد على شيت الإكسيل
-                بس. بيانات الخدام نفسها مش هتتمسح.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  disabled={isClearingRoles}
-                  onClick={() => void confirmClearRoles()}
-                  className={adminActionDanger}
-                >
-                  {isClearingRoles ? "جاري المسح..." : "نعم، مسح الرتب"}
-                </button>
-                <button
-                  type="button"
-                  disabled={isClearingRoles}
-                  onClick={() => setShowClearRoles(false)}
                   className={adminActionOutline}
                 >
                   إلغاء

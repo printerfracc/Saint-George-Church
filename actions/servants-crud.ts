@@ -290,6 +290,7 @@ export async function listKhedmaFilters() {
 
   try {
     return prisma.khedma.findMany({
+      where: { assignments: { some: {} } },
       orderBy: [{ tawze3a: { createdAt: "desc" } }, { order: "asc" }],
       select: {
         id: true,
