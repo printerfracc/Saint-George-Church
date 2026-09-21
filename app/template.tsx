@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
+import { useOpeningTransition } from "@/components/opening/OpeningExperience";
 
 export default function Template({
   children,
@@ -9,8 +11,13 @@ export default function Template({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { isRevealingHome } = useOpeningTransition();
+  const [fromOpening] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("opening-reveal") === "1";
+  });
 
-  if (pathname === "/opening") {
+  if (pathname === "/opening" || isRevealingHome || fromOpening) {
     return <>{children}</>;
   }
 

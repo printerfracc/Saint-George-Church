@@ -4,6 +4,7 @@ import { Cairo } from "next/font/google";
 import Footer from "@/components/Footer";
 import LiveNowBanner from "@/components/LiveNowBanner";
 import Navbar from "@/components/Navbar";
+import OpeningExperience from "@/components/opening/OpeningExperience";
 import { getAppUrl } from "@/lib/app-url";
 import { getNavEntries } from "@/lib/nav-data";
 import {
@@ -105,7 +106,7 @@ export default async function RootLayout({
             />
           </div>
         )}
-        {children}
+        <OpeningExperience>{children}</OpeningExperience>
         {hideChrome ? null : <Footer />}
       </body>
     </html>
