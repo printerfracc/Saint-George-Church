@@ -64,7 +64,6 @@ function revalidateLiturgies() {
   revalidatePath("/admin/liturgies");
   revalidatePath("/admin");
   revalidatePath("/liturgies");
-  revalidatePath("/prayers");
 }
 
 export async function listLiturgyEntries() {

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { formatAdminDate } from "@/lib/admin-labels";
 
@@ -19,11 +18,9 @@ function isDownloadable(url: string) {
 export default function LatestSermons({
   sermons,
   title = "أحدث العظات والأخبار",
-  showArchiveLink = true,
 }: {
   sermons: HomeSermon[];
   title?: string;
-  showArchiveLink?: boolean;
 }) {
   return (
     <section
@@ -31,21 +28,11 @@ export default function LatestSermons({
       className="bg-white/40 px-4 py-12 md:px-6 md:py-16"
     >
       <div className="mx-auto w-full max-w-6xl">
-        <div className="mb-8 flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-right">
-          <div>
-            <h2 className="bg-linear-to-r from-coptic-gold-dark to-coptic-gold-main bg-clip-text text-2xl font-bold text-transparent md:text-3xl">
-              {title}
-            </h2>
-            <div className="mx-auto mt-3 w-20 border-b-4 border-coptic-gold-main sm:mx-0" />
-          </div>
-          {showArchiveLink ? (
-            <Link
-              href="/sermons"
-              className="text-sm font-bold text-coptic-gold-dark underline decoration-coptic-gold-main underline-offset-4 transition-colors hover:text-coptic-gold-main"
-            >
-              عرض الأرشيف
-            </Link>
-          ) : null}
+        <div className="mb-8 text-center">
+          <h2 className="bg-linear-to-r from-coptic-gold-dark to-coptic-gold-main bg-clip-text text-2xl font-bold text-transparent md:text-3xl">
+            {title}
+          </h2>
+          <div className="mx-auto mt-3 w-20 border-b-4 border-coptic-gold-main" />
         </div>
 
         {sermons.length === 0 ? (

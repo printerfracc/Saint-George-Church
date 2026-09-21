@@ -13,21 +13,11 @@ import {
 import { toWhatsAppUrl } from "@/lib/admin-labels";
 
 const mainLinks = [
-  
   { href: "/", label: "الرئيسية" },
   { href: "/liturgies", label: "صلوات الكنيسة" },
   { href: "/sectors", label: "قطاعات الخدمات" },
   { href: "/media", label: "الوسائط والمكتبة" },
   { href: "/contact", label: "تواصل معنا" },
-] as const;
-
-const extraLinks = [
-  { href: "/history", label: "قصة الكنيسة" },
-  { href: "/priests", label: "الآباء الكهنة" },
-  { href: "/prayers", label: "جدول القداسات" },
-  { href: "/live", label: "البث المباشر" },
-  { href: "/sermons", label: "مكتبة العظات" },
-  { href: "/prayer-requests", label: "طلب صلاة" },
 ] as const;
 
 function FacebookIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -43,7 +33,7 @@ export default function Footer() {
 
   return (
     <footer className="mt-auto border-t border-coptic-gold-main/30 bg-[#1A0A10] text-cream">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 md:grid-cols-2 md:px-6 lg:grid-cols-4">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 md:grid-cols-2 md:px-6 lg:grid-cols-3">
         <div>
           <Link href="/" className="inline-flex items-center gap-3">
             <span className="overflow-hidden rounded-md bg-cream">
@@ -61,23 +51,6 @@ export default function Footer() {
           <div className="mt-3 h-0.5 w-10 rounded-full bg-coptic-gold-main" />
           <ul className="mt-4 space-y-2">
             {mainLinks.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="inline-flex min-h-11 items-center text-sm text-cream/80 transition-colors hover:text-coptic-gold-light"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <nav aria-label="صفحات مهمة">
-          <h2 className="text-sm font-bold text-coptic-gold-main">صفحات مهمة</h2>
-          <div className="mt-3 h-0.5 w-10 rounded-full bg-coptic-gold-main" />
-          <ul className="mt-4 space-y-2">
-            {extraLinks.map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}

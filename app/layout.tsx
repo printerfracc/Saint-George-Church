@@ -77,7 +77,9 @@ export default async function RootLayout({
 }>) {
   const pathname = (await headers()).get("x-pathname") ?? "";
   const isAdminRoute = pathname.startsWith("/admin");
-  const navEntries = isAdminRoute
+  const isOpeningRoute = pathname.startsWith("/opening");
+  const hideChrome = isAdminRoute || isOpeningRoute;
+  const navEntries = hideChrome
     ? { sectorItems: [], mediaItems: [], showTawze3a: false }
     : await getNavEntries();
 
@@ -88,8 +90,12 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
       className={`${cairo.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-cream text-deep-red font-sans">
-        {isAdminRoute ? null : (
+      <body
+        className={`min-h-full flex flex-col text-deep-red font-sans ${
+          isOpeningRoute ? "overflow-hidden bg-white" : "bg-cream"
+        }`}
+      >
+        {hideChrome ? null : (
           <div className="fixed top-0 z-50 w-full overflow-visible">
             <LiveNowBanner />
             <Navbar
@@ -100,7 +106,7 @@ export default async function RootLayout({
           </div>
         )}
         {children}
-        {isAdminRoute ? null : <Footer />}
+        {hideChrome ? null : <Footer />}
       </body>
     </html>
   );

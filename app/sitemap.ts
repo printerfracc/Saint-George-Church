@@ -10,11 +10,7 @@ const STATIC_ROUTES = [
   "/contact",
   "/history",
   "/priests",
-  "/prayers",
   "/live",
-  "/sermons",
-  "/prayer-requests",
-  "/clinics",
 ] as const;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

@@ -1,3 +1,4 @@
+import HomeFadeIn from "@/components/home/HomeFadeIn";
 import HomeHero from "@/components/home/HomeHero";
 import HomePageSections from "@/components/home/HomePageSections";
 import { getAppUrl } from "@/lib/app-url";
@@ -151,27 +152,29 @@ export default async function Home() {
   };
 
   return (
-    <main className="flex flex-1 flex-col bg-cream">
-      <script
-        id="church-schema"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(schemaObject).replace(/</g, "\\u003c"),
-        }}
-      />
-      <HomeHero
-        imageUrl={hero?.imageUrl}
-        title={hero?.title}
-        subtitle={hero?.content}
-        isLive={"isLive" in liveStatus && liveStatus.isLive}
-      />
-      <HomePageSections
-        news={news}
-        churchStory={churchStory}
-        relics={relics}
-        activities={activities}
-        priests={priests}
-      />
-    </main>
+    <HomeFadeIn>
+      <main className="flex flex-1 flex-col bg-cream">
+        <script
+          id="church-schema"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(schemaObject).replace(/</g, "\\u003c"),
+          }}
+        />
+        <HomeHero
+          imageUrl={hero?.imageUrl}
+          title={hero?.title}
+          subtitle={hero?.content}
+          isLive={"isLive" in liveStatus && liveStatus.isLive}
+        />
+        <HomePageSections
+          news={news}
+          churchStory={churchStory}
+          relics={relics}
+          activities={activities}
+          priests={priests}
+        />
+      </main>
+    </HomeFadeIn>
   );
 }

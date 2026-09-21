@@ -5,17 +5,17 @@ import { motion } from "framer-motion";
 
 const cards = [
   {
-    href: "/prayers",
+    href: "/liturgies",
     title: "مواعيد القداسات",
     description: "جدول القداس الإلهي والصلوات الأسبوعية",
   },
   {
-    href: "/live",
+    href: "/liturgies#live",
     title: "البث المباشر",
     description: "تابع القداسات والفعاليات لحظة بلحظة",
   },
   {
-    href: "/prayer-requests",
+    href: "/contact#prayer-request",
     title: "طلبات الصلاة",
     description: "أرسل اسمك وطلبك لنصلي من أجلكم",
   },

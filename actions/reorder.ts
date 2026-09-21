@@ -113,7 +113,6 @@ export async function updateItemOrder(
   } else if (model === "LiturgyEntry") {
     revalidatePath("/admin/liturgies");
     revalidatePath("/liturgies");
-    revalidatePath("/prayers");
   } else if (model === "Service") {
     revalidatePath("/admin/services");
     revalidatePath("/sectors");
