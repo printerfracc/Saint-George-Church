@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { addKhedma, togglePublishTawze3a, type BuilderTawze3a } from "@/actions/tawze3a-admin";
+import Tawze3aExcelImportButton from "@/components/admin/Tawze3aExcelImportButton";
 import { adminActionGold, adminActionOutline } from "@/components/admin/admin-ui";
 
 export default function Tawze3aBuilder({
@@ -129,9 +130,12 @@ export default function Tawze3aBuilder({
               </button>
             </form>
           ) : (
-            <button type="button" className={adminActionGold} onClick={() => setAddingKhedma(true)}>
-              إضافة خدمة
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Tawze3aExcelImportButton tawze3aId={tawze3a.id} />
+              <button type="button" className={adminActionGold} onClick={() => setAddingKhedma(true)}>
+                إضافة خدمة
+              </button>
+            </div>
           )}
         </div>
       </div>

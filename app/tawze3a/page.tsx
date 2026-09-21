@@ -18,9 +18,11 @@ async function getPublishedTawze3a() {
         include: {
           categories: {
             include: {
+              role: true,
               assignments: {
                 include: {
                   servant: true,
+                  role: true,
                 },
               },
             },
@@ -56,7 +58,10 @@ export default async function Tawze3aPage() {
   let myAssignmentsRaw: Awaited<
     ReturnType<
       typeof prisma.servantAssignment.findMany<{
-        include: { category: { include: { khedma: true } } };
+        include: {
+          role: true;
+          category: { include: { khedma: true; role: true } };
+        };
       }>
     >
   > = [];
@@ -68,8 +73,9 @@ export default async function Tawze3aPage() {
         category: { khedma: { tawze3aId: fullTawze3a.id } },
       },
       include: {
+        role: true,
         category: {
-          include: { khedma: true },
+          include: { khedma: true, role: true },
         },
       },
     });
@@ -89,7 +95,7 @@ export default async function Tawze3aPage() {
         .map((category) => ({
           id: category.id,
           label: category.label,
-          roleType: category.roleType,
+          roleName: category.role?.name ?? category.label,
           order: category.order,
           assignments: category.assignments.map((assignment) => ({
             id: assignment.id,
@@ -106,7 +112,7 @@ export default async function Tawze3aPage() {
   const myAssignments: MyAssignment[] = myAssignmentsRaw.map((assignment) => ({
     id: assignment.id,
     categoryLabel: assignment.category.label,
-    roleType: assignment.category.roleType,
+    roleName: assignment.role?.name ?? assignment.category.role?.name ?? assignment.category.label,
     khedmaId: assignment.category.khedma.id,
     khedmaName: assignment.category.khedma.name,
   }));

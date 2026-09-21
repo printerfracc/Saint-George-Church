@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
+import type { ServantRoleOption } from "@/lib/servant-roles";
 
 export type Tawze3aActionResult =
   | { success: true }
@@ -31,7 +32,8 @@ export type BuilderAssignment = {
 export type BuilderCategory = {
   id: string;
   label: string;
-  roleType: string;
+  roleId: string;
+  roleName: string;
   order: number;
   assignments: BuilderAssignment[];
 };
@@ -50,14 +52,14 @@ export type BuilderTawze3a = {
   khedmat: BuilderKhedma[];
 };
 
-const DEFAULT_KHEDMA_CATEGORIES = [
-  { label: "أمين الخدمة", roleType: "AMEN", order: 0 },
-  { label: "أمينة الخدمة", roleType: "AMEN", order: 1 },
-  { label: "نائب الأمين", roleType: "NA2EB", order: 2 },
-  { label: "نائبة الأمينة", roleType: "NA2EB", order: 3 },
-  { label: "خدام", roleType: "KHADEM", order: 4 },
-  { label: "خادمات", roleType: "KHADEM", order: 5 },
-] as const;
+const builderCategoryInclude = {
+  role: { select: { id: true, name: true } },
+  assignments: {
+    include: {
+      servant: { select: { id: true, name: true, phone: true } },
+    },
+  },
+} as const;
 
 async function ensureTawze3aAdmin(): Promise<true | { success: false; error: string }> {
   const session = await requireTawze3aAdmin();
@@ -92,6 +94,66 @@ function mapAssignment(assignment: {
     id: assignment.id,
     servant: assignment.servant,
   };
+}
+
+function mapCategory(category: {
+  id: string;
+  label: string;
+  order: number;
+  roleId: string | null;
+  role: { id: string; name: string } | null;
+  assignments: Array<{ id: string; servant: ServantSearchHit }>;
+}): BuilderCategory {
+  return {
+    id: category.id,
+    label: category.label,
+    roleId: category.roleId ?? category.role?.id ?? "",
+    roleName: category.role?.name ?? category.label,
+    order: category.order,
+    assignments: category.assignments.map(mapAssignment),
+  };
+}
+
+async function ensureCategoryForRole(
+  khedmaId: string,
+  role: { id: string; name: string },
+) {
+  const existing = await prisma.khedmaCategory.findFirst({
+    where: { khedmaId, roleId: role.id },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  const maxOrder = await prisma.khedmaCategory.aggregate({
+    where: { khedmaId },
+    _max: { order: true },
+  });
+
+  return prisma.khedmaCategory.create({
+    data: {
+      khedmaId,
+      label: role.name,
+      roleId: role.id,
+      order: (maxOrder._max.order ?? -1) + 1,
+    },
+  });
+}
+
+export async function listServantRoles(): Promise<ServantRoleOption[]> {
+  const auth = await ensureTawze3aAdmin();
+  if (auth !== true) return [];
+
+  try {
+    return prisma.servantRole.findMany({
+      where: { assignments: { some: {} } },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    });
+  } catch {
+    return [];
+  }
 }
 
 export async function listTawze3at(): Promise<Tawze3aListItem[]> {
@@ -134,15 +196,7 @@ export async function getTawze3a(id: string): Promise<BuilderTawze3a | null> {
           include: {
             categories: {
               orderBy: { order: "asc" },
-              include: {
-                assignments: {
-                  include: {
-                    servant: {
-                      select: { id: true, name: true, phone: true },
-                    },
-                  },
-                },
-              },
+              include: builderCategoryInclude,
             },
           },
         },
@@ -159,13 +213,7 @@ export async function getTawze3a(id: string): Promise<BuilderTawze3a | null> {
         id: khedma.id,
         name: khedma.name,
         order: khedma.order,
-        categories: khedma.categories.map((category) => ({
-          id: category.id,
-          label: category.label,
-          roleType: category.roleType,
-          order: category.order,
-          assignments: category.assignments.map(mapAssignment),
-        })),
+        categories: khedma.categories.map(mapCategory),
       })),
     };
   } catch {
@@ -187,15 +235,7 @@ export async function getKhedma(
         tawze3a: { select: { id: true, title: true } },
         categories: {
           orderBy: { order: "asc" },
-          include: {
-            assignments: {
-              include: {
-                servant: {
-                  select: { id: true, name: true, phone: true },
-                },
-              },
-            },
-          },
+          include: builderCategoryInclude,
         },
       },
     });
@@ -208,13 +248,7 @@ export async function getKhedma(
         id: row.id,
         name: row.name,
         order: row.order,
-        categories: row.categories.map((category) => ({
-          id: category.id,
-          label: category.label,
-          roleType: category.roleType,
-          order: category.order,
-          assignments: category.assignments.map(mapAssignment),
-        })),
+        categories: row.categories.map(mapCategory),
       },
     };
   } catch {
@@ -317,20 +351,11 @@ export async function addKhedma(
         tawze3aId,
         name: trimmed,
         order: (maxOrder._max.order ?? -1) + 1,
-        categories: {
-          create: DEFAULT_KHEDMA_CATEGORIES.map((category) => ({ ...category })),
-        },
       },
       include: {
         categories: {
           orderBy: { order: "asc" },
-          include: {
-            assignments: {
-              include: {
-                servant: { select: { id: true, name: true, phone: true } },
-              },
-            },
-          },
+          include: builderCategoryInclude,
         },
       },
     });
@@ -343,13 +368,7 @@ export async function addKhedma(
         id: created.id,
         name: created.name,
         order: created.order,
-        categories: created.categories.map((category) => ({
-          id: category.id,
-          label: category.label,
-          roleType: category.roleType,
-          order: category.order,
-          assignments: category.assignments.map(mapAssignment),
-        })),
+        categories: created.categories.map(mapCategory),
       },
     };
   } catch {
@@ -444,23 +463,24 @@ export async function searchServants(query: string): Promise<
 export async function assignServant(
   categoryId: string,
   servantId: string,
+  roleId?: string,
 ): Promise<{ success: true; assignment: BuilderAssignment } | { success: false; error: string }> {
   const auth = await ensureTawze3aAdmin();
   if (auth !== true) return auth;
 
   try {
-    const [category, servant, existing] = await Promise.all([
+    const [category, servant] = await Promise.all([
       prisma.khedmaCategory.findUnique({
         where: { id: categoryId },
-        select: { khedma: { select: { id: true, tawze3aId: true } } },
+        select: {
+          id: true,
+          roleId: true,
+          khedma: { select: { id: true, tawze3aId: true } },
+        },
       }),
       prisma.servant.findUnique({
         where: { id: servantId },
         select: { id: true, name: true, phone: true },
-      }),
-      prisma.servantAssignment.findFirst({
-        where: { categoryId, servantId },
-        select: { id: true },
       }),
     ]);
 
@@ -472,12 +492,42 @@ export async function assignServant(
       return { success: false, error: "الخادم غير موجود" };
     }
 
+    const selectedRoleId = roleId || category.roleId;
+
+    if (!selectedRoleId) {
+      return { success: false, error: "يرجى اختيار رتبة الخادم" };
+    }
+
+    const role = await prisma.servantRole.findUnique({
+      where: { id: selectedRoleId },
+      select: { id: true, name: true },
+    });
+
+    if (!role) {
+      return { success: false, error: "الرتبة غير موجودة" };
+    }
+
+    const targetCategory =
+      category.roleId === role.id
+        ? category
+        : await ensureCategoryForRole(category.khedma.id, role);
+
+    const existing = await prisma.servantAssignment.findFirst({
+      where: { categoryId: targetCategory.id, servantId },
+      select: { id: true },
+    });
+
     if (existing) {
       return { success: false, error: "هذا الخادم مضاف بالفعل إلى هذا التصنيف" };
     }
 
     const assignment = await prisma.servantAssignment.create({
-      data: { categoryId, servantId },
+      data: {
+        categoryId: targetCategory.id,
+        khedmaId: category.khedma.id,
+        servantId,
+        roleId: role.id,
+      },
       include: {
         servant: { select: { id: true, name: true, phone: true } },
       },

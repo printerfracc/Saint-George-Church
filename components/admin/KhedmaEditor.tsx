@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,6 +13,7 @@ import {
   type ServantSearchHit,
 } from "@/actions/tawze3a-admin";
 import ServantSearchDialog from "@/components/admin/ServantSearchDialog";
+import Tawze3aExcelImportButton from "@/components/admin/Tawze3aExcelImportButton";
 import { adminActionOutline } from "@/components/admin/admin-ui";
 
 export default function KhedmaEditor({
@@ -46,22 +47,28 @@ export default function KhedmaEditor({
     }));
   }
 
-  async function handleAssign(servant: ServantSearchHit) {
+  async function handleAssign(servant: ServantSearchHit, roleId: string) {
     if (!searchCategoryId) return false;
 
     const categoryId = searchCategoryId;
+    const targetCategory =
+      khedma.categories.find((category) => category.roleId === roleId) ??
+      khedma.categories.find((category) => category.id === categoryId);
+
+    if (!targetCategory) return false;
+
     const tempId = `temp-${servant.id}`;
     setError("");
 
-    updateCategory(categoryId, (category) => ({
+    updateCategory(targetCategory.id, (category) => ({
       ...category,
       assignments: [...category.assignments, { id: tempId, servant }],
     }));
 
-    const result = await assignServant(categoryId, servant.id);
+    const result = await assignServant(categoryId, servant.id, roleId);
 
     if (!result.success) {
-      updateCategory(categoryId, (category) => ({
+      updateCategory(targetCategory.id, (category) => ({
         ...category,
         assignments: category.assignments.filter((assignment) => assignment.id !== tempId),
       }));
@@ -69,12 +76,16 @@ export default function KhedmaEditor({
       return false;
     }
 
-    updateCategory(categoryId, (category) => ({
+    updateCategory(targetCategory.id, (category) => ({
       ...category,
       assignments: category.assignments.map((assignment) =>
         assignment.id === tempId ? result.assignment : assignment,
       ),
     }));
+
+    if (targetCategory.roleId !== roleId) {
+      router.refresh();
+    }
 
     return true;
   }
@@ -134,14 +145,17 @@ export default function KhedmaEditor({
             <h1 className="mt-2 text-2xl font-bold text-deep-red md:text-3xl">{khedma.name}</h1>
             <p className="mt-1 text-sm text-deep-red/70">{tawze3a.title}</p>
           </div>
-          <button
-            type="button"
-            disabled={deleting}
-            className={`${adminActionOutline} text-deep-red`}
-            onClick={() => void handleDeleteKhedma()}
-          >
-            {deleting ? "جاري الحذف..." : "حذف الخدمة"}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Tawze3aExcelImportButton tawze3aId={tawze3a.id} />
+            <button
+              type="button"
+              disabled={deleting}
+              className={`${adminActionOutline} text-deep-red`}
+              onClick={() => void handleDeleteKhedma()}
+            >
+              {deleting ? "جاري الحذف..." : "حذف الخدمة"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -152,7 +166,7 @@ export default function KhedmaEditor({
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {khedma.categories.map((category) => (
+        {khedma.categories.map((category, index) => (
           <CategoryCard
             key={category.id}
             category={category}
@@ -167,6 +181,7 @@ export default function KhedmaEditor({
               }
             }}
             onAddServant={() => setSearchCategoryId(category.id)}
+            importAction={index === 0 ? <Tawze3aExcelImportButton tawze3aId={tawze3a.id} /> : null}
             onRemoveAssignment={(assignmentId) =>
               void handleRemoveAssignment(category.id, assignmentId)
             }
@@ -177,8 +192,9 @@ export default function KhedmaEditor({
       <ServantSearchDialog
         open={Boolean(searchCategoryId)}
         assignedServantIds={searchCategory?.assignments.map((assignment) => assignment.servant.id) ?? []}
+        defaultRoleId={searchCategory?.roleId}
         onClose={() => setSearchCategoryId(null)}
-        onSelect={(servant) => handleAssign(servant)}
+        onSelect={(servant, roleId) => handleAssign(servant, roleId)}
       />
     </div>
   );
@@ -189,11 +205,13 @@ function CategoryCard({
   onLabelSave,
   onAddServant,
   onRemoveAssignment,
+  importAction,
 }: {
   category: BuilderCategory;
   onLabelSave: (label: string) => Promise<void>;
   onAddServant: () => void;
   onRemoveAssignment: (assignmentId: string) => void;
+  importAction?: ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(category.label);
@@ -271,13 +289,16 @@ function CategoryCard({
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={onAddServant}
-        className="mt-4 w-full rounded-full border border-coptic-gold-main py-2 text-sm font-bold text-coptic-gold-main hover:bg-coptic-gold-main/10"
-      >
-        إضافة خادم
-      </button>
+      <div className="mt-4 flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={onAddServant}
+          className="w-full rounded-full border border-coptic-gold-main py-2 text-sm font-bold text-coptic-gold-main hover:bg-coptic-gold-main/10"
+        >
+          إضافة خادم
+        </button>
+        {importAction}
+      </div>
     </article>
   );
 }

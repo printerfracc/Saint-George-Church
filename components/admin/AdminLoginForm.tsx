@@ -28,7 +28,7 @@ export default function AdminLoginForm() {
       return;
     }
 
-    window.location.href = result.url ?? "/admin";
+    window.location.assign("/admin");
   }
 
   return (

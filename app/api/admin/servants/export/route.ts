@@ -5,8 +5,8 @@ import { prisma } from "@/lib/prisma";
 import {
   assignmentMatchesFilters,
   parseServantListFilters,
+  serializeIdList,
   servantListWhere,
-  SERVANT_ROLE_LABELS,
   uniqueJoin,
   type ServantQueryFilters,
 } from "@/lib/servant-filters";
@@ -41,13 +41,11 @@ async function exportFilteredServants(filters: ServantQueryFilters) {
       include: {
         assignments: {
           include: {
+            khedma: true,
+            role: true,
             category: {
               select: {
-                roleType: true,
                 khedmaId: true,
-                khedma: {
-                  select: { name: true },
-                },
               },
             },
           },
@@ -64,12 +62,8 @@ async function exportFilteredServants(filters: ServantQueryFilters) {
         "الاسم (Name)": servant.name,
         "رقم الموبايل (Phone)": servant.phone ?? "",
         "الرقم القومي (NationalID)": servant.nationalId ?? "",
-        "اسم الخدمة": uniqueJoin(assignments.map((item) => item.category.khedma.name)),
-        الرتبة: uniqueJoin(
-          assignments.map(
-            (item) => SERVANT_ROLE_LABELS[item.category.roleType] ?? item.category.roleType,
-          ),
-        ),
+        "اسم الخدمة": uniqueJoin(assignments.map((item) => item.khedma?.name ?? "")),
+        الرتبة: uniqueJoin(assignments.map((item) => item.role?.name ?? "")),
       };
     });
 
@@ -85,9 +79,14 @@ async function exportFilteredServants(filters: ServantQueryFilters) {
       bookType: "xlsx",
     }) as Buffer;
 
-    const suffix = filters.unassignedOnly
-      ? "unassigned"
-      : [filters.roleType, filters.khedmaId, filters.query].filter(Boolean).join("-") || "all";
+    const suffix = [
+      serializeIdList(filters.roleIds),
+      serializeIdList(filters.khedmaIds),
+      filters.unassignedOnly ? "unassigned" : "",
+      filters.query,
+    ]
+      .filter(Boolean)
+      .join("-") || "all";
 
     return new NextResponse(new Uint8Array(buffer), {
       headers: {

@@ -4,18 +4,12 @@ import { getServerSession } from "next-auth";
 import * as XLSX from "xlsx";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { processTawze3aRows } from "@/actions/tawze3a-import";
+import type { Tawze3aExcelRow } from "@/lib/tawze3a-excel";
 
 export type UploadServantsResult =
   | { error: string }
   | { count: number };
-
-type ServantExcelRow = {
-  Name?: unknown;
-  Phone?: unknown;
-  NationalID?: unknown;
-  Status?: unknown;
-  NewUser?: unknown;
-};
 
 export async function uploadServantsExcel(
   formData: FormData,
@@ -38,96 +32,45 @@ export async function uploadServantsExcel(
     return { error: "يُسمح فقط بملفات Excel ذات الامتداد xlsx أو xls" };
   }
 
-  let rows: ServantExcelRow[];
+  let rows: Tawze3aExcelRow[];
 
   try {
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer);
-    const firstSheetName = workbook.SheetNames[0];
+    const sheetName =
+      workbook.SheetNames.find((name) => name.trim().toLowerCase() === "twze3a") ??
+      workbook.SheetNames[0];
 
-    if (!firstSheetName) {
+    if (!sheetName) {
       return { error: "الملف لا يحتوي على أي ورقة عمل" };
     }
 
-    const sheet = workbook.Sheets[firstSheetName];
-    rows = XLSX.utils.sheet_to_json<ServantExcelRow>(sheet);
+    const sheet = workbook.Sheets[sheetName];
+    rows = XLSX.utils.sheet_to_json<Tawze3aExcelRow>(sheet, {
+      defval: "",
+      raw: false,
+    });
   } catch {
     return { error: "تعذر قراءة ملف Excel. تأكد من صحة الملف ثم حاول مرة أخرى." };
   }
 
-  const mappedData = rows.map((row) => ({
-    name: row.Name,
-    phone: String(row.Phone),
-    nationalId: String(row.NationalID),
-    status: row.Status,
-    newUser: Boolean(row.NewUser),
-  }));
+  let tawze3a = await prisma.tawze3a.findFirst({
+    orderBy: [{ isPublished: "desc" }, { createdAt: "desc" }],
+    select: { id: true },
+  });
 
-  const uniqueByPhone = new Map<
-    string,
-    {
-      name: string;
-      phone: string | null;
-      nationalId: string | null;
-      status: string | null;
-      newUser: boolean;
-    }
-  >();
-  const withoutPhone: Array<{
-    name: string;
-    phone: string | null;
-    nationalId: string | null;
-    status: string | null;
-    newUser: boolean;
-  }> = [];
-
-  for (const row of mappedData) {
-    const name = String(row.name ?? "").trim();
-    const rawPhone = String(row.phone ?? "").trim();
-    const rawNationalId = String(row.nationalId ?? "").trim();
-    const phone =
-      !rawPhone || rawPhone === "undefined" || rawPhone === "null" ? null : rawPhone;
-    const nationalId =
-      !rawNationalId || rawNationalId === "undefined" || rawNationalId === "null"
-        ? null
-        : rawNationalId;
-
-    if (!name) {
-      continue;
-    }
-
-    const record = {
-      name,
-      phone,
-      nationalId,
-      status:
-        row.status == null || String(row.status).trim() === ""
-          ? null
-          : String(row.status),
-      newUser: row.newUser,
-    };
-
-    if (phone) {
-      uniqueByPhone.set(phone, record);
-    } else {
-      withoutPhone.push(record);
-    }
-  }
-
-  const data = [...uniqueByPhone.values(), ...withoutPhone];
-
-  if (data.length === 0) {
-    return { error: "لا توجد صفوف صالحة. تأكد من وجود عمود Name على الأقل." };
-  }
-
-  try {
-    const result = await prisma.servant.createMany({
-      data,
-      skipDuplicates: true,
+  if (!tawze3a) {
+    tawze3a = await prisma.tawze3a.create({
+      data: { title: "توزيعة الخدام", isPublished: false },
+      select: { id: true },
     });
-
-    return { count: result.count };
-  } catch {
-    return { error: "تعذر حفظ بيانات الخدام حالياً. حاول مرة أخرى." };
   }
+
+  const result = await processTawze3aRows(tawze3a.id, rows);
+
+  if (!result.success) {
+    return { error: result.error };
+  }
+
+  return { count: result.imported };
 }

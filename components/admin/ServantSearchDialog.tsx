@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { searchServants, type ServantSearchHit } from "@/actions/tawze3a-admin";
+import {
+  listServantRoles,
+  searchServants,
+  type ServantSearchHit,
+} from "@/actions/tawze3a-admin";
+import type { ServantRoleOption } from "@/lib/servant-roles";
 
 const toast = {
   success(message: string, show: (value: string) => void) {
@@ -13,16 +18,23 @@ const toast = {
 export default function ServantSearchDialog({
   open,
   assignedServantIds,
+  defaultRoleId,
   onClose,
   onSelect,
 }: {
   open: boolean;
   assignedServantIds: string[];
+  defaultRoleId?: string;
   onClose: () => void;
-  onSelect: (servant: ServantSearchHit) => Promise<boolean | void> | boolean | void;
+  onSelect: (
+    servant: ServantSearchHit,
+    roleId: string,
+  ) => Promise<boolean | void> | boolean | void;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ServantSearchHit[]>([]);
+  const [roles, setRoles] = useState<ServantRoleOption[]>([]);
+  const [selectedRoleId, setSelectedRoleId] = useState(defaultRoleId ?? "");
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState("");
   const [toastMessage, setToastMessage] = useState("");
@@ -34,6 +46,19 @@ export default function ServantSearchDialog({
       setError("");
       setIsSearching(false);
       setToastMessage("");
+      return;
+    }
+
+    setSelectedRoleId(defaultRoleId ?? "");
+
+    void listServantRoles().then((items) => {
+      setRoles(items);
+      setSelectedRoleId((current) => current || defaultRoleId || items[0]?.id || "");
+    });
+  }, [open, defaultRoleId]);
+
+  useEffect(() => {
+    if (!open) {
       return;
     }
 
@@ -76,7 +101,12 @@ export default function ServantSearchDialog({
   }, [toastMessage]);
 
   async function handlePick(servant: ServantSearchHit) {
-    const ok = await onSelect(servant);
+    if (!selectedRoleId) {
+      setError("يرجى اختيار رتبة الخادم");
+      return;
+    }
+
+    const ok = await onSelect(servant, selectedRoleId);
 
     if (ok === false) {
       return;
@@ -121,6 +151,26 @@ export default function ServantSearchDialog({
                 إغلاق
               </button>
             </div>
+
+            <label className="mt-4 block text-sm font-bold text-deep-red" htmlFor="servant-role">
+              الرتبة
+            </label>
+            <select
+              id="servant-role"
+              value={selectedRoleId}
+              onChange={(event) => setSelectedRoleId(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
+            >
+              {roles.length === 0 ? (
+                <option value="">لا توجد رتب بعد</option>
+              ) : (
+                roles.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))
+              )}
+            </select>
 
             <label className="mt-4 block text-sm font-bold text-deep-red" htmlFor="servant-search">
               اسم الخادم

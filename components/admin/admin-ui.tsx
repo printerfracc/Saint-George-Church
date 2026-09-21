@@ -9,6 +9,8 @@ export const adminActionMuted = `${adminActionClass} bg-coptic-gold-main/15 text
 
 export const adminActionGold = `${adminActionClass} bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark text-black`;
 
+export const adminActionDanger = `${adminActionClass} border border-deep-red bg-deep-red text-white`;
+
 export function AdminPageHeader({
   title,
   description,

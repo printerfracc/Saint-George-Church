@@ -17,7 +17,7 @@ export type PublicAssignment = {
 export type PublicCategory = {
   id: string;
   label: string;
-  roleType: string;
+  roleName: string;
   order: number;
   assignments: PublicAssignment[];
 };
@@ -38,22 +38,13 @@ export type PublicTawze3a = {
 export type MyAssignment = {
   id: string;
   categoryLabel: string;
-  roleType: string;
+  roleName: string;
   khedmaId: string;
   khedmaName: string;
 };
 
 function assignmentPhrase(assignment: MyAssignment) {
-  const role =
-    assignment.roleType === "AMEN"
-      ? "أمين"
-      : assignment.roleType === "NA2EB"
-        ? "نائب"
-        : assignment.roleType === "KHADEM"
-          ? "خادم"
-          : assignment.categoryLabel;
-
-  return `${role} في خدمة ${assignment.khedmaName}`;
+  return `${assignment.roleName} في خدمة ${assignment.khedmaName}`;
 }
 
 export default function Tawze3aViewer({

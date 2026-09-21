@@ -201,12 +201,19 @@ model Servant {
   id          String               @id @default(cuid())
   name        String
   phone       String?              @unique
-  nationalId  String?
+  nationalId  String?              @unique
   status      String?
   newUser     Boolean?             @default(false)
   assignments ServantAssignment[]
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
+}
+
+model ServantRole {
+  id          String              @id @default(cuid())
+  name        String              @unique
+  assignments ServantAssignment[]
+  categories  KhedmaCategory[]
 }
 
 model Tawze3a {
@@ -218,12 +225,13 @@ model Tawze3a {
 }
 
 model Khedma {
-  id         String           @id @default(cuid())
-  tawze3aId  String
-  tawze3a    Tawze3a          @relation(fields: [tawze3aId], references: [id], onDelete: Cascade)
-  name       String
-  order      Int              @default(0)
-  categories KhedmaCategory[]
+  id          String              @id @default(cuid())
+  tawze3aId   String
+  tawze3a     Tawze3a             @relation(fields: [tawze3aId], references: [id], onDelete: Cascade)
+  name        String
+  order       Int                 @default(0)
+  categories  KhedmaCategory[]
+  assignments ServantAssignment[]
 
   @@index([tawze3aId])
 }
@@ -233,20 +241,28 @@ model KhedmaCategory {
   khedmaId    String
   khedma      Khedma               @relation(fields: [khedmaId], references: [id], onDelete: Cascade)
   label       String
-  roleType    String
+  roleId      String
+  role        ServantRole          @relation(fields: [roleId], references: [id])
   order       Int                  @default(0)
   assignments ServantAssignment[]
 
   @@index([khedmaId])
+  @@index([roleId])
 }
 
 model ServantAssignment {
   id         String         @id @default(cuid())
   categoryId String
   category   KhedmaCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  khedmaId   String?
+  khedma     Khedma?        @relation(fields: [khedmaId], references: [id], onDelete: Cascade)
   servantId  String
   servant    Servant        @relation(fields: [servantId], references: [id], onDelete: Cascade)
+  roleId     String
+  role       ServantRole    @relation(fields: [roleId], references: [id])
 
   @@index([categoryId])
+  @@index([khedmaId])
   @@index([servantId])
+  @@index([roleId])
 }

@@ -1,14 +1,18 @@
 "use server";
 
 import { Prisma } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { servantListWhere } from "@/lib/servant-filters";
+import { wipeServantRolesAndCategories } from "@/lib/tawze3a-wipe";
 
 export type ServantAssignmentChip = {
   id: string;
+  khedmaId: string;
   khedmaName: string;
-  categoryLabel: string;
+  roleId: string;
+  roleName: string;
 };
 
 export type ServantRecord = {
@@ -23,8 +27,8 @@ export type ServantRecord = {
 };
 
 export type ServantListFilters = {
-  roleType?: string;
-  khedmaId?: string;
+  roleIds?: string[];
+  khedmaIds?: string[];
   unassignedOnly?: boolean;
 };
 
@@ -184,6 +188,31 @@ export async function deleteServant(
   }
 }
 
+export async function deleteAllServants(): Promise<
+  { success: true; count: number } | { error: string }
+> {
+  const session = await requireTawze3aAdmin();
+
+  if (!session) {
+    return { error: "غير مصرح لك بتنفيذ هذه العملية" };
+  }
+
+  try {
+    await wipeServantRolesAndCategories();
+    const deletedServants = await prisma.servant.deleteMany();
+
+    revalidatePath("/admin/servants");
+    revalidatePath("/admin/tawze3a");
+    revalidatePath("/tawze3a");
+    revalidatePath("/", "layout");
+
+    return { success: true, count: deletedServants.count };
+  } catch (error) {
+    console.error("deleteAllServants failed", error);
+    return { error: "تعذر حذف جميع الخدام حالياً. حاول مرة أخرى." };
+  }
+}
+
 export async function getServants(
   query?: string,
   page?: number,
@@ -201,8 +230,8 @@ export async function getServants(
   const pageSize = Math.min(100, Math.max(1, limit ?? 50));
   const where = servantListWhere({
     query: trimmedQuery,
-    roleType: filters?.roleType,
-    khedmaId: filters?.khedmaId,
+    roleIds: filters?.roleIds ?? [],
+    khedmaIds: filters?.khedmaIds ?? [],
     unassignedOnly: filters?.unassignedOnly,
   });
 
@@ -216,14 +245,8 @@ export async function getServants(
         include: {
           assignments: {
             include: {
-              category: {
-                select: {
-                  label: true,
-                  khedma: {
-                    select: { name: true },
-                  },
-                },
-              },
+              khedma: true,
+              role: true,
             },
           },
         },
@@ -243,8 +266,10 @@ export async function getServants(
         createdAt: servant.createdAt,
         assignments: servant.assignments.map((assignment) => ({
           id: assignment.id,
-          khedmaName: assignment.category.khedma.name,
-          categoryLabel: assignment.category.label,
+          khedmaId: assignment.khedmaId ?? assignment.khedma?.id ?? "",
+          khedmaName: assignment.khedma?.name ?? "",
+          roleId: assignment.roleId,
+          roleName: assignment.role?.name ?? "",
         })),
       })),
       total,

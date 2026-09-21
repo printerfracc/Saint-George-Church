@@ -1,34 +1,38 @@
 import { Prisma } from "@prisma/client";
 
-export const SERVANT_ROLE_VALUES = new Set(["AMEN", "NA2EB", "KHADEM"]);
-
-export const SERVANT_ROLE_LABELS: Record<string, string> = {
-  AMEN: "أمناء الخدمة",
-  NA2EB: "نواب",
-  KHADEM: "خدام",
-};
+export const UNASSIGNED_KHEDMA_VALUE = "unassigned";
 
 export type ServantQueryFilters = {
   query?: string;
-  roleType?: string;
-  khedmaId?: string;
+  roleIds: string[];
+  khedmaIds: string[];
   unassignedOnly?: boolean;
 };
 
+export function parseIdList(value?: string | string[] | null): string[] {
+  const raw = Array.isArray(value) ? value.join(",") : (value ?? "");
+  return [...new Set(raw.split(",").map((item) => item.trim()).filter(Boolean))];
+}
+
+export function serializeIdList(ids: string[]): string {
+  return [...new Set(ids.map((item) => item.trim()).filter(Boolean))].join(",");
+}
+
 export function parseServantListFilters(params: {
-  q?: string | null;
-  role?: string | null;
-  khedma?: string | null;
+  q?: string | string[] | null;
+  role?: string | string[] | null;
+  khedma?: string | string[] | null;
 }): ServantQueryFilters {
-  const query = params.q?.trim() ?? "";
-  const role = params.role?.trim() ?? "";
-  const khedma = params.khedma?.trim() ?? "";
-  const unassignedOnly = khedma === "unassigned";
+  const query = (Array.isArray(params.q) ? params.q[0] : params.q)?.trim() ?? "";
+  const roleIds = parseIdList(params.role);
+  const khedmaValues = parseIdList(params.khedma);
+  const unassignedOnly = khedmaValues.includes(UNASSIGNED_KHEDMA_VALUE);
+  const khedmaIds = khedmaValues.filter((id) => id !== UNASSIGNED_KHEDMA_VALUE);
 
   return {
     query: query || undefined,
-    roleType: SERVANT_ROLE_VALUES.has(role) ? role : undefined,
-    khedmaId: unassignedOnly ? undefined : khedma || undefined,
+    roleIds,
+    khedmaIds,
     unassignedOnly,
   };
 }
@@ -38,9 +42,11 @@ export function servantListWhere(
 ): Prisma.ServantWhereInput | undefined {
   const and: Prisma.ServantWhereInput[] = [];
   const query = filters.query?.trim() ?? "";
-  const roleType = filters.roleType?.trim() || undefined;
-  const khedmaId = filters.unassignedOnly ? undefined : filters.khedmaId?.trim() || undefined;
+  const roleIds = (filters.roleIds ?? []).filter(Boolean);
+  const khedmaIds = (filters.khedmaIds ?? []).filter(Boolean);
   const unassignedOnly = Boolean(filters.unassignedOnly);
+  const hasRole = roleIds.length > 0;
+  const hasKhedma = khedmaIds.length > 0;
 
   if (query) {
     and.push({
@@ -48,41 +54,67 @@ export function servantListWhere(
     });
   }
 
-  if (unassignedOnly) {
+  if (unassignedOnly && !hasKhedma) {
     and.push({ assignments: { none: {} } });
-  } else if (khedmaId || roleType) {
+  } else if (unassignedOnly && hasKhedma) {
     and.push({
-      assignments: {
-        some: {
-          category: {
-            ...(khedmaId ? { khedmaId } : {}),
-            ...(roleType ? { roleType } : {}),
-          },
-        },
-      },
+      OR: [
+        { assignments: { none: {} } },
+        { assignments: { some: { khedmaId: { in: khedmaIds } } } },
+      ],
     });
+  } else if (hasKhedma) {
+    and.push({ assignments: { some: { khedmaId: { in: khedmaIds } } } });
+  }
+
+  if (hasRole) {
+    and.push({ assignments: { some: { roleId: { in: roleIds } } } });
   }
 
   return and.length > 0 ? { AND: and } : undefined;
 }
 
 export function assignmentMatchesFilters(
-  assignment: { category: { roleType: string; khedmaId: string } },
+  assignment: { roleId: string; khedmaId?: string | null; category?: { khedmaId: string } },
   filters: ServantQueryFilters,
 ) {
-  if (filters.unassignedOnly) {
+  if (filters.unassignedOnly && filters.khedmaIds.length === 0) {
     return false;
   }
 
-  if (filters.khedmaId && assignment.category.khedmaId !== filters.khedmaId) {
+  const assignmentKhedmaId = assignment.khedmaId ?? assignment.category?.khedmaId;
+
+  if (filters.khedmaIds.length > 0 && (!assignmentKhedmaId || !filters.khedmaIds.includes(assignmentKhedmaId))) {
     return false;
   }
 
-  if (filters.roleType && assignment.category.roleType !== filters.roleType) {
+  if (filters.roleIds.length > 0 && !filters.roleIds.includes(assignment.roleId)) {
     return false;
   }
 
   return true;
+}
+
+export function servantMatchesFilters(
+  servant: {
+    assignments: Array<{ roleId: string; khedmaId?: string | null }>;
+  },
+  selectedRoles: string[],
+  selectedKhedmat: string[],
+) {
+  const khedmaIds = selectedKhedmat.filter((id) => id !== UNASSIGNED_KHEDMA_VALUE);
+  const includeUnassigned = selectedKhedmat.includes(UNASSIGNED_KHEDMA_VALUE);
+
+  const matchesKhedma =
+    selectedKhedmat.length === 0 ||
+    (includeUnassigned && servant.assignments.length === 0) ||
+    servant.assignments.some((assignment) => khedmaIds.includes(assignment.khedmaId ?? ""));
+
+  const matchesRole =
+    selectedRoles.length === 0 ||
+    servant.assignments.some((assignment) => selectedRoles.includes(assignment.roleId));
+
+  return matchesKhedma && matchesRole;
 }
 
 export function uniqueJoin(values: string[]) {

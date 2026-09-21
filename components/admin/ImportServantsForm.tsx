@@ -34,8 +34,8 @@ export default function ImportServantsForm() {
     setIsError(false);
     setMessage(
       result.count > 0
-        ? `تم إضافة ${result.count} خادم بنجاح. تم تجاهل الأرقام المكررة.`
-        : "لم يتم إضافة سجلات جديدة. قد تكون الأرقام موجودة مسبقاً.",
+        ? `تم إضافة ${result.count} خادم وربطهم بالخدمات والرتب بنجاح.`
+        : "لم يتم إضافة سجلات جديدة. قد تكون البيانات موجودة مسبقاً.",
     );
   }
 
@@ -46,7 +46,7 @@ export default function ImportServantsForm() {
     >
       <h2 className="text-lg font-bold text-deep-red">رفع ملف Excel</h2>
       <p className="mt-2 text-sm leading-7 text-deep-red/75">
-        يجب أن يحتوي الملف على الأعمدة التالية في الصف الأول: Name، Phone، NationalID، Status، NewUser.
+        يجب أن يحتوي الملف على الأعمدة التالية في الصف الأول: ServantName, ServantPhone, ServantNationalID, 5edma, Role
       </p>
 
       <label className="mt-4 block text-sm font-bold text-deep-red" htmlFor="servants-file">
