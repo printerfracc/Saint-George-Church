@@ -6,6 +6,8 @@ export const metadata = {
   title: "ملفات القسم",
 };
 
+export const maxDuration = 60;
+
 export default async function AdminMediaItemsPage({
   params,
 }: {

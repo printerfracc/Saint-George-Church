@@ -3,8 +3,14 @@ import { isYouTubeUrl, youtubeThumbnailUrl } from "@/lib/youtube";
 
 export type { MediaFileType };
 
-/** Vercel serverless request body limit for Server Actions. */
-export const VERCEL_UPLOAD_LIMIT_BYTES = 4.5 * 1024 * 1024;
+/** Vercel serverless request body limit for Server Actions (4.5 MB). */
+export const VERCEL_UPLOAD_LIMIT_BYTES = 4_500_000;
+
+/** Keep a single upload under the platform body limit, including form overhead. */
+export const LIBRARY_DIRECT_UPLOAD_LIMIT_BYTES = 3_500_000;
+
+/** Each production request stays under the 4.5 MB platform body limit. */
+export const LIBRARY_UPLOAD_CHUNK_BYTES = 3_000_000;
 
 /** Cloudinary free-plan upload cap used for direct browser uploads. */
 export const CLOUDINARY_UPLOAD_LIMIT_BYTES = 10 * 1024 * 1024;

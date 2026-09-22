@@ -1,4 +1,6 @@
 import {
+  DeleteObjectCommand,
+  GetObjectCommand,
   PutBucketCorsCommand,
   PutObjectCommand,
   S3Client,
@@ -7,6 +9,12 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const IMAGE_FOLDER = "saint-george-church";
 const LIBRARY_FOLDER = "saint-george-church/library";
+const LIBRARY_TMP_FOLDER = "saint-george-church/library-tmp";
+const MAX_LIBRARY_BYTES = 10 * 1024 * 1024;
+const MAX_CHUNK_BYTES = 3_500_000;
+const MAX_LIBRARY_PARTS = 6;
+const UPLOAD_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const CONTENT_TYPES: Record<string, string> = {
   jpg: "image/jpeg",
@@ -155,6 +163,103 @@ export async function storeLibraryFile(file: File) {
     Buffer.from(await file.arrayBuffer()),
     contentTypeForUpload(file.name, file.type),
   );
+}
+
+function assertUploadId(uploadId: string) {
+  if (!UPLOAD_ID_PATTERN.test(uploadId)) {
+    throw new Error("invalid upload");
+  }
+}
+
+function tmpKey(uploadId: string, index: number) {
+  return `${LIBRARY_TMP_FOLDER}/${uploadId}/${index}`;
+}
+
+export async function storeLibraryChunk(uploadId: string, index: number, body: Buffer) {
+  assertUploadId(uploadId);
+
+  if (!Number.isInteger(index) || index < 0 || index >= MAX_LIBRARY_PARTS) {
+    throw new Error("invalid part");
+  }
+
+  if (body.byteLength === 0 || body.byteLength > MAX_CHUNK_BYTES) {
+    throw new Error("invalid chunk");
+  }
+
+  await putObject(tmpKey(uploadId, index), body, "application/octet-stream");
+}
+
+export async function discardLibraryChunks(uploadId: string, partCount: number) {
+  assertUploadId(uploadId);
+  const count = Math.min(Math.max(Math.floor(partCount), 0), MAX_LIBRARY_PARTS);
+
+  await Promise.all(
+    Array.from({ length: count }, (_, index) =>
+      r2Client()
+        .send(
+          new DeleteObjectCommand({
+            Bucket: bucketName(),
+            Key: tmpKey(uploadId, index),
+          }),
+        )
+        .catch(() => undefined),
+    ),
+  );
+}
+
+export async function assembleLibraryFile(
+  uploadId: string,
+  partCount: number,
+  fileName: string,
+  contentType: string,
+) {
+  assertUploadId(uploadId);
+
+  if (!Number.isInteger(partCount) || partCount < 1 || partCount > MAX_LIBRARY_PARTS) {
+    throw new Error("invalid part count");
+  }
+
+  const parts: Buffer[] = [];
+  let total = 0;
+
+  try {
+    for (let index = 0; index < partCount; index += 1) {
+      const response = await r2Client().send(
+        new GetObjectCommand({
+          Bucket: bucketName(),
+          Key: tmpKey(uploadId, index),
+        }),
+      );
+
+      if (!response.Body) {
+        throw new Error("missing part");
+      }
+
+      const bytes = Buffer.from(await response.Body.transformToByteArray());
+      total += bytes.byteLength;
+
+      if (total > MAX_LIBRARY_BYTES) {
+        throw new Error("too large");
+      }
+
+      parts.push(bytes);
+    }
+
+    if (total === 0) {
+      throw new Error("empty");
+    }
+
+    const key = objectKey(LIBRARY_FOLDER, fileName);
+    const url = await putObject(
+      key,
+      Buffer.concat(parts, total),
+      contentTypeForUpload(fileName, contentType),
+    );
+
+    return url;
+  } finally {
+    await discardLibraryChunks(uploadId, partCount);
+  }
 }
 
 export async function createLibraryUploadTarget(

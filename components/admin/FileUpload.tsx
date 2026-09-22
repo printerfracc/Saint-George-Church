@@ -2,10 +2,17 @@
 
 import { useRef, useState, type ChangeEvent } from "react";
 import Image from "next/image";
-import { uploadLibraryMedia } from "@/actions/upload-media";
+import {
+  abortLibraryUpload,
+  completeLibraryUpload,
+  uploadLibraryChunk,
+  uploadLibraryMedia,
+} from "@/actions/upload-media";
 import {
   CLOUDINARY_UPLOAD_LIMIT_BYTES,
   detectLibraryFileType,
+  LIBRARY_DIRECT_UPLOAD_LIMIT_BYTES,
+  LIBRARY_UPLOAD_CHUNK_BYTES,
   mediaFileTypeLabel,
   type MediaFileType,
 } from "@/lib/media";
@@ -43,7 +50,50 @@ export default function FileUpload({
   const [error, setError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
-  function showError(message: string) {
+  async function uploadOneFile(file: File, onProgress: (message: string) => void) {
+    if (file.size <= LIBRARY_DIRECT_UPLOAD_LIMIT_BYTES) {
+      const formData = new FormData();
+      formData.append("file", file);
+      return uploadLibraryMedia(formData);
+    }
+
+    const uploadId = crypto.randomUUID();
+    const total = Math.ceil(file.size / LIBRARY_UPLOAD_CHUNK_BYTES);
+
+    try {
+      for (let index = 0; index < total; index += 1) {
+        const start = index * LIBRARY_UPLOAD_CHUNK_BYTES;
+        const chunk = file.slice(
+          start,
+          Math.min(file.size, start + LIBRARY_UPLOAD_CHUNK_BYTES),
+        );
+        const formData = new FormData();
+        formData.append("chunk", chunk, file.name);
+        formData.append("uploadId", uploadId);
+        formData.append("index", String(index));
+        formData.append("total", String(total));
+        onProgress(`جاري الرفع... ${index + 1} من ${total}`);
+
+        const part = await uploadLibraryChunk(formData);
+        if (!part.success) {
+          await abortLibraryUpload(uploadId, total);
+          return part;
+        }
+      }
+
+      return completeLibraryUpload({
+        uploadId,
+        total,
+        fileName: file.name,
+        contentType: file.type,
+      });
+    } catch (error) {
+      await abortLibraryUpload(uploadId, total);
+      throw error;
+    }
+  }
+
+function showError(message: string) {
     toast.error(message, setError);
     setStatus("");
   }
@@ -104,9 +154,7 @@ export default function FileUpload({
           return;
         }
 
-        const formData = new FormData();
-        formData.append("file", file);
-        const result = await uploadLibraryMedia(formData);
+        const result = await uploadOneFile(file, setStatus);
 
         if (!result.success) {
           showError(result.error);
