@@ -66,7 +66,7 @@ export default async function MediaCollectionPage({
           لا توجد ملفات في هذا القسم بعد.
         </p>
       ) : (
-        <MediaGallery items={collection.items} />
+        <MediaGallery items={collection.items} layout={collection.imageDisplayMode} />
       )}
     </main>
   );

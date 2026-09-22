@@ -36,6 +36,9 @@ export default async function AdminServiceChildrenPage({
           parentId: child.parentId,
           childCount: child.childCount,
           imageDisplayMode: child.imageDisplayMode,
+          serviceTime: child.serviceTime,
+          amenPhone: child.amenPhone,
+          imageUrls: child.imageUrls ?? [],
         }))}
         parentOptions={parentOptions}
       />

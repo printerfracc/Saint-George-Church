@@ -83,19 +83,37 @@ function parseServiceData(data: {
   imageUrl?: string | null;
   parentId?: string | null;
   imageDisplayMode?: string | null;
+  serviceTime?: string | null;
+  amenPhone?: string | null;
+  imageUrls?: string[];
 }) {
   const title = data.title?.trim() ?? "";
   const description = data.description?.trim() ?? "";
   const slug = data.slug?.trim() || null;
-  const imageUrl = data.imageUrl?.trim() || null;
   const parentId = data.parentId?.trim() || null;
   const imageDisplayMode = parseImageDisplayMode(data.imageDisplayMode);
+  const serviceTime = data.serviceTime?.trim() || null;
+  const amenPhone = data.amenPhone?.trim() || null;
+  const imageUrls = (data.imageUrls ?? [])
+    .map((url) => url.trim())
+    .filter(Boolean);
+  const imageUrl = imageUrls[0] || data.imageUrl?.trim() || null;
 
   if (!title) {
     throw new Error("يرجى إدخال اسم القطاع");
   }
 
-  return { title, description, slug, imageUrl, parentId, imageDisplayMode };
+  return {
+    title,
+    description,
+    slug,
+    imageUrl,
+    imageUrls,
+    parentId,
+    imageDisplayMode,
+    serviceTime,
+    amenPhone,
+  };
 }
 
 export async function listServices(parentId: string | null = null) {
@@ -129,6 +147,9 @@ export async function createService(data: {
   imageUrl?: string | null;
   parentId?: string | null;
   imageDisplayMode?: string | null;
+  serviceTime?: string | null;
+  amenPhone?: string | null;
+  imageUrls?: string[];
 }): Promise<AdminActionResult> {
   const auth = await ensureAdmin();
   if (auth !== true) return auth;
@@ -155,6 +176,9 @@ export async function updateService(
     imageUrl?: string | null;
     parentId?: string | null;
     imageDisplayMode?: string | null;
+    serviceTime?: string | null;
+    amenPhone?: string | null;
+    imageUrls?: string[];
   },
 ): Promise<AdminActionResult> {
   const auth = await ensureAdmin();

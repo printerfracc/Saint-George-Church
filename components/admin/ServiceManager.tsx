@@ -14,6 +14,7 @@ import type { ImageDisplayMode } from "@/lib/image-display";
 import { updateItemOrder } from "@/actions/reorder";
 import DraggableList from "@/components/admin/DraggableList";
 import ImageUpload from "@/components/admin/ImageUpload";
+import MultiImageUpload from "@/components/admin/MultiImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
 import {
   AdminActions,
@@ -32,6 +33,9 @@ export type ServiceRow = {
   parentId: string | null;
   childCount: number;
   imageDisplayMode: ImageDisplayMode;
+  serviceTime: string | null;
+  amenPhone: string | null;
+  imageUrls: string[];
 };
 
 export type ServiceParentOption = {
@@ -47,6 +51,9 @@ const emptyForm = {
   imageUrl: "",
   parentId: "",
   imageDisplayMode: "NORMAL" as ImageDisplayMode,
+  serviceTime: "",
+  amenPhone: "",
+  imageUrls: [] as string[],
 };
 
 export default function ServiceManager({
@@ -107,6 +114,13 @@ export default function ServiceManager({
       imageUrl: service.imageUrl ?? "",
       parentId: service.parentId ?? "",
       imageDisplayMode: service.imageDisplayMode,
+      serviceTime: service.serviceTime ?? "",
+      amenPhone: service.amenPhone ?? "",
+      imageUrls: (service.imageUrls?.length ?? 0) > 0
+        ? service.imageUrls
+        : service.imageUrl
+          ? [service.imageUrl]
+          : [],
     });
     setError("");
     setOpen(true);
@@ -120,9 +134,12 @@ export default function ServiceManager({
       title: form.title,
       description: form.description,
       slug: form.slug,
-      imageUrl: form.imageUrl,
+      imageUrl: form.imageUrls[0] ?? form.imageUrl,
       parentId: form.parentId || null,
       imageDisplayMode: form.imageDisplayMode,
+      serviceTime: form.serviceTime,
+      amenPhone: form.amenPhone,
+      imageUrls: form.imageUrls,
     };
 
     const result = editing
@@ -195,9 +212,9 @@ export default function ServiceManager({
         {(service) => (
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <div className="flex min-w-0 flex-1 gap-3">
-              {service.imageUrl ? (
+              {(service.imageUrls?.[0] ?? service.imageUrl) ? (
                 <Image
-                  src={service.imageUrl}
+                  src={service.imageUrls?.[0] ?? service.imageUrl ?? ""}
                   alt={service.title}
                   width={64}
                   height={48}
@@ -222,9 +239,11 @@ export default function ServiceManager({
               </div>
             </div>
             <AdminActions>
-              <Link href={`/admin/services/${service.id}`} className={adminActionGold}>
-                فتح
-              </Link>
+              {currentParent ? null : (
+                <Link href={`/admin/services/${service.id}`} className={adminActionGold}>
+                  فتح
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => openEdit(service)}
@@ -263,23 +282,25 @@ export default function ServiceManager({
             />
           </label>
 
-          <label className="block space-y-2">
-            <span className="text-sm font-bold text-deep-red">رابط الصفحة بالإنجليزية</span>
-            <input
-              type="text"
-              dir="ltr"
-              value={form.slug}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, slug: event.target.value }))
-              }
-              className="w-full rounded-xl border border-coptic-gold-main/40 bg-white px-3 py-2 text-left text-deep-red outline-none focus:ring-2 focus:ring-coptic-gold-main"
-              aria-label="رابط الصفحة بالإنجليزية"
-              placeholder="youth-meeting"
-            />
-            <span className="block text-xs leading-6 text-deep-red/70">
-              مثال: youth-meeting. إذا تُرك فارغاً سيتم إنشاؤه تلقائياً.
-            </span>
-          </label>
+          {currentParent ? null : (
+            <label className="block space-y-2">
+              <span className="text-sm font-bold text-deep-red">رابط الصفحة بالإنجليزية</span>
+              <input
+                type="text"
+                dir="ltr"
+                value={form.slug}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, slug: event.target.value }))
+                }
+                className="w-full rounded-xl border border-coptic-gold-main/40 bg-white px-3 py-2 text-left text-deep-red outline-none focus:ring-2 focus:ring-coptic-gold-main"
+                aria-label="رابط الصفحة بالإنجليزية"
+                placeholder="youth-meeting"
+              />
+              <span className="block text-xs leading-6 text-deep-red/70">
+                مثال: youth-meeting. إذا تُرك فارغاً سيتم إنشاؤه تلقائياً.
+              </span>
+            </label>
+          )}
 
           <label className="block space-y-2">
             <span className="text-sm font-bold text-deep-red">القسم الرئيسي (اختياري)</span>
@@ -316,14 +337,60 @@ export default function ServiceManager({
             />
           </label>
 
-          <ImageUpload
-            value={form.imageUrl}
-            onChange={(url) =>
-              setForm((current) => ({ ...current, imageUrl: url }))
-            }
-            label="الصورة"
-            preview={form.imageDisplayMode === "PORTRAIT_450_730" ? "portrait" : "wide"}
-          />
+          <label className="block space-y-2">
+            <span className="text-sm font-bold text-deep-red">ميعاد الخدمة (اختياري)</span>
+            <input
+              type="text"
+              value={form.serviceTime}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, serviceTime: event.target.value }))
+              }
+              placeholder="الجمعة 10 صباحا"
+              className="w-full rounded-xl border border-coptic-gold-main/40 bg-white px-3 py-2 text-deep-red outline-none focus:ring-2 focus:ring-coptic-gold-main"
+              aria-label="ميعاد الخدمة"
+            />
+          </label>
+
+          <label className="block space-y-2">
+            <span className="text-sm font-bold text-deep-red">رقم تليفون الأمين (اختياري)</span>
+            <input
+              type="tel"
+              dir="ltr"
+              value={form.amenPhone}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, amenPhone: event.target.value }))
+              }
+              className="w-full rounded-xl border border-coptic-gold-main/40 bg-white px-3 py-2 text-left text-deep-red outline-none focus:ring-2 focus:ring-coptic-gold-main"
+              aria-label="رقم تليفون الأمين"
+            />
+          </label>
+
+          {currentParent ? (
+            <MultiImageUpload
+              values={form.imageUrls}
+              onChange={(imageUrls) =>
+                setForm((current) => ({
+                  ...current,
+                  imageUrls,
+                  imageUrl: imageUrls[0] ?? "",
+                }))
+              }
+              label="الصور"
+            />
+          ) : (
+            <ImageUpload
+              value={form.imageUrl}
+              onChange={(url) =>
+                setForm((current) => ({
+                  ...current,
+                  imageUrl: url,
+                  imageUrls: url ? [url] : [],
+                }))
+              }
+              label="الصورة"
+              preview={form.imageDisplayMode === "PORTRAIT_450_730" ? "portrait" : "wide"}
+            />
+          )}
           <ImageDisplayModeField
             value={form.imageDisplayMode}
             onChange={(imageDisplayMode) =>

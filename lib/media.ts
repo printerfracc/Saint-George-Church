@@ -1,6 +1,6 @@
 import type { MediaFileType } from "@/lib/cloudinary";
 import { getAppUrl } from "@/lib/app-url";
-import { youtubeThumbnailUrl } from "@/lib/youtube";
+import { isYouTubeUrl, youtubeThumbnailUrl } from "@/lib/youtube";
 
 export type { MediaFileType };
 
@@ -71,9 +71,13 @@ export function normalizeExternalUrl(value: string) {
   }
 }
 
-export function mediaExternalLinkLabel(label?: string | null) {
+export function mediaExternalLinkLabel(label?: string | null, href?: string | null) {
   const trimmed = label?.trim() ?? "";
-  return trimmed || "رابط";
+  if (trimmed) {
+    return trimmed;
+  }
+
+  return isYouTubeUrl(href) ? "اضغط للمشاهدة" : "اضغط هنا";
 }
 
 export function mediaPreviewUrl(fileUrl: string, fileType?: string | null) {

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChurchLogo from "@/components/ChurchLogo";
-import OptionalImage from "@/components/public/OptionalImage";
+import ImageCarousel from "@/components/public/ImageCarousel";
 import ReadMoreText from "@/components/public/ReadMoreText";
+import SectorMetaInfo from "@/components/public/SectorMetaInfo";
 import { getService } from "@/actions/admin-actions";
 import SectorCard from "@/components/public/SectorCard";
 import { imageDisplayFrameClass } from "@/lib/image-display";
@@ -71,18 +72,21 @@ export default async function SectorDetailPage({
                 imageUrl={child.imageUrl}
                 childCount={child.childCount}
                 imageDisplayMode={child.imageDisplayMode}
+                description={child.description}
+                serviceTime={child.serviceTime}
+                amenPhone={child.amenPhone}
+                imageUrls={child.imageUrls}
+                clickable={false}
               />
             </li>
           ))}
         </ul>
       ) : (
         <article className="mx-auto mt-10 max-w-3xl overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm">
-          <OptionalImage
-            src={sector.imageUrl}
+          <ImageCarousel
+            images={sector.imageUrls}
             alt={title}
-            fill
             frameClassName={imageDisplayFrameClass(sector.imageDisplayMode)}
-            className="object-cover"
           />
           <div className="p-6 md:p-8">
             {description ? (
@@ -97,6 +101,10 @@ export default async function SectorDetailPage({
                 لا توجد تفاصيل منشورة لهذا القطاع بعد.
               </p>
             )}
+            <SectorMetaInfo
+              serviceTime={sector.serviceTime}
+              amenPhone={sector.amenPhone}
+            />
           </div>
         </article>
       )}

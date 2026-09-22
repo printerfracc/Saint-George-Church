@@ -97,6 +97,9 @@ model Service {
   parent            Service?  @relation("ServiceHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children          Service[] @relation("ServiceHierarchy")
   imageDisplayMode  String    @default("NORMAL")
+  serviceTime       String?   @db.Text
+  amenPhone         String?
+  imageUrls         String?   @db.Text
 
   @@index([parentId])
 }
