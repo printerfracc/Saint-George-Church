@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import OptionalImage from "@/components/public/OptionalImage";
 import { CHURCH_NAME } from "@/lib/church";
 
 const DEFAULT_SUBTITLE =
@@ -20,7 +19,6 @@ export default function HomeHero({
   subtitle?: string | null;
   isLive?: boolean;
 }) {
-  const [showPhoto, setShowPhoto] = useState(Boolean(imageUrl));
   const heading = title?.trim() || CHURCH_NAME;
   const description = subtitle?.trim() || DEFAULT_SUBTITLE;
 
@@ -36,17 +34,13 @@ export default function HomeHero({
           ease: "linear",
         }}
       >
-        {showPhoto && imageUrl ? (
-          <Image
-            src={imageUrl}
-            alt={heading}
-            fill
-            priority
-            unoptimized
-            className="object-cover"
-            onError={() => setShowPhoto(false)}
-          />
-        ) : null}
+        <OptionalImage
+          src={imageUrl}
+          alt={heading}
+          fill
+          priority
+          className="object-cover"
+        />
       </motion.div>
 
       <div className="absolute inset-0 bg-black/60" />

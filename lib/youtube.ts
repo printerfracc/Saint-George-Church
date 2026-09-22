@@ -1,5 +1,68 @@
 import { YOUTUBE_CHANNEL_HANDLE } from "@/lib/church";
 
+const YOUTUBE_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
+const YOUTUBE_HOSTS = new Set([
+  "youtube.com",
+  "youtube-nocookie.com",
+  "youtu.be",
+]);
+
+function isYouTubeVideoId(value?: string | null) {
+  return Boolean(value && YOUTUBE_ID_PATTERN.test(value));
+}
+
+export function extractYouTubeVideoId(value?: string | null) {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (isYouTubeVideoId(trimmed)) {
+    return trimmed;
+  }
+
+  try {
+    const url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    const host = url.hostname.replace(/^(www|m)\./, "");
+
+    if (!YOUTUBE_HOSTS.has(host)) {
+      return null;
+    }
+
+    if (host === "youtu.be") {
+      const id = url.pathname.split("/").filter(Boolean)[0] ?? "";
+      return isYouTubeVideoId(id) ? id : null;
+    }
+
+    const fromQuery = url.searchParams.get("v");
+    if (isYouTubeVideoId(fromQuery)) {
+      return fromQuery;
+    }
+
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (
+      parts[0] &&
+      ["embed", "shorts", "live", "v"].includes(parts[0]) &&
+      isYouTubeVideoId(parts[1])
+    ) {
+      return parts[1];
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+export function youtubeThumbnailUrl(value?: string | null) {
+  const videoId = extractYouTubeVideoId(value);
+  return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
+}
+
+export function isYouTubeUrl(value?: string | null) {
+  return Boolean(extractYouTubeVideoId(value));
+}
+
 export type YouTubeLiveStatus = {
   isLive: boolean;
   videoId: string | null;

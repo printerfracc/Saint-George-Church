@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChurchLogo from "@/components/ChurchLogo";
+import OptionalImage from "@/components/public/OptionalImage";
 import ReadMoreText from "@/components/public/ReadMoreText";
 import { getService } from "@/actions/admin-actions";
 import SectorCard from "@/components/public/SectorCard";
@@ -77,17 +77,13 @@ export default async function SectorDetailPage({
         </ul>
       ) : (
         <article className="mx-auto mt-10 max-w-3xl overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm">
-          {sector.imageUrl ? (
-            <div className={imageDisplayFrameClass(sector.imageDisplayMode)}>
-              <Image
-                src={sector.imageUrl}
-                alt={title}
-                fill
-                unoptimized
-                className="object-cover"
-              />
-            </div>
-          ) : null}
+          <OptionalImage
+            src={sector.imageUrl}
+            alt={title}
+            fill
+            frameClassName={imageDisplayFrameClass(sector.imageDisplayMode)}
+            className="object-cover"
+          />
           <div className="p-6 md:p-8">
             {description ? (
               <ReadMoreText

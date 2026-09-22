@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import ChurchLogo from "@/components/ChurchLogo";
+import OptionalImage from "@/components/public/OptionalImage";
 import { CHURCH_NAME } from "@/lib/church";
 
 export type HeroSlide = {
@@ -45,16 +45,14 @@ export default function HeroSlider({ slides }: { slides: HeroSlide[] }) {
             transition={{ duration: 0.7, ease: "easeInOut" }}
             className="absolute inset-0"
           >
-            {current?.imageUrl ? (
-              <Image
-                src={current.imageUrl}
-                alt={current.title}
-                fill
-                priority
-                unoptimized
-                className="object-cover"
-              />
-            ) : (
+            <OptionalImage
+              src={current?.imageUrl}
+              alt={current?.title || CHURCH_NAME}
+              fill
+              priority
+              className="object-cover"
+            />
+            {current?.imageUrl ? null : (
               <div className="absolute inset-0 bg-deep-red">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.28),transparent_55%)]" />
               </div>

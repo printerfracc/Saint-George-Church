@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import ChurchLogo from "@/components/ChurchLogo";
+import OptionalImage from "@/components/public/OptionalImage";
 import ReadMoreText from "@/components/public/ReadMoreText";
 import { listLibraryCollections } from "@/actions/media";
 import { imageDisplayFrameClass } from "@/lib/image-display";
@@ -52,17 +52,13 @@ export default async function MediaPage() {
             <li key={collection.id}>
               <article className="overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm transition hover:-translate-y-0.5 hover:border-coptic-gold-main">
                 <Link href={publicItemPath("media", collection)} className="block">
-                  {collection.imageUrl ? (
-                    <div className={imageDisplayFrameClass(collection.imageDisplayMode)}>
-                      <Image
-                        src={collection.imageUrl}
-                        alt={collection.title}
-                        fill
-                        unoptimized
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : null}
+                  <OptionalImage
+                    src={collection.imageUrl}
+                    alt={collection.title}
+                    fill
+                    frameClassName={imageDisplayFrameClass(collection.imageDisplayMode)}
+                    className="object-cover"
+                  />
                   <div className="px-5 pt-5">
                     <h2 className="text-lg font-bold text-deep-red">
                       {collection.title}

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import OptionalImage from "@/components/public/OptionalImage";
 import PdfPreview from "@/components/public/PdfPreview";
 import { mediaFileTypeLabel, mediaOpenUrl, officePreviewUrl } from "@/lib/media";
 
@@ -16,15 +16,13 @@ export default function FilePreview({
   return (
     <article className="overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/85 shadow-sm">
       {fileType === "image" ? (
-        <div className="relative aspect-video bg-black/5">
-          <Image
-            src={fileUrl}
-            alt={title}
-            fill
-            unoptimized
-            className="object-cover"
-          />
-        </div>
+        <OptionalImage
+          src={fileUrl}
+          alt={title}
+          fill
+          frameClassName="relative aspect-video bg-black/5"
+          className="object-cover"
+        />
       ) : fileType === "pdf" ? (
         <PdfPreview title={title} fileUrl={fileUrl} />
       ) : (

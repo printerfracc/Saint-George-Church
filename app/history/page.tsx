@@ -1,4 +1,4 @@
-import Image from "next/image";
+import OptionalImage from "@/components/public/OptionalImage";
 import PlaceholderPage from "@/components/public/PlaceholderPage";
 import { findDynamicContentByKey } from "@/lib/dynamic-content";
 import { publicPageMetadata } from "@/lib/seo";
@@ -48,17 +48,13 @@ export default async function HistoryPage() {
       </h1>
       <div className="mx-auto mt-3 h-1 w-20 rounded-full bg-coptic-gold-main" />
 
-      {story.imageUrl ? (
-        <div className="relative mt-8 aspect-video overflow-hidden rounded-3xl border border-coptic-gold-main/40 bg-white/70 shadow-sm">
-          <Image
-            src={story.imageUrl}
-            alt={story.title || "قصة الكنيسة"}
-            fill
-            unoptimized
-            className="object-cover"
-          />
-        </div>
-      ) : null}
+      <OptionalImage
+        src={story.imageUrl}
+        alt={story.title || "قصة الكنيسة"}
+        fill
+        frameClassName="relative mt-8 aspect-video overflow-hidden rounded-3xl border border-coptic-gold-main/40 bg-white/70 shadow-sm"
+        className="object-cover"
+      />
 
       <div className="mt-8 whitespace-pre-line text-sm leading-8 text-deep-red/85 md:text-base">
         {story.content}

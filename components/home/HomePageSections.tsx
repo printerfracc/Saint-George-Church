@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
+import OptionalImage from "@/components/public/OptionalImage";
 import ReadMoreText from "@/components/public/ReadMoreText";
+import { hasImageSrc } from "@/lib/optional-image";
 import {
   formatAdminDate,
   formatPartialDate,
@@ -212,22 +213,18 @@ function NewsSection({ news }: { news: HomeNewsItem[] }) {
             >
               <div
                 className={`flex flex-col ${
-                  item.imageUrl ? "lg:flex-row" : ""
+                  hasImageSrc(item.imageUrl) ? "lg:flex-row" : ""
                 }`}
               >
-                {item.imageUrl ? (
-                  <div className="relative aspect-video w-full min-w-0 overflow-hidden bg-cream lg:min-h-80 lg:w-1/2 lg:aspect-auto">
-                    <Image
-                      src={item.imageUrl}
-                      alt={item.title}
-                      fill
-                      unoptimized
-                      className="object-cover"
-                    />
-                  </div>
-                ) : null}
+                <OptionalImage
+                  src={item.imageUrl}
+                  alt={item.title}
+                  fill
+                  frameClassName="relative aspect-video w-full min-w-0 overflow-hidden bg-cream lg:min-h-80 lg:w-1/2 lg:aspect-auto"
+                  className="object-cover"
+                />
 
-                <div className="w-full min-w-0 p-6 md:p-10 lg:w-1/2">
+                <div className={`w-full min-w-0 p-6 md:p-10 ${hasImageSrc(item.imageUrl) ? "lg:w-1/2" : ""}`}>
                   <div className="mb-4 flex flex-wrap items-center gap-2">
                     {index === 0 ? (
                       <span className="rounded-full bg-coptic-gold-main px-3 py-1 text-xs font-bold text-black">
@@ -337,22 +334,20 @@ function ChurchStorySection({
         {!section ? (
           <EmptyFallback title="قصة الكنيسة" />
         ) : (
-          <div className="grid items-center gap-8 lg:grid-cols-2">
-            <div className="relative aspect-4/3 overflow-hidden rounded-3xl border border-coptic-gold-main/40 bg-white/70 shadow-sm">
-              {section.imageUrl ? (
-                <Image
-                  src={section.imageUrl}
-                  alt={section.title}
-                  fill
-                  unoptimized
-                  className="object-cover"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-sm font-bold text-coptic-gold-dark">
-                  صورة القسم قيد الإعداد
-                </div>
-              )}
-            </div>
+          <div
+            className={
+              hasImageSrc(section.imageUrl)
+                ? "grid items-center gap-8 lg:grid-cols-2"
+                : ""
+            }
+          >
+            <OptionalImage
+              src={section.imageUrl}
+              alt={section.title}
+              fill
+              frameClassName="relative aspect-4/3 overflow-hidden rounded-3xl border border-coptic-gold-main/40 bg-white/70 shadow-sm"
+              className="object-cover"
+            />
 
             <div>
               <p className="whitespace-pre-line text-sm leading-8 text-deep-red/85 md:text-base">
@@ -399,21 +394,13 @@ function RelicsSection({ relics }: { relics: HomeNamedItem[] }) {
                 {...fadeIn}
                 className="overflow-hidden rounded-3xl border border-coptic-gold-main/40 bg-black/25 shadow-sm"
               >
-                <div className="relative aspect-4/3 bg-black/30">
-                  {relic.imageUrl ? (
-                    <Image
-                      src={relic.imageUrl}
-                      alt={relic.name}
-                      fill
-                      unoptimized
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-sm font-bold text-coptic-gold-light">
-                      بدون صورة
-                    </div>
-                  )}
-                </div>
+                <OptionalImage
+                  src={relic.imageUrl}
+                  alt={relic.name}
+                  fill
+                  frameClassName="relative aspect-4/3"
+                  className="object-cover"
+                />
                 <div className="p-5">
                   <h3 className="text-xl font-bold text-coptic-gold-light">
                     {relic.name}
@@ -457,20 +444,13 @@ function PriestsSection({ priests }: { priests: HomePriest[] }) {
                   {...fadeIn}
                   className="flex flex-col rounded-3xl border border-coptic-gold-main/40 bg-white/85 p-6 text-center shadow-sm"
                 >
-                  {priest.cloudinaryImageUrl ? (
-                    <Image
-                      src={priest.cloudinaryImageUrl}
-                      alt={priest.name}
-                      width={112}
-                      height={112}
-                      unoptimized
-                      className="mx-auto h-28 w-28 rounded-full border-4 border-coptic-gold-main object-cover"
-                    />
-                  ) : (
-                    <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 border-coptic-gold-main/40 bg-cream text-xl font-bold text-coptic-gold-dark">
-                      {priest.name.slice(0, 1)}
-                    </div>
-                  )}
+                  <OptionalImage
+                    src={priest.cloudinaryImageUrl}
+                    alt={priest.name}
+                    width={112}
+                    height={112}
+                    className="mx-auto h-28 w-28 rounded-full border-4 border-coptic-gold-main object-cover"
+                  />
 
                   <h3 className="mt-4 text-xl font-bold text-coptic-gold-dark">
                     {priest.name}
@@ -571,21 +551,13 @@ function ServicesSection({ activities }: { activities: HomeNamedItem[] }) {
               const isExternal = /^https?:\/\//i.test(href);
               const card = (
                 <>
-                  <div className="relative aspect-16/10 bg-cream">
-                    {activity.imageUrl ? (
-                      <Image
-                        src={activity.imageUrl}
-                        alt={activity.name}
-                        fill
-                        unoptimized
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm font-bold text-coptic-gold-dark">
-                        بدون صورة
-                      </div>
-                    )}
-                  </div>
+                  <OptionalImage
+                    src={activity.imageUrl}
+                    alt={activity.name}
+                    fill
+                    frameClassName="relative aspect-16/10"
+                    className="object-cover"
+                  />
                   <div className="p-5">
                     <h3 className="text-lg font-bold text-coptic-gold-dark">
                       {activity.name}

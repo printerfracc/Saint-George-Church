@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import type { MediaFileType } from "@/lib/cloudinary";
+import OptionalImage from "@/components/public/OptionalImage";
 import { imageDisplayFrameClass } from "@/lib/image-display";
 import {
   mediaDownloadUrl,
@@ -12,6 +12,7 @@ import {
   mediaGalleryImage,
   mediaOpenUrl,
 } from "@/lib/media";
+import { isYouTubeUrl } from "@/lib/youtube";
 
 export type GalleryItem = {
   id: string;
@@ -25,22 +26,23 @@ export type GalleryItem = {
   linkLabel: string | null;
 };
 
-function FileBadge({ fileType }: { fileType: string }) {
+function FileBadge({
+  fileType,
+  onLight = false,
+}: {
+  fileType: string;
+  onLight?: boolean;
+}) {
   return (
-    <span className="rounded-full bg-black/55 px-3 py-1 text-xs font-bold text-cream">
+    <span
+      className={
+        onLight
+          ? "rounded-full bg-coptic-gold-main/20 px-3 py-1 text-xs font-bold text-coptic-gold-dark"
+          : "rounded-full bg-black/55 px-3 py-1 text-xs font-bold text-cream"
+      }
+    >
       {mediaFileTypeLabel(fileType)}
     </span>
-  );
-}
-
-function GalleryPlaceholder({ fileType }: { fileType: string }) {
-  return (
-    <div className="flex h-full w-full flex-col items-center justify-center bg-gray-900 text-center">
-      <span className="text-3xl text-coptic-gold-main">✦</span>
-      <span className="mt-2 text-sm font-bold text-coptic-gold-light">
-        {mediaFileTypeLabel(fileType)}
-      </span>
-    </div>
   );
 }
 
@@ -75,6 +77,7 @@ export default function MediaGallery({ items }: { items: GalleryItem[] }) {
         {items.map((item) => {
           const preview = mediaGalleryImage(item);
           const label = item.title.trim();
+          const youtubeLink = isYouTubeUrl(item.link) || isYouTubeUrl(item.fileUrl);
 
           return (
             <li key={item.id}>
@@ -91,27 +94,39 @@ export default function MediaGallery({ items }: { items: GalleryItem[] }) {
                   className="group block w-full text-right"
                   aria-label={label || mediaFileTypeLabel(item.fileType)}
                 >
-                  <div className={`${imageDisplayFrameClass(item.imageDisplayMode, "relative aspect-4/3")} bg-[#1A0A10]`}>
-                    {preview ? (
-                      <Image
-                        src={preview}
-                        alt={label || mediaFileTypeLabel(item.fileType)}
-                        fill
-                        unoptimized
-                        className="object-cover transition duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <GalleryPlaceholder fileType={item.fileType} />
-                    )}
+                  <OptionalImage
+                    src={preview}
+                    alt={label || mediaFileTypeLabel(item.fileType)}
+                    fill
+                    frameClassName={`${imageDisplayFrameClass(item.imageDisplayMode, "relative aspect-4/3")} bg-[#1A0A10]`}
+                    className="object-cover transition duration-300 group-hover:scale-105"
+                  >
+                    {youtubeLink ? (
+                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-deep-red/90 text-cream shadow-lg">
+                          <svg viewBox="0 0 24 24" className="ms-0.5 h-6 w-6 fill-current" aria-hidden>
+                            <path d="M8 5.14v13.72L19.5 12 8 5.14Z" />
+                          </svg>
+                        </span>
+                      </span>
+                    ) : null}
                     <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-linear-to-t from-black/70 to-transparent p-3">
-                      <FileBadge fileType={item.fileType} />
+                      <FileBadge fileType={youtubeLink ? "youtube" : item.fileType} />
                     </div>
+                  </OptionalImage>
+                  <div className="px-3 pt-3">
+                    {preview ? null : (
+                      <FileBadge
+                        fileType={youtubeLink ? "youtube" : item.fileType}
+                        onLight
+                      />
+                    )}
+                    {label ? (
+                      <p className={`${preview ? "" : "mt-2 "}text-sm font-bold text-deep-red`}>
+                        {label}
+                      </p>
+                    ) : null}
                   </div>
-                  {label ? (
-                    <p className="px-3 pt-3 text-sm font-bold text-deep-red">
-                      {label}
-                    </p>
-                  ) : null}
                 </button>
                 <div className="flex flex-wrap gap-2 p-3">
                   {item.fileUrl ? (
@@ -161,19 +176,13 @@ export default function MediaGallery({ items }: { items: GalleryItem[] }) {
               className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-cream shadow-2xl"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className={`${imageDisplayFrameClass(active.imageDisplayMode, "relative aspect-video")} bg-[#1A0A10]`}>
-                {activePreview ? (
-                  <Image
-                    src={activePreview}
-                    alt={active.title.trim() || mediaFileTypeLabel(active.fileType)}
-                    fill
-                    unoptimized
-                    className="object-contain"
-                  />
-                ) : (
-                  <GalleryPlaceholder fileType={active.fileType} />
-                )}
-              </div>
+              <OptionalImage
+                src={activePreview}
+                alt={active.title.trim() || mediaFileTypeLabel(active.fileType)}
+                fill
+                frameClassName={`${imageDisplayFrameClass(active.imageDisplayMode, "relative aspect-video")} bg-[#1A0A10]`}
+                className="object-contain"
+              />
               <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   {active.title.trim() ? (
@@ -182,7 +191,11 @@ export default function MediaGallery({ items }: { items: GalleryItem[] }) {
                     </h2>
                   ) : null}
                   <p className="text-xs font-bold text-coptic-gold-dark">
-                    {mediaFileTypeLabel(active.fileType)}
+                    {mediaFileTypeLabel(
+                      isYouTubeUrl(active.link) || isYouTubeUrl(active.fileUrl)
+                        ? "youtube"
+                        : active.fileType,
+                    )}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

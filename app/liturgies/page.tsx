@@ -1,5 +1,5 @@
-import Image from "next/image";
 import ChurchLogo from "@/components/ChurchLogo";
+import OptionalImage from "@/components/public/OptionalImage";
 import ChurchLiveStream from "@/components/live/ChurchLiveStream";
 import LiturgyScheduleTable from "@/components/public/LiturgyScheduleTable";
 import ReadMoreText from "@/components/public/ReadMoreText";
@@ -95,17 +95,13 @@ export default async function LiturgiesPage() {
                       key={item.id}
                       className="overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm"
                     >
-                      {item.imageUrl ? (
-                        <div className="relative aspect-video">
-                          <Image
-                            src={item.imageUrl}
-                            alt={title || section.label}
-                            fill
-                            unoptimized
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : null}
+                      <OptionalImage
+                        src={item.imageUrl}
+                        alt={title || section.label}
+                        fill
+                        frameClassName="relative aspect-video"
+                        className="object-cover"
+                      />
                       {title || description || detail ? (
                         <div className="p-5">
                           {title ? (

@@ -1,5 +1,6 @@
 import type { MediaFileType } from "@/lib/cloudinary";
 import { getAppUrl } from "@/lib/app-url";
+import { youtubeThumbnailUrl } from "@/lib/youtube";
 
 export type { MediaFileType };
 
@@ -43,6 +44,7 @@ export function detectLibraryFileType(file: File): MediaFileType | null {
 export function mediaFileTypeLabel(type: string) {
   if (type === "pdf") return "ملف PDF";
   if (type === "word") return "ملف Word";
+  if (type === "youtube") return "يوتيوب";
   if (type === "link") return "رابط";
   return "صورة";
 }
@@ -134,20 +136,25 @@ export function mediaGalleryImage(item: {
   thumbnail?: string | null;
   fileUrl?: string | null;
   fileType?: string | null;
+  link?: string | null;
 }) {
-  if (item.thumbnail) {
-    return item.thumbnail;
+  const thumbnail = item.thumbnail?.trim();
+  if (thumbnail) {
+    return thumbnail;
   }
 
-  if (!item.fileUrl) {
-    return null;
-  }
-
-  if (item.fileType === "image") {
+  if (item.fileType === "image" && item.fileUrl) {
     return item.fileUrl;
   }
 
-  return cloudinaryPdfPageImage(item.fileUrl);
+  if (item.fileUrl) {
+    const pdfPreview = cloudinaryPdfPageImage(item.fileUrl);
+    if (pdfPreview) {
+      return pdfPreview;
+    }
+  }
+
+  return youtubeThumbnailUrl(item.link) ?? youtubeThumbnailUrl(item.fileUrl);
 }
 
 export function isCloudinaryUrl(value: string) {

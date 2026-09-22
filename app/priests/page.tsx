@@ -1,4 +1,4 @@
-import Image from "next/image";
+import OptionalImage from "@/components/public/OptionalImage";
 import PlaceholderPage from "@/components/public/PlaceholderPage";
 import ReadMoreText from "@/components/public/ReadMoreText";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
@@ -50,22 +50,14 @@ export default async function PriestsPage() {
               className="overflow-hidden rounded-3xl border border-coptic-gold-main/40 bg-white shadow-sm"
             >
               <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-start sm:gap-6">
-                <div className="mx-auto shrink-0 sm:mx-0">
-                  {priest.cloudinaryImageUrl ? (
-                    <Image
-                      src={priest.cloudinaryImageUrl}
-                      alt={priest.name}
-                      width={112}
-                      height={112}
-                      unoptimized
-                      className="h-28 w-28 rounded-full border-4 border-coptic-gold-main object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-coptic-gold-main/40 bg-cream text-sm font-bold text-coptic-gold-dark">
-                      {priest.name.slice(0, 1)}
-                    </div>
-                  )}
-                </div>
+                <OptionalImage
+                  src={priest.cloudinaryImageUrl}
+                  alt={priest.name}
+                  width={112}
+                  height={112}
+                  frameClassName="mx-auto shrink-0 sm:mx-0"
+                  className="h-28 w-28 rounded-full border-4 border-coptic-gold-main object-cover"
+                />
 
                 <div className="min-w-0 flex-1 text-center sm:text-right">
                   <h2 className="text-2xl font-bold text-coptic-gold-dark">
