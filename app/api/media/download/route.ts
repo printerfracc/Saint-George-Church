@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { fetchCloudinaryAsset, isAllowedCloudinaryUrl } from "@/lib/cloudinary-asset";
+import {
+  fetchCloudinaryAsset,
+  isAllowedCloudinaryUrl,
+  normalizeMediaFileUrl,
+} from "@/lib/cloudinary-asset";
 import { mediaDownloadFileName } from "@/lib/media";
 
 export const runtime = "nodejs";
@@ -23,7 +27,8 @@ function contentDisposition(fileName: string, inline: boolean) {
 
 export async function GET(request: Request) {
   const search = new URL(request.url).searchParams;
-  const fileUrl = search.get("url");
+  const rawUrl = search.get("url");
+  const fileUrl = rawUrl ? normalizeMediaFileUrl(rawUrl) : null;
   const fileName = search.get("name");
   const fileType = search.get("type");
 

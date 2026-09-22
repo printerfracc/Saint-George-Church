@@ -26,6 +26,55 @@ type CloudinaryUtils = typeof cloudinary.utils & {
 };
 
 const RESOURCE_TYPES = new Set<CloudinaryResourceType>(["image", "raw", "video"]);
+const DEFAULT_R2_HOSTNAME = "media.stgeorgemataria.com";
+
+function r2MediaHostname() {
+  const domain = process.env.R2_PUBLIC_DOMAIN?.trim();
+  if (!domain) {
+    return DEFAULT_R2_HOSTNAME;
+  }
+
+  try {
+    return new URL(domain.includes("://") ? domain : `https://${domain}`).hostname;
+  } catch {
+    return DEFAULT_R2_HOSTNAME;
+  }
+}
+
+function isParsableHttpsUrl(value: string) {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+export function normalizeMediaFileUrl(value: string) {
+  let current = value.trim();
+
+  for (let pass = 0; pass < 2; pass += 1) {
+    const doubleEncoded = current.includes("%25");
+    if (isParsableHttpsUrl(current) && !doubleEncoded) {
+      break;
+    }
+
+    try {
+      const decoded = decodeURIComponent(current);
+      if (decoded === current) {
+        break;
+      }
+      current = decoded;
+    } catch {
+      break;
+    }
+  }
+
+  if (!isParsableHttpsUrl(current)) {
+    return current;
+  }
+
+  return new URL(current).href;
+}
 
 function isVersionSegment(segment: string) {
   return /^v\d+$/.test(segment);
@@ -41,8 +90,16 @@ function isTransformSegment(segment: string) {
 
 export function isAllowedCloudinaryUrl(value: string) {
   try {
-    const url = new URL(value);
-    if (url.protocol !== "https:" || url.hostname !== "res.cloudinary.com") {
+    const url = new URL(normalizeMediaFileUrl(value));
+    if (url.protocol !== "https:") {
+      return false;
+    }
+
+    if (url.hostname === r2MediaHostname()) {
+      return true;
+    }
+
+    if (url.hostname !== "res.cloudinary.com") {
       return false;
     }
 
@@ -233,7 +290,15 @@ export function cloudinaryPrivateDownloadUrl(
 }
 
 export async function fetchCloudinaryAsset(fileUrl: string) {
-  const asset = await resolveCloudinaryAsset(fileUrl);
+  const source = normalizeMediaFileUrl(fileUrl);
+  const sourceUrl = new URL(source);
+
+  if (sourceUrl.hostname === r2MediaHostname()) {
+    const stored = await fetch(sourceUrl.href, { redirect: "follow" });
+    return stored.ok && stored.body ? stored : null;
+  }
+
+  const asset = await resolveCloudinaryAsset(source);
 
   if (asset) {
     const downloadUrl = cloudinaryPrivateDownloadUrl(asset);
@@ -244,7 +309,7 @@ export async function fetchCloudinaryAsset(fileUrl: string) {
     }
   }
 
-  const publicResponse = await fetch(fileUrl, { redirect: "follow" });
+  const publicResponse = await fetch(source, { redirect: "follow" });
 
   if (publicResponse.ok && publicResponse.body) {
     return publicResponse;

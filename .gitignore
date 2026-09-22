@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# full database export (contains passwords and personal data)
+/database-backup.json
+
 # vercel
 .vercel
 

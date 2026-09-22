@@ -1,5 +1,4 @@
 import type { MediaFileType } from "@/lib/cloudinary";
-import { getAppUrl } from "@/lib/app-url";
 import { isYouTubeUrl, youtubeThumbnailUrl } from "@/lib/youtube";
 
 export type { MediaFileType };
@@ -80,31 +79,26 @@ export function mediaExternalLinkLabel(label?: string | null, href?: string | nu
   return isYouTubeUrl(href) ? "اضغط للمشاهدة" : "اضغط هنا";
 }
 
-export function mediaPreviewUrl(fileUrl: string, fileType?: string | null) {
-  const params = new URLSearchParams({ url: fileUrl });
+export function directMediaUrl(fileUrl: string) {
+  const trimmed = fileUrl.trim();
 
-  if (fileType) {
-    params.set("type", fileType);
+  try {
+    return encodeURI(decodeURIComponent(trimmed));
+  } catch {
+    return trimmed;
   }
-
-  return `/api/media/preview?${params.toString()}`;
 }
 
-export function mediaOpenUrl(fileUrl: string, fileType?: string | null) {
-  if (fileType === "image") {
-    return fileUrl;
-  }
-
-  return mediaPreviewUrl(fileUrl, fileType);
+export function mediaOpenUrl(fileUrl: string, _fileType?: string | null) {
+  return directMediaUrl(fileUrl);
 }
 
 export function officePreviewUrl(fileUrl: string) {
-  const source = `${getAppUrl()}${mediaPreviewUrl(fileUrl, "word")}`;
-  return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(source)}`;
+  return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directMediaUrl(fileUrl))}`;
 }
 
 export function pdfEmbedUrl(fileUrl: string) {
-  return mediaPreviewUrl(fileUrl, "pdf");
+  return directMediaUrl(fileUrl);
 }
 
 export function cloudinaryPdfPageImage(fileUrl: string) {
@@ -194,7 +188,9 @@ export function mediaDownloadUrl(
   fileName?: string | null,
   fileType?: string | null,
 ) {
-  const params = new URLSearchParams({ url: fileUrl });
+  const params = new URLSearchParams({
+    url: directMediaUrl(fileUrl),
+  });
 
   if (fileName) {
     params.set("name", fileName);

@@ -6,6 +6,7 @@ import type { MediaFileType } from "@/lib/cloudinary";
 import OptionalImage from "@/components/public/OptionalImage";
 import { imageDisplayFrameClass, isPortraitDisplay } from "@/lib/image-display";
 import {
+  mediaDownloadFileName,
   mediaDownloadUrl,
   mediaExternalLinkLabel,
   mediaFileTypeLabel,
@@ -184,6 +185,7 @@ export default function MediaGallery({
                 </a>
                 <a
                   href={mediaDownloadUrl(item.fileUrl, item.fileName, item.fileType)}
+                  download={mediaDownloadFileName(item.fileName, item.fileType)}
                   className="inline-flex items-center rounded-full bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-2 py-1 text-xs font-bold text-black md:min-h-11 md:px-3"
                   aria-label="تحميل الملف"
                 >
@@ -260,6 +262,7 @@ export default function MediaGallery({
                 </a>
                 <a
                   href={mediaDownloadUrl(item.fileUrl, item.fileName, item.fileType)}
+                  download={mediaDownloadFileName(item.fileName, item.fileType)}
                   className="inline-flex min-h-11 items-center rounded-full bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-3 text-xs font-bold text-black"
                   aria-label="تحميل الملف"
                 >
@@ -351,6 +354,7 @@ export default function MediaGallery({
                       </a>
                       <a
                         href={mediaDownloadUrl(active.fileUrl, active.fileName, active.fileType)}
+                        download={mediaDownloadFileName(active.fileName, active.fileType)}
                         className="inline-flex min-h-11 w-auto shrink-0 items-center rounded-full bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 text-xs font-bold text-black"
                       >
                         تحميل
