@@ -1,12 +1,3 @@
-import { v2 as cloudinary } from "cloudinary";
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true,
-});
-
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/jpg",
@@ -17,17 +8,6 @@ const ALLOWED_IMAGE_TYPES = new Set([
 
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 const MAX_LIBRARY_FILE_SIZE_BYTES = 10 * 1024 * 1024;
-
-export const LIBRARY_UPLOAD_FOLDER = "saint-george-church/library";
-
-export type LibraryUploadSignature = {
-  cloudName: string;
-  apiKey: string;
-  timestamp: number;
-  signature: string;
-  folder: string;
-  fileName: string;
-};
 
 export type MediaFileType = "image" | "pdf" | "word" | "link";
 
@@ -43,16 +23,6 @@ const WORD_TYPES = new Set([
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
-
-function assertCloudinaryConfig() {
-  if (
-    !process.env.CLOUDINARY_CLOUD_NAME ||
-    !process.env.CLOUDINARY_API_KEY ||
-    !process.env.CLOUDINARY_API_SECRET
-  ) {
-    throw new Error("إعدادات Cloudinary غير مكتملة");
-  }
-}
 
 export function validateImageFile(file: File | null): string | null {
   if (!file || file.size === 0) {
@@ -114,30 +84,8 @@ export async function uploadImageToCloudinary(
   }
 
   try {
-    assertCloudinaryConfig();
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    const url = await new Promise<string>((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream(
-          {
-            folder: "saint-george-church",
-            resource_type: "image",
-          },
-          (error, result) => {
-            if (error || !result?.secure_url) {
-              reject(error ?? new Error("فشل الرفع"));
-              return;
-            }
-
-            resolve(result.secure_url);
-          },
-        )
-        .end(buffer);
-    });
-
-    return { success: true, url };
+    const { storeImageFile } = await import("@/lib/r2");
+    return { success: true, url: await storeImageFile(file) };
   } catch {
     return { success: false, error: "فشل الرفع" };
   }
@@ -159,35 +107,10 @@ export async function uploadLibraryFileToCloudinary(
   }
 
   try {
-    assertCloudinaryConfig();
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    const url = await new Promise<string>((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream(
-          {
-            folder: LIBRARY_UPLOAD_FOLDER,
-            resource_type: "auto",
-            use_filename: true,
-            unique_filename: true,
-            filename_override: file.name,
-          },
-          (error, result) => {
-            if (error || !result?.secure_url) {
-              reject(error ?? new Error("فشل الرفع"));
-              return;
-            }
-
-            resolve(result.secure_url);
-          },
-        )
-        .end(buffer);
-    });
-
+    const { storeLibraryFile } = await import("@/lib/r2");
     return {
       success: true,
-      url,
+      url: await storeLibraryFile(file),
       fileName: file.name,
       fileType,
     };
@@ -195,38 +118,3 @@ export async function uploadLibraryFileToCloudinary(
     return { success: false, error: "فشل الرفع" };
   }
 }
-
-function sanitizeUploadFileName(fileName: string) {
-  const trimmed = fileName.trim().replace(/[/\\]/g, "");
-  return trimmed.slice(0, 180) || "file";
-}
-
-export function createLibraryUploadSignature(
-  fileName: string,
-): LibraryUploadSignature {
-  assertCloudinaryConfig();
-
-  const safeName = sanitizeUploadFileName(fileName);
-  const timestamp = Math.round(Date.now() / 1000);
-  const params = {
-    timestamp,
-    folder: LIBRARY_UPLOAD_FOLDER,
-    use_filename: true,
-    unique_filename: true,
-    filename_override: safeName,
-  };
-
-  return {
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME as string,
-    apiKey: process.env.CLOUDINARY_API_KEY as string,
-    timestamp,
-    signature: cloudinary.utils.api_sign_request(
-      params,
-      process.env.CLOUDINARY_API_SECRET as string,
-    ),
-    folder: LIBRARY_UPLOAD_FOLDER,
-    fileName: safeName,
-  };
-}
-
-export { cloudinary };

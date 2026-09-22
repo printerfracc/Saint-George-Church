@@ -101,35 +101,6 @@ export function pdfEmbedUrl(fileUrl: string) {
   return directMediaUrl(fileUrl);
 }
 
-export function cloudinaryPdfPageImage(fileUrl: string) {
-  if (!fileUrl.includes("res.cloudinary.com")) {
-    return null;
-  }
-
-  if (fileUrl.includes("/raw/upload/")) {
-    return fileUrl.replace(
-      "/raw/upload/",
-      "/image/upload/f_jpg,pg_1,q_auto,w_1400/",
-    );
-  }
-
-  if (fileUrl.includes("/auto/upload/")) {
-    return fileUrl.replace(
-      "/auto/upload/",
-      "/image/upload/f_jpg,pg_1,q_auto,w_1400/",
-    );
-  }
-
-  if (fileUrl.includes("/image/upload/")) {
-    return fileUrl.replace(
-      "/image/upload/",
-      "/image/upload/f_jpg,pg_1,q_auto,w_1400/",
-    );
-  }
-
-  return null;
-}
-
 export function mediaGalleryImage(item: {
   thumbnail?: string | null;
   fileUrl?: string | null;
@@ -145,23 +116,7 @@ export function mediaGalleryImage(item: {
     return item.fileUrl;
   }
 
-  if (item.fileUrl) {
-    const pdfPreview = cloudinaryPdfPageImage(item.fileUrl);
-    if (pdfPreview) {
-      return pdfPreview;
-    }
-  }
-
   return youtubeThumbnailUrl(item.link) ?? youtubeThumbnailUrl(item.fileUrl);
-}
-
-export function isCloudinaryUrl(value: string) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" && url.hostname === "res.cloudinary.com";
-  } catch {
-    return false;
-  }
 }
 
 export function mediaDownloadFileName(

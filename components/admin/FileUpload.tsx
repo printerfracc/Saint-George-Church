@@ -3,7 +3,7 @@
 import { useRef, useState, type ChangeEvent } from "react";
 import Image from "next/image";
 import { getLibraryUploadSignature } from "@/actions/upload-media";
-import { uploadLibraryFileFromBrowser } from "@/lib/cloudinary-browser";
+import { uploadFileToR2 } from "@/lib/r2-browser";
 import {
   CLOUDINARY_UPLOAD_LIMIT_BYTES,
   detectLibraryFileType,
@@ -105,14 +105,14 @@ export default function FileUpload({
           return;
         }
 
-        const signed = await getLibraryUploadSignature(file.name);
+        const signed = await getLibraryUploadSignature(file.name, file.type);
         if (!signed.success) {
           showError(signed.error);
           setIsUploading(false);
           return;
         }
 
-        const url = await uploadLibraryFileFromBrowser(file, signed);
+        const url = await uploadFileToR2(file, signed);
 
         uploaded.push({
           url,

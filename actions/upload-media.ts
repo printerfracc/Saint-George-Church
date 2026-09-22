@@ -1,13 +1,12 @@
 "use server";
 
 import {
-  createLibraryUploadSignature,
   uploadImageToCloudinary,
   uploadLibraryFileToCloudinary,
   type CloudinaryUploadResult,
   type LibraryUploadResult,
-  type LibraryUploadSignature,
 } from "@/lib/cloudinary";
+import { createLibraryUploadTarget, type DirectUploadTarget } from "@/lib/r2";
 import { requireAdmin } from "@/lib/require-admin";
 
 export async function uploadMedia(
@@ -48,10 +47,8 @@ export async function uploadLibraryMedia(
 
 export async function getLibraryUploadSignature(
   fileName: string,
-): Promise<
-  | { success: true } & LibraryUploadSignature
-  | { success: false; error: string }
-> {
+  contentType?: string,
+): Promise<({ success: true } & DirectUploadTarget) | { success: false; error: string }> {
   const session = await requireAdmin();
 
   if (!session) {
@@ -67,7 +64,7 @@ export async function getLibraryUploadSignature(
   try {
     return {
       success: true,
-      ...createLibraryUploadSignature(trimmed),
+      ...(await createLibraryUploadTarget(trimmed, contentType)),
     };
   } catch {
     return { success: false, error: "فشل تجهيز رفع الملف" };
