@@ -36,6 +36,15 @@ function clampVolume(value: number) {
   return Math.min(1, Math.max(0, value));
 }
 
+function setDocumentScrollLock(locked: boolean) {
+  const html = document.documentElement;
+  const body = document.body;
+  html.classList.toggle("overflow-hidden", locked);
+  body.classList.toggle("overflow-hidden", locked);
+  html.style.overflow = locked ? "hidden" : "";
+  body.style.overflow = locked ? "hidden" : "";
+}
+
 function fadeVideoVolume(video: HTMLVideoElement, durationMs: number) {
   const startVolume = clampVolume(video.volume);
   const startTime = performance.now();
@@ -89,8 +98,15 @@ export default function OpeningExperience({ children }: { children: ReactNode })
   }, [pathname, resetIntro, router]);
 
   useEffect(() => {
+    const shouldLock = showOverlay && !isFading && pathname === "/opening";
+    setDocumentScrollLock(shouldLock);
+    return () => setDocumentScrollLock(false);
+  }, [isFading, pathname, showOverlay]);
+
+  useEffect(() => {
     return () => {
       if (celebrationTimer.current) window.clearTimeout(celebrationTimer.current);
+      setDocumentScrollLock(false);
     };
   }, []);
 
@@ -136,6 +152,7 @@ export default function OpeningExperience({ children }: { children: ReactNode })
     transitionStarted.current = true;
     beginAudioFade();
     sessionStorage.setItem("opening-reveal", "1");
+    setDocumentScrollLock(false);
     setIsRevealingHome(true);
     setIsFading(true);
     setShowCelebration(true);
@@ -174,10 +191,18 @@ export default function OpeningExperience({ children }: { children: ReactNode })
             className={`fixed inset-0 z-100 overflow-hidden bg-white ${
               isFading ? "pointer-events-none" : ""
             }`}
+            style={{ pointerEvents: isFading ? "none" : "auto" }}
             initial={{ opacity: 1 }}
             animate={{ opacity: isFading ? 0 : 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0, pointerEvents: "none" }}
             transition={{ duration: OVERLAY_FADE_S, ease: "easeInOut" }}
+            onAnimationComplete={() => {
+              if (isFading) {
+                setShowOverlay(false);
+                setDocumentScrollLock(false);
+                sessionStorage.removeItem("opening-reveal");
+              }
+            }}
           >
             {!isReady ? (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-white">

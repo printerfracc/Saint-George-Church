@@ -21,15 +21,12 @@ export default function CelebrationEmojis() {
   );
 
   return (
-    <div
-      className="pointer-events-none fixed inset-0 z-110 overflow-hidden"
-      aria-hidden
-    >
+    <div className="pointer-events-none fixed inset-0 z-110" aria-hidden>
       {pieces.map((piece) => (
         <motion.span
           key={piece.id}
-          className="absolute bottom-[-12%] select-none"
-          style={{ left: piece.left, fontSize: piece.size }}
+          className="pointer-events-none fixed bottom-[-12%] select-none"
+          style={{ left: piece.left, fontSize: piece.size, pointerEvents: "none" }}
           initial={{ y: 0, x: 0, opacity: 0, rotate: 0, scale: 0.7 }}
           animate={{
             y: "-125vh",

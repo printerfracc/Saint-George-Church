@@ -93,7 +93,7 @@ export default async function RootLayout({
     >
       <body
         className={`min-h-full flex flex-col text-deep-red font-sans ${
-          isOpeningRoute ? "overflow-hidden bg-white" : "bg-cream"
+          isOpeningRoute ? "bg-white" : "bg-cream"
         }`}
       >
         {hideChrome ? null : (
