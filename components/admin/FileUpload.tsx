@@ -2,8 +2,7 @@
 
 import { useRef, useState, type ChangeEvent } from "react";
 import Image from "next/image";
-import { getLibraryUploadSignature } from "@/actions/upload-media";
-import { uploadFileToR2 } from "@/lib/r2-browser";
+import { uploadLibraryMedia } from "@/actions/upload-media";
 import {
   CLOUDINARY_UPLOAD_LIMIT_BYTES,
   detectLibraryFileType,
@@ -105,19 +104,20 @@ export default function FileUpload({
           return;
         }
 
-        const signed = await getLibraryUploadSignature(file.name, file.type);
-        if (!signed.success) {
-          showError(signed.error);
+        const formData = new FormData();
+        formData.append("file", file);
+        const result = await uploadLibraryMedia(formData);
+
+        if (!result.success) {
+          showError(result.error);
           setIsUploading(false);
           return;
         }
 
-        const url = await uploadFileToR2(file, signed);
-
         uploaded.push({
-          url,
-          fileName: file.name,
-          fileType,
+          url: result.url,
+          fileName: result.fileName,
+          fileType: result.fileType,
         });
       }
 
