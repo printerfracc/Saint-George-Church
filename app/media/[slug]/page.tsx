@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChurchLogo from "@/components/ChurchLogo";
+import HashScroll from "@/components/HashScroll";
+import LocalSearchInput from "@/components/LocalSearchInput";
 import MediaGallery from "@/components/public/MediaGallery";
 import ReadMoreText from "@/components/public/ReadMoreText";
 import { getLibraryCollection } from "@/actions/media";
+import { normalizeSearchQuery } from "@/lib/search";
 import { recordPageMetadata } from "@/lib/seo";
 
 export const revalidate = 60;
@@ -26,18 +29,26 @@ export async function generateMetadata({
 
 export default async function MediaCollectionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
-  const { slug } = await params;
+  const [{ slug }, { q }] = await Promise.all([params, searchParams]);
   const collection = await getLibraryCollection(slug).catch(() => null);
 
   if (!collection) {
     notFound();
   }
 
+  const query = normalizeSearchQuery(q);
+  const items = query
+    ? collection.items.filter((item) => item.title.includes(query))
+    : collection.items;
+
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-28 pb-16">
+      <HashScroll />
       <div className="mb-6 flex justify-center">
         <ChurchLogo size={96} className="h-20 w-20" />
       </div>
@@ -61,12 +72,22 @@ export default async function MediaCollectionPage({
         </div>
       ) : null}
 
+      {collection.items.length > 0 ? (
+        <div className="mx-auto mt-8 w-full max-w-md">
+          <LocalSearchInput placeholder="ابحث في هذا القسم..." />
+        </div>
+      ) : null}
+
       {collection.items.length === 0 ? (
         <p className="mt-10 rounded-2xl border border-dashed border-coptic-gold-main/50 bg-white/70 px-4 py-10 text-center text-deep-red/70">
           لا توجد ملفات في هذا القسم بعد.
         </p>
+      ) : items.length === 0 ? (
+        <p className="mt-10 rounded-2xl border border-dashed border-coptic-gold-main/50 bg-white/70 px-4 py-10 text-center text-deep-red/70">
+          لا توجد نتائج
+        </p>
       ) : (
-        <MediaGallery items={collection.items} layout={collection.imageDisplayMode} />
+        <MediaGallery items={items} layout={collection.imageDisplayMode} />
       )}
     </main>
   );

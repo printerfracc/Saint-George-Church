@@ -116,9 +116,9 @@ function parseServiceData(data: {
   };
 }
 
-export async function listServices(parentId: string | null = null) {
+export async function listServices(parentId: string | null = null, query?: string) {
   try {
-    return await listServiceRecords(parentId);
+    return await listServiceRecords(parentId, query);
   } catch {
     return [];
   }

@@ -32,6 +32,10 @@ export default function OptionalImage({
     return null;
   }
 
+  const usesFill = "fill" in props && props.fill === true;
+  const frame =
+    frameClassName ?? (usesFill ? "absolute inset-0 overflow-hidden" : undefined);
+
   const image = (
     <Image
       src={url}
@@ -46,9 +50,9 @@ export default function OptionalImage({
     />
   );
 
-  if (frameClassName) {
+  if (frame) {
     return (
-      <div className={frameClassName}>
+      <div className={frame}>
         {image}
         {children}
       </div>

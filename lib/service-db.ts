@@ -310,10 +310,17 @@ function flattenParentOptions(
   return options;
 }
 
-export async function listServiceRecords(parentId: string | null = null) {
+export async function listServiceRecords(
+  parentId: string | null = null,
+  queryText?: string,
+) {
   await ensureServiceColumns();
+  const q = queryText?.trim() ?? "";
   const rows = await prisma.service.findMany({
-    where: { parentId },
+    where: {
+      parentId,
+      ...(q ? { title: { contains: q } } : {}),
+    },
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
     include: serviceListInclude,
   });

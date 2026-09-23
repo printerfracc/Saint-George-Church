@@ -1,4 +1,5 @@
 import ChurchLogo from "@/components/ChurchLogo";
+import HashScroll from "@/components/HashScroll";
 import OptionalImage from "@/components/public/OptionalImage";
 import ChurchLiveStream from "@/components/live/ChurchLiveStream";
 import LiturgyScheduleTable from "@/components/public/LiturgyScheduleTable";
@@ -6,6 +7,7 @@ import ReadMoreText from "@/components/public/ReadMoreText";
 import { listLiturgyEntries } from "@/actions/liturgies";
 import { PUBLIC_LITURGY_SECTIONS } from "@/lib/liturgies";
 import { publicPageMetadata } from "@/lib/seo";
+import { searchItemAnchor } from "@/lib/search";
 
 export const metadata = publicPageMetadata(
   "صلوات الكنيسة",
@@ -30,6 +32,7 @@ export default async function LiturgiesPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-28 pb-16">
+      <HashScroll />
       <div className="mb-6 flex justify-center">
         <ChurchLogo size={96} className="h-20 w-20" />
       </div>
@@ -93,7 +96,8 @@ export default async function LiturgiesPage() {
                   return (
                     <li
                       key={item.id}
-                      className="overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm"
+                      id={searchItemAnchor(item.id)}
+                      className="scroll-mt-24 overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm"
                     >
                       <OptionalImage
                         src={item.imageUrl}

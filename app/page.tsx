@@ -1,3 +1,5 @@
+import { preload } from "react-dom";
+import HashScroll from "@/components/HashScroll";
 import HomeFadeIn from "@/components/home/HomeFadeIn";
 import HomeHero from "@/components/home/HomeHero";
 import HomePageSections from "@/components/home/HomePageSections";
@@ -17,7 +19,6 @@ import {
 import { priestDateValue } from "@/lib/admin-labels";
 import { findDynamicContentByKey } from "@/lib/dynamic-content";
 import { prisma } from "@/lib/prisma";
-import { checkLiveStreamStatus } from "@/lib/youtube";
 import { ensurePriestColumns } from "@/actions/priests";
 
 export const revalidate = 60;
@@ -31,7 +32,7 @@ async function loadOr<T>(loader: () => Promise<T>, fallback: T) {
 }
 
 export default async function Home() {
-  const [heroRecord, storyRecord, relicRecords, activityRecords, priestRecords, newsRecords, liveStatus] =
+  const [heroRecord, storyRecord, relicRecords, activityRecords, priestRecords, newsRecords] =
     await Promise.all([
       loadOr(() => findDynamicContentByKey("hero"), null),
       loadOr(() => findDynamicContentByKey("church_story"), null),
@@ -71,7 +72,6 @@ export default async function Home() {
         },
         [],
       ),
-      loadOr(checkLiveStreamStatus, { ok: false, error: "YouTube live check failed" }),
     ]);
 
   const hero = heroRecord
@@ -81,6 +81,11 @@ export default async function Home() {
         imageUrl: heroRecord.imageUrl,
       }
     : null;
+
+  const heroImageUrl = hero?.imageUrl?.trim();
+  if (heroImageUrl) {
+    preload(heroImageUrl, { as: "image" });
+  }
   const churchStory = storyRecord
     ? {
         title: storyRecord.title,
@@ -153,7 +158,8 @@ export default async function Home() {
 
   return (
     <HomeFadeIn>
-      <main className="flex flex-1 flex-col bg-cream">
+      <div className="flex flex-1 flex-col bg-cream">
+        <HashScroll />
         <script
           id="church-schema"
           type="application/ld+json"
@@ -165,7 +171,6 @@ export default async function Home() {
           imageUrl={hero?.imageUrl}
           title={hero?.title}
           subtitle={hero?.content}
-          isLive={liveStatus.ok === true && liveStatus.isLive}
         />
         <HomePageSections
           news={news}
@@ -174,7 +179,7 @@ export default async function Home() {
           activities={activities}
           priests={priests}
         />
-      </main>
+      </div>
     </HomeFadeIn>
   );
 }

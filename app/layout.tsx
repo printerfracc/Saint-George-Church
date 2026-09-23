@@ -6,7 +6,6 @@ import Navbar from "@/components/Navbar";
 import OpeningExperience from "@/components/opening/OpeningExperience";
 import { getAppUrl } from "@/lib/app-url";
 import { getNavEntries } from "@/lib/nav-data";
-import { checkLiveStreamStatus } from "@/lib/youtube";
 import {
   CHURCH_LOGO,
   CHURCH_NAME,
@@ -80,24 +79,9 @@ export default async function RootLayout({
   const isAdminRoute = pathname.startsWith("/admin");
   const isOpeningRoute = pathname.startsWith("/opening");
   const hideChrome = isAdminRoute || isOpeningRoute;
-  const [navEntries, isLive] = hideChrome
-    ? [{ sectorItems: [], mediaItems: [], showTawze3a: false }, false]
-    : await Promise.all([
-        getNavEntries(),
-        checkLiveStreamStatus()
-          .then((status) => {
-            if (status.ok === false) {
-              console.error(status.error, status.details ?? status);
-              return false;
-            }
-
-            return status.isLive;
-          })
-          .catch((error) => {
-            console.error("YouTube live banner check failed", error);
-            return false;
-          }),
-      ]);
+  const navEntries = hideChrome
+    ? { sectorItems: [], mediaItems: [], showTawze3a: false }
+    : await getNavEntries();
 
   return (
     <html
@@ -117,7 +101,6 @@ export default async function RootLayout({
               sectorItems={navEntries.sectorItems}
               mediaItems={navEntries.mediaItems}
               showTawze3a={navEntries.showTawze3a}
-              isLive={isLive}
             />
           </div>
         )}

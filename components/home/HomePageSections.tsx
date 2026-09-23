@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
@@ -15,6 +15,7 @@ import {
   toWhatsAppUrl,
 } from "@/lib/admin-labels";
 import { excerptStory, hasFilledText, storyNeedsReadMore } from "@/lib/content";
+import { searchItemAnchor } from "@/lib/search";
 
 export type HomeContentSection = {
   title: string;
@@ -147,6 +148,27 @@ function NewsArrow({
 function NewsSection({ news }: { news: HomeNewsItem[] }) {
   const [index, setIndex] = useState(0);
 
+  useEffect(() => {
+    function syncNewsFromHash() {
+      const raw = window.location.hash.replace(/^#/, "");
+      if (!raw) {
+        return;
+      }
+
+      const targetIndex = news.findIndex((entry) => searchItemAnchor(entry.id) === raw);
+      if (targetIndex >= 0) {
+        setIndex(targetIndex);
+        window.requestAnimationFrame(() => {
+          document.getElementById(raw)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+    }
+
+    syncNewsFromHash();
+    window.addEventListener("hashchange", syncNewsFromHash);
+    return () => window.removeEventListener("hashchange", syncNewsFromHash);
+  }, [news]);
+
   if (news.length === 0) {
     return (
       <motion.section
@@ -205,11 +227,12 @@ function NewsSection({ news }: { news: HomeNewsItem[] }) {
           <AnimatePresence mode="wait">
             <motion.article
               key={item.id}
+              id={searchItemAnchor(item.id)}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="overflow-hidden rounded-3xl border border-coptic-gold-main/50 bg-white/90 shadow-md"
+              className="scroll-mt-24 overflow-hidden rounded-3xl border border-coptic-gold-main/50 bg-white/90 shadow-md"
             >
               <div
                 className={`flex flex-col ${
@@ -391,8 +414,9 @@ function RelicsSection({ relics }: { relics: HomeNamedItem[] }) {
             {relics.map((relic) => (
               <motion.article
                 key={relic.id}
+                id={searchItemAnchor(relic.id)}
                 {...fadeIn}
-                className="overflow-hidden rounded-3xl border border-coptic-gold-main/40 bg-black/25 shadow-sm"
+                className="scroll-mt-24 overflow-hidden rounded-3xl border border-coptic-gold-main/40 bg-black/25 shadow-sm"
               >
                 <OptionalImage
                   src={relic.imageUrl}
@@ -441,8 +465,9 @@ function PriestsSection({ priests }: { priests: HomePriest[] }) {
               return (
                 <motion.article
                   key={priest.id}
+                  id={searchItemAnchor(priest.id)}
                   {...fadeIn}
-                  className="flex flex-col rounded-3xl border border-coptic-gold-main/40 bg-white/85 p-6 text-center shadow-sm"
+                  className="scroll-mt-24 flex flex-col rounded-3xl border border-coptic-gold-main/40 bg-white/85 p-6 text-center shadow-sm"
                 >
                   <OptionalImage
                     src={priest.cloudinaryImageUrl}
@@ -574,10 +599,11 @@ function ServicesSection({ activities }: { activities: HomeNamedItem[] }) {
               return (
                 <motion.article
                   key={activity.id}
+                  id={searchItemAnchor(activity.id)}
                   {...fadeIn}
                   whileHover={{ scale: 1.04, y: -4 }}
                   whileTap={{ scale: 0.98 }}
-                  className="overflow-hidden rounded-2xl border border-coptic-gold-main/50 bg-white/80 shadow-sm"
+                  className="scroll-mt-24 overflow-hidden rounded-2xl border border-coptic-gold-main/50 bg-white/80 shadow-sm"
                 >
                   {href ? (
                     <Link

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import ChurchLogo from "@/components/ChurchLogo";
+import LocalSearchInput from "@/components/LocalSearchInput";
 import OptionalImage from "@/components/public/OptionalImage";
 import ReadMoreText from "@/components/public/ReadMoreText";
 import { listLibraryCollections } from "@/actions/media";
 import { imageDisplayFrameClass } from "@/lib/image-display";
+import { normalizeSearchQuery } from "@/lib/search";
 import { publicPageMetadata } from "@/lib/seo";
 import { publicItemPath } from "@/lib/slug";
 
@@ -14,11 +16,17 @@ export const metadata = publicPageMetadata(
 
 export const revalidate = 60;
 
-export default async function MediaPage() {
+export default async function MediaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const query = normalizeSearchQuery(q);
   let collections: Awaited<ReturnType<typeof listLibraryCollections>> = [];
 
   try {
-    collections = await listLibraryCollections();
+    collections = await listLibraryCollections(query);
   } catch {
     collections = [];
   }
@@ -35,13 +43,16 @@ export default async function MediaPage() {
       <p className="mx-auto mt-6 max-w-2xl text-center text-sm leading-8 text-deep-red/80 md:text-base">
         صور، كتب، وملفات روحية تُنشر من إدارة الموقع.
       </p>
+      <div className="mx-auto mt-8 w-full">
+        <LocalSearchInput placeholder="ابحث في المكتبة..." />
+      </div>
 
       {collections.length === 0 ? (
         <p
           id="library"
           className="mt-10 rounded-2xl border border-dashed border-coptic-gold-main/50 bg-white/70 px-4 py-10 text-center text-deep-red/70"
         >
-          سيتم نشر أقسام الوسائط والمكتبة قريباً.
+          {query ? "لا توجد نتائج" : "سيتم نشر أقسام الوسائط والمكتبة قريباً."}
         </p>
       ) : (
         <ul

@@ -230,8 +230,16 @@ async function ensureTables() {
   }
 }
 
-export async function listMediaCollections() {
+function likeContains(value: string) {
+  return `%${value.replace(/[\\%_]/g, "\\$&")}%`;
+}
+
+export async function listMediaCollections(queryText?: string) {
   await ensureTables();
+
+  const q = queryText?.trim() ?? "";
+  const filterSql = q ? " WHERE c.title LIKE ?" : "";
+  const filterArgs = q ? [likeContains(q)] : [];
 
   const selectSql = `
     SELECT
@@ -264,9 +272,12 @@ export async function listMediaCollections() {
   }>;
 
   try {
-    rows = await query(`${selectSql} ORDER BY c.\`order\` ASC, c.createdAt ASC`);
+    rows = await query(
+      `${selectSql}${filterSql} ORDER BY c.\`order\` ASC, c.createdAt ASC`,
+      filterArgs,
+    );
   } catch {
-    rows = await query(`${selectSql} ORDER BY c.createdAt ASC`);
+    rows = await query(`${selectSql}${filterSql} ORDER BY c.createdAt ASC`, filterArgs);
   }
 
   return rows.map((row) => ({

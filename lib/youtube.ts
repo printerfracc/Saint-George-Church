@@ -103,16 +103,19 @@ function isLiveStreamError(
   return result.ok === false;
 }
 
+const YOUTUBE_FETCH_CACHE = { next: { revalidate: 900 } } as const;
+
 const offlineStatus: YouTubeLiveStatus = {
   isLive: false,
   videoId: null,
   title: null,
 };
 
-function youtubeErrorMessage(status: number, data: YouTubeSearchResponse) {
-  const googleMessage = data.error?.message?.trim();
-  return `YouTube API Error ${status}: ${googleMessage || "Unknown YouTube error"}`;
-}
+const offlineCheck: LiveStreamCheckSuccess = {
+  ok: true,
+  isLive: false,
+  items: [],
+};
 
 function sanitizeEnv(value?: string | null) {
   return value?.trim().replace(/^['"]|['"]$/g, "").trim() || "";
@@ -134,30 +137,15 @@ async function fetchLiveSearch(
   channelId: string,
 ): Promise<LiveStreamCheckResult> {
   try {
-    const debug = youtubeCredentialDebug();
-    console.log(
-      "Vercel Key Check - Length:",
-      debug.keyLength,
-      "Starts with:",
-      debug.keyPrefix,
-    );
-
     const response = await fetch(
       `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&eventType=live&key=${apiKey}`,
-      { cache: "no-store" },
+      YOUTUBE_FETCH_CACHE,
     );
 
     const data = (await response.json()) as YouTubeSearchResponse;
 
     if (!response.ok) {
-      const message = youtubeErrorMessage(response.status, data);
-      console.error(message, data);
-      return {
-        ok: false,
-        error: message,
-        status: response.status,
-        details: data,
-      };
+      return offlineCheck;
     }
 
     return {
@@ -165,13 +153,8 @@ async function fetchLiveSearch(
       ok: true,
       isLive: Array.isArray(data.items) && data.items.length > 0,
     };
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? `YouTube API request failed: ${error.message}`
-        : "YouTube API request failed";
-    console.error(message, error);
-    return { ok: false, error: message };
+  } catch {
+    return offlineCheck;
   }
 }
 
@@ -210,12 +193,10 @@ async function resolveChannelIdFromHandle(apiKey: string) {
 
   const response = await fetch(
     `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${handle}&key=${apiKey}`,
-    { cache: "no-store" },
+    YOUTUBE_FETCH_CACHE,
   );
 
   if (!response.ok) {
-    const data = (await response.json().catch(() => ({}))) as YouTubeSearchResponse;
-    console.error(youtubeErrorMessage(response.status, data), data);
     return null;
   }
 
@@ -235,7 +216,6 @@ export async function getYouTubeLiveStatus(): Promise<YouTubeLiveStatus> {
     }
 
     if (result.error !== "Missing YouTube credentials") {
-      console.error(result.error, result.details ?? result);
       return offlineStatus;
     }
 

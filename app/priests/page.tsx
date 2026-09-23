@@ -1,3 +1,4 @@
+import LocalSearchInput from "@/components/LocalSearchInput";
 import OptionalImage from "@/components/public/OptionalImage";
 import PlaceholderPage from "@/components/public/PlaceholderPage";
 import ReadMoreText from "@/components/public/ReadMoreText";
@@ -11,6 +12,7 @@ import {
 } from "@/lib/admin-labels";
 import { prisma } from "@/lib/prisma";
 import { hasFilledText } from "@/lib/content";
+import { normalizeSearchQuery, titleContains } from "@/lib/search";
 import { ensurePriestColumns } from "@/actions/priests";
 import { publicPageMetadata } from "@/lib/seo";
 
@@ -19,12 +21,19 @@ export const metadata = publicPageMetadata(
   "آباء كهنة كنيسة الشهيد العظيم مارجرجس بالمطرية: نبذة تعريفية، مواعيد الاعتراف، ووسائل التواصل.",
 );
 
-export default async function PriestsPage() {
+export default async function PriestsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const query = normalizeSearchQuery(q);
   let priests: Awaited<ReturnType<typeof prisma.priest.findMany>> = [];
 
   try {
     await ensurePriestColumns();
     priests = await prisma.priest.findMany({
+      where: query ? { name: titleContains(query) } : undefined,
       orderBy: { order: "asc" },
     });
   } catch {
@@ -37,10 +46,13 @@ export default async function PriestsPage() {
         تعرفوا على آباء الكنيسة ومواعيد الاعتراف. يمكنكم التواصل معهم لترتيب
         الاعتراف أو المشورة الروحية.
       </p>
+      <LocalSearchInput placeholder="ابحث عن كاهن..." />
 
       {priests.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-coptic-gold-main/50 bg-white/70 px-4 py-8 text-center">
-          سيتم نشر أسماء الآباء الكهنة ومواعيد الاعتراف قريباً.
+          {query
+            ? "لا توجد نتائج"
+            : "سيتم نشر أسماء الآباء الكهنة ومواعيد الاعتراف قريباً."}
         </p>
       ) : (
         <ul className="space-y-6">

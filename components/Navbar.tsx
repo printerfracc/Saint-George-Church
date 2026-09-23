@@ -4,8 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import GlobalSearch, { SearchIcon } from "@/components/GlobalSearch";
 import ChurchLogo from "@/components/ChurchLogo";
 import { CHURCH_NAME } from "@/lib/church";
+import { useLiveStreamStatus } from "@/components/live/useLiveStreamStatus";
 import { groupMediaNavItems, type MediaCategory } from "@/lib/media-category";
 
 export type NavSubItem = {
@@ -219,17 +221,18 @@ export default function Navbar({
   sectorItems = [],
   mediaItems = [],
   showTawze3a = false,
-  isLive = false,
 }: {
   sectorItems?: NavSubItem[];
   mediaItems?: NavSubItem[];
   showTawze3a?: boolean;
-  isLive?: boolean;
 }) {
+  const isLive = useLiveStreamStatus();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [desktopOpen, setDesktopOpen] = useState<string | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const navItems = useMemo(
     () => buildNavItems(sectorItems, mediaItems, showTawze3a),
@@ -303,6 +306,16 @@ export default function Navbar({
     setDesktopOpen(null);
   }
 
+  function openSearch() {
+    closeMenu();
+    setDesktopOpen(null);
+    setIsSearchOpen(true);
+  }
+
+  function closeSearch() {
+    setIsSearchOpen(false);
+  }
+
   function toggleExpanded(title: string) {
     setExpandedItem((current) => (current === title ? null : title));
   }
@@ -313,12 +326,14 @@ export default function Navbar({
       className="overflow-visible border-b border-coptic-gold-main/40 bg-black/80 text-cream shadow-md backdrop-blur-md"
     >
       <nav
-        className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6"
+        className="relative mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6"
         aria-label="القائمة الرئيسية"
       >
         <Link
           href="/"
-          className="flex min-w-0 items-center gap-2 text-cream"
+          className={`min-w-0 items-center gap-2 text-cream ${
+            isSearchOpen ? "hidden lg:flex" : "flex"
+          }`}
           onClick={closeMenu}
         >
           <span className="shrink-0 overflow-hidden rounded-md bg-cream">
@@ -329,6 +344,27 @@ export default function Navbar({
           </span>
         </Link>
 
+        {isSearchOpen ? (
+          <div className="flex min-w-0 flex-1 items-center gap-2 max-lg:absolute max-lg:inset-x-4 max-lg:inset-y-3 max-lg:z-10 lg:justify-center lg:px-2">
+            <GlobalSearch
+              variant="navbar"
+              className="min-w-0 flex-1 lg:w-full lg:max-w-3xl"
+              autoFocus
+              inputRef={searchInputRef}
+              onDismiss={closeSearch}
+            />
+            <button
+              type="button"
+              onClick={closeSearch}
+              className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md border border-coptic-gold-main/50 text-cream"
+              aria-label="إغلاق البحث"
+            >
+              <span aria-hidden="true" className="text-xl leading-none">
+                ×
+              </span>
+            </button>
+          </div>
+        ) : (
         <ul className="hidden items-center gap-5 lg:flex">
           {navItems.map((item) => {
             const isActive = isItemActive(item, pathname);
@@ -398,15 +434,31 @@ export default function Navbar({
             );
           })}
         </ul>
+        )}
 
-        <div className="flex items-center gap-2">
+        <div
+          className={`shrink-0 items-center gap-2 ${
+            isSearchOpen ? "hidden lg:flex" : "flex"
+          }`}
+        >
           {isLive ? <LiveNowButton onClick={closeMenu} /> : null}
+          {!isSearchOpen ? (
+            <button
+              type="button"
+              onClick={openSearch}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-coptic-gold-main/50 text-cream"
+              aria-label="فتح البحث في الموقع"
+            >
+              <SearchIcon className="h-5 w-5" />
+            </button>
+          ) : null}
           <button
             type="button"
             className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-coptic-gold-main/50 text-cream lg:hidden"
             aria-label={isMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
             aria-expanded={isMenuOpen}
             onClick={() => {
+              closeSearch();
               setMobileMenuOpen(!isMenuOpen);
             }}
           >

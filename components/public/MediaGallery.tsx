@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { searchItemAnchor } from "@/lib/search";
 import { AnimatePresence, motion } from "framer-motion";
 import type { MediaFileType } from "@/lib/cloudinary";
 import OptionalImage from "@/components/public/OptionalImage";
@@ -108,6 +109,19 @@ export default function MediaGallery({
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const active = items.find((item) => item.id === activeId) ?? null;
+
+  useEffect(() => {
+    const id = window.location.hash.replace(/^#/, "");
+    if (!id) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [items]);
   const activePreview = active ? mediaGalleryImage(active) : null;
   const activeIsBook = isPortraitDisplay(active?.imageDisplayMode);
   const collectionIsBook = isPortraitDisplay(layout);
@@ -125,7 +139,7 @@ export default function MediaGallery({
     const typeLabel = mediaFileTypeLabel(youtubeLink ? "youtube" : item.fileType);
 
     return (
-      <li key={item.id}>
+      <li key={item.id} id={searchItemAnchor(item.id)} className="scroll-mt-24">
         <motion.article
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -208,7 +222,7 @@ export default function MediaGallery({
     const youtubeLink = isYouTubeUrl(item.link) || isYouTubeUrl(item.fileUrl);
 
     return (
-      <li key={item.id}>
+      <li key={item.id} id={searchItemAnchor(item.id)} className="scroll-mt-24">
         <motion.article
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}

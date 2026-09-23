@@ -10,6 +10,7 @@ const config: Config = {
     extend: {
       colors: {
         "deep-red": "#8B1E3F",
+        primary: "#8B1E3F",
         gold: "#D4AF37",
         cream: "#F7F3E9",
         "coptic-gold": {

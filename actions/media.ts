@@ -48,9 +48,9 @@ function revalidateMedia(collectionId?: string, slug?: string | null) {
   }
 }
 
-export async function listLibraryCollections() {
+export async function listLibraryCollections(query?: string) {
   try {
-    return await listMediaCollections();
+    return await listMediaCollections(query);
   } catch {
     return [];
   }

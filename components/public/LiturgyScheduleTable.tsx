@@ -1,3 +1,5 @@
+import { searchItemAnchor } from "@/lib/search";
+
 type ScheduleItem = {
   id: string;
   title: string;
@@ -19,7 +21,11 @@ export default function LiturgyScheduleTable({ items }: { items: ScheduleItem[] 
         </thead>
         <tbody>
           {items.map((item) => (
-            <tr key={item.id} className="border-t border-coptic-gold-main/20">
+            <tr
+              key={item.id}
+              id={searchItemAnchor(item.id)}
+              className="scroll-mt-24 border-t border-coptic-gold-main/20"
+            >
               {showTitle ? (
                 <td className="px-4 py-3 font-bold text-deep-red">
                   {item.title.trim() || "—"}

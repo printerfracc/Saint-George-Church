@@ -1,6 +1,8 @@
 import ChurchLogo from "@/components/ChurchLogo";
+import LocalSearchInput from "@/components/LocalSearchInput";
 import SectorCard from "@/components/public/SectorCard";
 import { listServices } from "@/actions/admin-actions";
+import { normalizeSearchQuery } from "@/lib/search";
 import { publicPageMetadata } from "@/lib/seo";
 
 export const metadata = publicPageMetadata(
@@ -10,11 +12,17 @@ export const metadata = publicPageMetadata(
 
 export const revalidate = 60;
 
-export default async function SectorsPage() {
+export default async function SectorsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const query = normalizeSearchQuery(q);
   let sectors: Awaited<ReturnType<typeof listServices>> = [];
 
   try {
-    sectors = await listServices(null);
+    sectors = await listServices(null, query);
   } catch {
     sectors = [];
   }
@@ -31,13 +39,16 @@ export default async function SectorsPage() {
       <p className="mx-auto mt-6 max-w-2xl text-center text-sm leading-8 text-deep-red/80 md:text-base">
         خدمات الكنيسة في القطاعات المختلفة، كما تُنشر من إدارة الموقع.
       </p>
+      <div className="mx-auto mt-8 w-full">
+        <LocalSearchInput placeholder="ابحث في القطاعات..." />
+      </div>
 
       {sectors.length === 0 ? (
         <p
           id="sectors"
           className="mt-10 rounded-2xl border border-dashed border-coptic-gold-main/50 bg-white/70 px-4 py-10 text-center text-deep-red/70"
         >
-          سيتم نشر قطاعات الخدمات قريباً.
+          {query ? "لا توجد نتائج" : "سيتم نشر قطاعات الخدمات قريباً."}
         </p>
       ) : (
         <ul
