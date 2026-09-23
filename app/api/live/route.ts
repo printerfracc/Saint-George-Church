@@ -5,6 +5,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    console.log(
+      "Vercel Key Check - Length:",
+      process.env.YOUTUBE_API_KEY?.length,
+      "Starts with:",
+      process.env.YOUTUBE_API_KEY?.substring(0, 7),
+    );
+
     const status = await checkLiveStreamStatus();
 
     if (status.ok === false) {
