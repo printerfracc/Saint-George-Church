@@ -6,6 +6,7 @@ import ChurchLogo from "@/components/ChurchLogo";
 import OptionalImage from "@/components/public/OptionalImage";
 import { CHURCH_NAME } from "@/lib/church";
 
+
 export type HeroSlide = {
   id: string;
   title: string;
