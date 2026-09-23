@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import ChurchLogo from "@/components/ChurchLogo";
 import { CHURCH_NAME } from "@/lib/church";
+import { groupMediaNavItems, type MediaCategory } from "@/lib/media-category";
 
 export type NavSubItem = {
   title: string;
   href: string;
   isOverview?: boolean;
+  category?: MediaCategory;
 };
 
 type NavItem = {
@@ -26,7 +28,18 @@ function withOverview(
   return {
     title,
     subItems: [
-      { title: title === "الرئيسية" ? "الصفحة الرئيسية" : "نظرة عامة", href, isOverview: true },
+      {
+        title:
+          title === "الرئيسية"
+            ? "الصفحة الرئيسية"
+            : title === "الوسائط والمكتبة"
+              ? "جميع الوسائط"
+              : title === "قطاعات الخدمات"
+                ? "جميع القطاعات"
+                : "نظرة عامة",
+        href,
+        isOverview: true,
+      },
       ...extraItems,
     ],
   };
@@ -84,11 +97,91 @@ function isItemActive(item: NavItem, pathname: string) {
 
 function subItemClassName(isOverview?: boolean) {
   return [
-    "hover:bg-coptic-gold-main/20 hover:text-coptic-gold-main text-white p-3 block text-sm transition-colors",
-    isOverview ? "border-b border-gray-700/50 mb-1 pb-2 font-bold" : "",
+    "block p-3 text-sm text-white transition-colors hover:bg-coptic-gold-main/20 hover:text-coptic-gold-main",
+    isOverview ? "mb-1 border-b border-gray-700/50 pb-2 font-bold" : "",
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+function MediaMenuItems({
+  items,
+  onSelect,
+}: {
+  items: NavSubItem[];
+  onSelect: () => void;
+}) {
+  const layout = groupMediaNavItems(items);
+
+  return (
+    <div className="flex flex-col gap-2">
+      {layout.overview ? (
+        <Link
+          href={layout.overview.href}
+          role="menuitem"
+          onClick={onSelect}
+          className={subItemClassName(true)}
+        >
+          {layout.overview.title}
+        </Link>
+      ) : null}
+
+      <div className="flex items-start gap-3">
+        {layout.groups
+          .filter((group) => group.category === "SERMONS")
+          .map((group) => (
+            <div key={group.key} className="min-w-0 flex-1 border-l border-gray-700/50 pl-3 lg:flex-[2]">
+              {group.title ? (
+                <p className="px-3 pt-2 pb-1 text-right text-sm font-bold text-coptic-gold-light">
+                  {group.title}
+                </p>
+              ) : null}
+              <div className="grid grid-cols-1 gap-x-2 lg:grid-cols-2">
+                {group.items.map((item) => (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    role="menuitem"
+                    onClick={onSelect}
+                    className={subItemClassName()}
+                  >
+                    {item.title}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+
+        <div className="min-w-0 flex-1 lg:flex-1">
+          {layout.groups
+            .filter((group) => group.category === "BOOKS" || group.category === "IMAGES")
+            .map((group, index) => (
+              <div
+                key={group.key}
+                className={index > 0 ? "mt-3 border-t border-gray-700/50 pt-2" : ""}
+              >
+                {group.title ? (
+                  <p className="px-3 pt-2 pb-1 text-sm font-bold text-coptic-gold-light">
+                    {group.title}
+                  </p>
+                ) : null}
+                {group.items.map((item) => (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    role="menuitem"
+                    onClick={onSelect}
+                    className={subItemClassName()}
+                  >
+                    {item.title}
+                  </Link>
+                ))}
+              </div>
+            ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function ChevronIcon({ className }: { className?: string }) {
@@ -121,6 +214,7 @@ export default function Navbar({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [desktopOpen, setDesktopOpen] = useState<string | null>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const navItems = useMemo(
     () => buildNavItems(sectorItems, mediaItems, showTawze3a),
     [sectorItems, mediaItems, showTawze3a],
@@ -148,9 +242,48 @@ export default function Navbar({
     };
   }, [pathname]);
 
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (headerRef.current?.contains(target)) {
+        return;
+      }
+
+      setMobileMenuOpen(false);
+      setDesktopOpen(null);
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [isMenuOpen]);
+
+  function setMobileMenuOpen(open: boolean) {
+    setIsMenuOpen(open);
+    document.body.style.overflow = open ? "hidden" : "";
+    if (!open) {
+      setExpandedItem(null);
+    }
+  }
+
   function closeMenu() {
-    setIsMenuOpen(false);
-    setExpandedItem(null);
+    setMobileMenuOpen(false);
     setDesktopOpen(null);
   }
 
@@ -159,7 +292,10 @@ export default function Navbar({
   }
 
   return (
-    <header className="overflow-visible border-b border-coptic-gold-main/40 bg-black/80 text-cream shadow-md backdrop-blur-md">
+    <header
+      ref={headerRef}
+      className="overflow-visible border-b border-coptic-gold-main/40 bg-black/80 text-cream shadow-md backdrop-blur-md"
+    >
       <nav
         className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6"
         aria-label="القائمة الرئيسية"
@@ -209,27 +345,37 @@ export default function Navbar({
                 </button>
 
                 <div
-                  className={`absolute top-full right-0 z-50 pt-2 origin-top-right transition-all duration-300 ${
+                  className={`absolute top-full z-50 pt-2 transition-opacity duration-300 ${
+                    item.title === "الوسائط والمكتبة"
+                      ? "left-1/2 -translate-x-1/2"
+                      : "right-0"
+                  } ${
                     isOpen
-                      ? "visible translate-y-0 opacity-100"
-                      : "invisible translate-y-2 opacity-0 pointer-events-none"
+                      ? "visible opacity-100"
+                      : "invisible opacity-0 pointer-events-none"
                   }`}
                 >
                   <div
                     role="menu"
-                    className="w-64 overflow-hidden rounded-lg border border-coptic-gold-main/30 bg-black/95 p-1 shadow-2xl backdrop-blur-md"
+                    className={`rounded-lg border border-coptic-gold-main/30 bg-black/95 p-1 shadow-2xl backdrop-blur-md ${
+                      item.title === "الوسائط والمكتبة" ? "w-2xl" : "w-64"
+                    }`}
                   >
-                    {item.subItems.map((subItem) => (
-                      <Link
-                        key={subItem.href}
-                        href={subItem.href}
-                        role="menuitem"
-                        onClick={closeMenu}
-                        className={subItemClassName(subItem.isOverview)}
-                      >
-                        {subItem.title}
-                      </Link>
-                    ))}
+                    {item.title === "الوسائط والمكتبة" ? (
+                      <MediaMenuItems items={item.subItems} onSelect={closeMenu} />
+                    ) : (
+                      item.subItems.map((subItem) => (
+                        <Link
+                          key={subItem.href}
+                          href={subItem.href}
+                          role="menuitem"
+                          onClick={closeMenu}
+                          className={subItemClassName(subItem.isOverview)}
+                        >
+                          {subItem.title}
+                        </Link>
+                      ))
+                    )}
                   </div>
                 </div>
               </li>
@@ -244,8 +390,7 @@ export default function Navbar({
             aria-label={isMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
             aria-expanded={isMenuOpen}
             onClick={() => {
-              setIsMenuOpen((open) => !open);
-              setExpandedItem(null);
+              setMobileMenuOpen(!isMenuOpen);
             }}
           >
             {isMenuOpen ? (
@@ -272,7 +417,7 @@ export default function Navbar({
             transition={{ duration: 0.25 }}
             className="overflow-hidden border-t border-coptic-gold-main/30 bg-black/90 backdrop-blur-md lg:hidden"
           >
-            <ul className="flex flex-col gap-1 px-4 py-3">
+            <ul className="flex max-h-[min(70vh,32rem)] flex-col gap-1 overflow-y-auto overscroll-contain px-4 py-3">
               {navItems.map((item) => {
                 const isActive = isItemActive(item, pathname);
                 const isExpanded = expandedItem === item.title;
@@ -308,19 +453,28 @@ export default function Navbar({
                           transition={{ duration: 0.22, ease: "easeOut" }}
                           className="overflow-hidden"
                         >
-                          <ul className="mb-2 mr-3 border-r border-coptic-gold-main/25 pr-2">
-                            {item.subItems.map((subItem) => (
-                              <li key={subItem.href}>
-                                <Link
-                                  href={subItem.href}
-                                  onClick={closeMenu}
-                                  className={`flex min-h-11 items-center rounded-md ${subItemClassName(subItem.isOverview)}`}
-                                >
-                                  {subItem.title}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
+                          <div className="mb-2 mr-3 border-r border-coptic-gold-main/25 pr-2">
+                            {item.title === "الوسائط والمكتبة" ? (
+                              <MediaMenuItems
+                                items={item.subItems}
+                                onSelect={closeMenu}
+                              />
+                            ) : (
+                              <ul>
+                                {item.subItems.map((subItem) => (
+                                  <li key={subItem.href}>
+                                    <Link
+                                      href={subItem.href}
+                                      onClick={closeMenu}
+                                      className={`flex min-h-11 items-center rounded-md ${subItemClassName(subItem.isOverview)}`}
+                                    >
+                                      {subItem.title}
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
                         </motion.div>
                       ) : null}
                     </AnimatePresence>

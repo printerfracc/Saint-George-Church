@@ -1,4 +1,5 @@
 import { listMediaCollections } from "@/lib/media-db";
+import { parseMediaCategory, type MediaCategory } from "@/lib/media-category";
 import { listServiceRecords } from "@/lib/service-db";
 import { prisma } from "@/lib/prisma";
 
@@ -6,6 +7,7 @@ export type NavSubItem = {
   title: string;
   href: string;
   isOverview?: boolean;
+  category?: MediaCategory;
 };
 
 function toNavItems(
@@ -35,7 +37,20 @@ export async function getNavEntries() {
 
     return {
       sectorItems: toNavItems(sectors, (item) => `/sectors/${item.slug || item.id}`),
-      mediaItems: toNavItems(collections, (item) => `/media/${item.slug || item.id}`),
+      mediaItems: collections.flatMap((entry) => {
+        const title = entry.title.trim();
+        if (!title) {
+          return [];
+        }
+
+        return [
+          {
+            title,
+            href: `/media/${entry.slug || entry.id}`,
+            category: parseMediaCategory(entry.category),
+          },
+        ];
+      }),
       showTawze3a: Boolean(publishedTawze3a),
     };
   } catch {

@@ -15,6 +15,7 @@ import {
 } from "@/lib/media-db";
 import { requireAdmin } from "@/lib/require-admin";
 import { parseImageDisplayMode } from "@/lib/image-display";
+import { parseMediaCategory } from "@/lib/media-category";
 import { normalizeExternalUrl } from "@/lib/media";
 
 export type MediaActionResult =
@@ -76,6 +77,7 @@ export async function saveLibraryCollection(data: {
   slug?: string | null;
   imageUrl?: string | null;
   imageDisplayMode?: string | null;
+  category?: string | null;
 }): Promise<MediaActionResult> {
   const auth = await ensureAdmin();
   if (auth !== true) return auth;
@@ -85,6 +87,7 @@ export async function saveLibraryCollection(data: {
   const slug = data.slug?.trim() || null;
   const imageUrl = data.imageUrl?.trim() || null;
   const imageDisplayMode = parseImageDisplayMode(data.imageDisplayMode);
+  const category = parseMediaCategory(data.category);
 
   if (!title) {
     return { success: false, error: "يرجى إدخال اسم القسم" };
@@ -98,6 +101,7 @@ export async function saveLibraryCollection(data: {
         slug,
         imageUrl,
         imageDisplayMode,
+        category,
       });
       revalidateMedia(data.id, updated.slug);
     } else {
@@ -107,6 +111,7 @@ export async function saveLibraryCollection(data: {
         slug,
         imageUrl,
         imageDisplayMode,
+        category,
       });
       revalidateMedia(created.id, created.slug);
     }

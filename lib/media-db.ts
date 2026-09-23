@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { connect } from "@tidbcloud/serverless";
 import type { MediaFileType } from "@/lib/cloudinary";
 import { parseImageDisplayMode, type ImageDisplayMode } from "@/lib/image-display";
+import { parseMediaCategory, type MediaCategory } from "@/lib/media-category";
 import { resolveUniqueSlug } from "@/lib/slug";
 
 export type MediaCollectionRecord = {
@@ -11,6 +12,7 @@ export type MediaCollectionRecord = {
   slug: string | null;
   imageUrl: string | null;
   imageDisplayMode: ImageDisplayMode;
+  category: MediaCategory;
   createdAt: Date;
   itemCount: number;
 };
@@ -54,6 +56,7 @@ let optionalFileReady = false;
 let orderColumnReady = false;
 let imageDisplayModeReady = false;
 let slugColumnReady = false;
+let categoryColumnReady = false;
 
 async function execute(sql: string, args: unknown[] = []) {
   await db().execute(sql, args);
@@ -213,6 +216,18 @@ async function ensureTables() {
   } catch {
     // Column may already exist.
   }
+
+  if (!categoryColumnReady) {
+    try {
+      await execute(
+        "ALTER TABLE MediaCollection ADD COLUMN category ENUM('SERMONS', 'BOOKS', 'IMAGES') NOT NULL DEFAULT 'SERMONS'",
+      );
+    } catch {
+      // Column may already exist.
+    }
+
+    categoryColumnReady = true;
+  }
 }
 
 export async function listMediaCollections() {
@@ -226,6 +241,7 @@ export async function listMediaCollections() {
       c.slug,
       c.imageUrl,
       c.imageDisplayMode,
+      c.category,
       c.createdAt,
       (
         SELECT COUNT(*)
@@ -242,6 +258,7 @@ export async function listMediaCollections() {
     slug?: string | null;
     imageUrl: string | null;
     imageDisplayMode?: string | null;
+    category?: string | null;
     createdAt: Date | string;
     itemCount: number | string;
   }>;
@@ -259,6 +276,7 @@ export async function listMediaCollections() {
     slug: row.slug ?? null,
     imageUrl: row.imageUrl,
     imageDisplayMode: parseImageDisplayMode(row.imageDisplayMode),
+    category: parseMediaCategory(row.category),
     createdAt: toDate(row.createdAt),
     itemCount: Number(row.itemCount),
   }));
@@ -290,10 +308,11 @@ export async function getMediaCollection(id: string) {
     slug?: string | null;
     imageUrl: string | null;
     imageDisplayMode?: string | null;
+    category?: string | null;
     createdAt: Date | string;
   }>(
     `
-      SELECT id, title, description, slug, imageUrl, imageDisplayMode, createdAt
+      SELECT id, title, description, slug, imageUrl, imageDisplayMode, category, createdAt
       FROM MediaCollection
       WHERE slug = ? OR id = ?
       LIMIT 1
@@ -313,6 +332,7 @@ export async function getMediaCollection(id: string) {
     slug: row.slug ?? null,
     imageUrl: row.imageUrl,
     imageDisplayMode: parseImageDisplayMode(row.imageDisplayMode),
+    category: parseMediaCategory(row.category),
     createdAt: toDate(row.createdAt),
     itemCount: 0,
   };
@@ -324,6 +344,7 @@ export async function createMediaCollection(data: {
   slug?: string | null;
   imageUrl: string | null;
   imageDisplayMode?: string | null;
+  category?: string | null;
 }) {
   await ensureTables();
 
@@ -342,14 +363,15 @@ export async function createMediaCollection(data: {
     slug,
     imageUrl: data.imageUrl,
     imageDisplayMode: parseImageDisplayMode(data.imageDisplayMode),
+    category: parseMediaCategory(data.category),
     createdAt: new Date(),
     itemCount: 0,
   };
 
   await execute(
     `
-      INSERT INTO MediaCollection (id, title, description, slug, imageUrl, imageDisplayMode, \`order\`, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO MediaCollection (id, title, description, slug, imageUrl, imageDisplayMode, category, \`order\`, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       created.id,
@@ -358,6 +380,7 @@ export async function createMediaCollection(data: {
       created.slug,
       created.imageUrl,
       created.imageDisplayMode,
+      created.category,
       order,
       toSqlDate(created.createdAt),
     ],
@@ -374,6 +397,7 @@ export async function updateMediaCollection(
     slug?: string | null;
     imageUrl: string | null;
     imageDisplayMode?: string | null;
+    category?: string | null;
   },
 ) {
   await ensureTables();
@@ -385,7 +409,7 @@ export async function updateMediaCollection(
   await execute(
     `
       UPDATE MediaCollection
-      SET title = ?, description = ?, slug = ?, imageUrl = ?, imageDisplayMode = ?
+      SET title = ?, description = ?, slug = ?, imageUrl = ?, imageDisplayMode = ?, category = ?
       WHERE id = ?
     `,
     [
@@ -394,6 +418,7 @@ export async function updateMediaCollection(
       slug,
       data.imageUrl,
       parseImageDisplayMode(data.imageDisplayMode),
+      parseMediaCategory(data.category),
       id,
     ],
   );

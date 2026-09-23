@@ -21,6 +21,11 @@ import ImageDisplayModeField from "@/components/admin/ImageDisplayModeField";
 import ImageUpload from "@/components/admin/ImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
 import type { ImageDisplayMode } from "@/lib/image-display";
+import {
+  MEDIA_CATEGORIES,
+  MEDIA_CATEGORY_LABELS,
+  type MediaCategory,
+} from "@/lib/media-category";
 
 export type MediaCollectionRow = {
   id: string;
@@ -29,6 +34,7 @@ export type MediaCollectionRow = {
   slug: string | null;
   imageUrl: string | null;
   imageDisplayMode: ImageDisplayMode;
+  category: MediaCategory;
   itemCount: number;
 };
 
@@ -38,6 +44,7 @@ const emptyForm = {
   slug: "",
   imageUrl: "",
   imageDisplayMode: "NORMAL" as ImageDisplayMode,
+  category: "SERMONS" as MediaCategory,
 };
 
 function CollectionActions({
@@ -110,6 +117,7 @@ export default function MediaCollectionManager({
       slug: collection.slug ?? "",
       imageUrl: collection.imageUrl ?? "",
       imageDisplayMode: collection.imageDisplayMode,
+      category: collection.category,
     });
     setError("");
     setOpen(true);
@@ -126,6 +134,7 @@ export default function MediaCollectionManager({
       slug: form.slug,
       imageUrl: form.imageUrl,
       imageDisplayMode: form.imageDisplayMode,
+      category: form.category,
     });
 
     setIsSaving(false);
@@ -201,7 +210,8 @@ export default function MediaCollectionManager({
                   {collection.description || "—"}
                 </p>
                 <p className="mt-1 text-xs font-bold text-coptic-gold-dark">
-                  عدد الملفات: {collection.itemCount}
+                  {MEDIA_CATEGORY_LABELS[collection.category]} · عدد الملفات:{" "}
+                  {collection.itemCount}
                 </p>
               </div>
             </div>
@@ -232,6 +242,27 @@ export default function MediaCollectionManager({
               aria-label="اسم القسم"
               placeholder="مثال: معرض الصور"
             />
+          </label>
+
+          <label className="block space-y-2">
+            <span className="text-sm font-bold text-deep-red">التصنيف</span>
+            <select
+              value={form.category}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  category: event.target.value as MediaCategory,
+                }))
+              }
+              className="w-full rounded-xl border border-coptic-gold-main/40 bg-white px-3 py-2 text-deep-red outline-none focus:ring-2 focus:ring-coptic-gold-main"
+              aria-label="تصنيف القسم"
+            >
+              {MEDIA_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {MEDIA_CATEGORY_LABELS[category]}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="block space-y-2">
