@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { Cairo } from "next/font/google";
 import Footer from "@/components/Footer";
-import LiveNowBanner from "@/components/LiveNowBanner";
 import Navbar from "@/components/Navbar";
 import OpeningExperience from "@/components/opening/OpeningExperience";
 import { getAppUrl } from "@/lib/app-url";
 import { getNavEntries } from "@/lib/nav-data";
+import { checkLiveStreamStatus } from "@/lib/youtube";
 import {
   CHURCH_LOGO,
   CHURCH_NAME,
@@ -80,9 +80,24 @@ export default async function RootLayout({
   const isAdminRoute = pathname.startsWith("/admin");
   const isOpeningRoute = pathname.startsWith("/opening");
   const hideChrome = isAdminRoute || isOpeningRoute;
-  const navEntries = hideChrome
-    ? { sectorItems: [], mediaItems: [], showTawze3a: false }
-    : await getNavEntries();
+  const [navEntries, isLive] = hideChrome
+    ? [{ sectorItems: [], mediaItems: [], showTawze3a: false }, false]
+    : await Promise.all([
+        getNavEntries(),
+        checkLiveStreamStatus()
+          .then((status) => {
+            if ("error" in status) {
+              console.error(status.error, status.details ?? status);
+              return false;
+            }
+
+            return status.isLive;
+          })
+          .catch((error) => {
+            console.error("YouTube live banner check failed", error);
+            return false;
+          }),
+      ]);
 
   return (
     <html
@@ -98,11 +113,11 @@ export default async function RootLayout({
       >
         {hideChrome ? null : (
           <div className="fixed top-0 z-50 w-full overflow-visible">
-            <LiveNowBanner />
             <Navbar
               sectorItems={navEntries.sectorItems}
               mediaItems={navEntries.mediaItems}
               showTawze3a={navEntries.showTawze3a}
+              isLive={isLive}
             />
           </div>
         )}

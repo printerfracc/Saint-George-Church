@@ -31,8 +31,13 @@ export default async function ChurchLiveStream() {
 
   try {
     status = await checkLiveStreamStatus();
-  } catch {
-    status = { isLive: false };
+  } catch (error) {
+    status = {
+      error:
+        error instanceof Error
+          ? `YouTube API request failed: ${error.message}`
+          : "YouTube API request failed",
+    };
   }
 
   if (isLiveSearchResult(status)) {
@@ -75,6 +80,8 @@ export default async function ChurchLiveStream() {
     }
   }
 
+  const debugError = "error" in status ? status.error : null;
+
   return (
     <div className="mt-5 rounded-2xl border border-coptic-gold-main/40 bg-white/85 px-5 py-8 text-center shadow-sm">
       <p className="text-lg font-bold text-deep-red">لا يوجد بث مباشر حالياً</p>
@@ -82,6 +89,14 @@ export default async function ChurchLiveStream() {
         يمكنكم متابعة قناة الكنيسة على يوتيوب لمشاهدة البث عند بدايته، أو تصفح
         القداسات والصلوات المسجّلة.
       </p>
+      {debugError ? (
+        <p
+          dir="ltr"
+          className="mx-auto mt-4 max-w-2xl rounded-xl border border-deep-red/20 bg-deep-red/5 px-3 py-2 text-left text-xs leading-6 text-deep-red"
+        >
+          {debugError}
+        </p>
+      ) : null}
       <div className="mt-6">
         <ChannelLink label="فتح قناة الكنيسة على يوتيوب" />
       </div>

@@ -201,14 +201,30 @@ function ChevronIcon({ className }: { className?: string }) {
   );
 }
 
+function LiveNowButton({ onClick }: { onClick?: () => void }) {
+  return (
+    <Link
+      href="/live"
+      onClick={onClick}
+      className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-red-600 px-4 text-center text-sm font-bold text-white lg:min-h-12 lg:px-5 lg:text-base"
+      aria-label="مشاهدة البث المباشر الآن"
+    >
+      <span className="h-2 w-2 animate-pulse rounded-full bg-white" aria-hidden="true" />
+      بث مباشر
+    </Link>
+  );
+}
+
 export default function Navbar({
   sectorItems = [],
   mediaItems = [],
   showTawze3a = false,
+  isLive = false,
 }: {
   sectorItems?: NavSubItem[];
   mediaItems?: NavSubItem[];
   showTawze3a?: boolean;
+  isLive?: boolean;
 }) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -384,6 +400,7 @@ export default function Navbar({
         </ul>
 
         <div className="flex items-center gap-2">
+          {isLive ? <LiveNowButton onClick={closeMenu} /> : null}
           <button
             type="button"
             className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-coptic-gold-main/50 text-cream lg:hidden"
