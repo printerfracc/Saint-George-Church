@@ -4,6 +4,7 @@ import { YOUTUBE_STREAMS_URL } from "@/lib/church";
 import {
   checkLiveStreamStatus,
   type LiveStreamCheckResult,
+  type LiveStreamCheckSuccess,
 } from "@/lib/youtube";
 
 function ChannelLink({ label }: { label: string }) {
@@ -22,7 +23,7 @@ function ChannelLink({ label }: { label: string }) {
 
 function isLiveSearchResult(
   status: LiveStreamCheckResult,
-): status is Extract<LiveStreamCheckResult, { ok: true; isLive: true }> {
+): status is LiveStreamCheckSuccess {
   return status.ok === true && status.isLive;
 }
 
