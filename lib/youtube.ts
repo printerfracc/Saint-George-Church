@@ -114,16 +114,32 @@ function youtubeErrorMessage(status: number, data: YouTubeSearchResponse) {
   return `YouTube API Error ${status}: ${googleMessage || "Unknown YouTube error"}`;
 }
 
+function sanitizeEnv(value?: string | null) {
+  return value?.trim().replace(/^['"]|['"]$/g, "").trim() || "";
+}
+
+export function youtubeCredentialDebug() {
+  const key = sanitizeEnv(process.env.YOUTUBE_API_KEY);
+  const channelId = sanitizeEnv(process.env.YOUTUBE_CHANNEL_ID);
+
+  return {
+    keyLength: key.length || null,
+    keyPrefix: key ? key.substring(0, 7) : null,
+    hasChannelId: channelId.length > 0,
+  };
+}
+
 async function fetchLiveSearch(
   apiKey: string,
   channelId: string,
 ): Promise<LiveStreamCheckResult> {
   try {
+    const debug = youtubeCredentialDebug();
     console.log(
       "Vercel Key Check - Length:",
-      process.env.YOUTUBE_API_KEY?.length,
+      debug.keyLength,
       "Starts with:",
-      process.env.YOUTUBE_API_KEY?.substring(0, 7),
+      debug.keyPrefix,
     );
 
     const response = await fetch(
@@ -160,8 +176,8 @@ async function fetchLiveSearch(
 }
 
 export async function checkLiveStreamStatus(): Promise<LiveStreamCheckResult> {
-  const apiKey = process.env.YOUTUBE_API_KEY?.trim();
-  const channelId = process.env.YOUTUBE_CHANNEL_ID?.trim();
+  const apiKey = sanitizeEnv(process.env.YOUTUBE_API_KEY);
+  const channelId = sanitizeEnv(process.env.YOUTUBE_CHANNEL_ID);
 
   if (!apiKey || !channelId) {
     return { ok: false, error: "Missing YouTube credentials" };

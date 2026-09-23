@@ -1,28 +1,35 @@
 import { NextResponse } from "next/server";
-import { checkLiveStreamStatus } from "@/lib/youtube";
+import { checkLiveStreamStatus, youtubeCredentialDebug } from "@/lib/youtube";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const debug = youtubeCredentialDebug();
     console.log(
       "Vercel Key Check - Length:",
-      process.env.YOUTUBE_API_KEY?.length,
+      debug.keyLength,
       "Starts with:",
-      process.env.YOUTUBE_API_KEY?.substring(0, 7),
+      debug.keyPrefix,
     );
 
     const status = await checkLiveStreamStatus();
 
     if (status.ok === false) {
-      return NextResponse.json(status, { status: status.status ?? 500 });
+      return NextResponse.json(
+        { ...status, debug },
+        { status: status.status ?? 500 },
+      );
     }
 
-    return NextResponse.json(status, {
-      headers: {
-        "Cache-Control": "no-store",
+    return NextResponse.json(
+      { ...status, debug },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
       },
-    });
+    );
   } catch (error) {
     const message =
       error instanceof Error
