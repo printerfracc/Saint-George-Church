@@ -71,7 +71,7 @@ export default async function Home() {
         },
         [],
       ),
-      loadOr(checkLiveStreamStatus, { isLive: false }),
+      loadOr(checkLiveStreamStatus, { ok: false, error: "YouTube live check failed" }),
     ]);
 
   const hero = heroRecord
@@ -165,7 +165,7 @@ export default async function Home() {
           imageUrl={hero?.imageUrl}
           title={hero?.title}
           subtitle={hero?.content}
-          isLive={"isLive" in liveStatus && liveStatus.isLive}
+          isLive={liveStatus.ok === true && liveStatus.isLive}
         />
         <HomePageSections
           news={news}

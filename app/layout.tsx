@@ -86,7 +86,7 @@ export default async function RootLayout({
         getNavEntries(),
         checkLiveStreamStatus()
           .then((status) => {
-            if ("error" in status) {
+            if (status.ok === false) {
               console.error(status.error, status.details ?? status);
               return false;
             }

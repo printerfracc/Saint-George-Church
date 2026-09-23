@@ -83,9 +83,25 @@ export type YouTubeSearchResponse = {
   error?: { code?: number; message?: string };
 };
 
-export type LiveStreamCheckResult =
-  | { error: string; status?: number; details?: unknown }
-  | (YouTubeSearchResponse & { isLive: boolean });
+export type LiveStreamCheckError = {
+  ok: false;
+  error: string;
+  status?: number;
+  details?: unknown;
+};
+
+export type LiveStreamCheckSuccess = YouTubeSearchResponse & {
+  ok: true;
+  isLive: boolean;
+};
+
+export type LiveStreamCheckResult = LiveStreamCheckError | LiveStreamCheckSuccess;
+
+function isLiveStreamError(
+  result: LiveStreamCheckResult,
+): result is LiveStreamCheckError {
+  return result.ok === false;
+}
 
 const offlineStatus: YouTubeLiveStatus = {
   isLive: false,
@@ -114,6 +130,7 @@ async function fetchLiveSearch(
       const message = youtubeErrorMessage(response.status, data);
       console.error(message, data);
       return {
+        ok: false,
         error: message,
         status: response.status,
         details: data,
@@ -122,6 +139,7 @@ async function fetchLiveSearch(
 
     return {
       ...data,
+      ok: true,
       isLive: Array.isArray(data.items) && data.items.length > 0,
     };
   } catch (error) {
@@ -130,7 +148,7 @@ async function fetchLiveSearch(
         ? `YouTube API request failed: ${error.message}`
         : "YouTube API request failed";
     console.error(message, error);
-    return { error: message };
+    return { ok: false, error: message };
   }
 }
 
@@ -139,7 +157,7 @@ export async function checkLiveStreamStatus(): Promise<LiveStreamCheckResult> {
   const channelId = process.env.YOUTUBE_CHANNEL_ID?.trim();
 
   if (!apiKey || !channelId) {
-    return { error: "Missing YouTube credentials" };
+    return { ok: false, error: "Missing YouTube credentials" };
   }
 
   return fetchLiveSearch(apiKey, channelId);
@@ -189,11 +207,11 @@ export async function getYouTubeLiveStatus(): Promise<YouTubeLiveStatus> {
   try {
     const result = await checkLiveStreamStatus();
 
-    if ("isLive" in result) {
+    if (!isLiveStreamError(result)) {
       return toLiveStatus(result);
     }
 
-    if (result.error && result.error !== "Missing YouTube credentials") {
+    if (result.error !== "Missing YouTube credentials") {
       console.error(result.error, result.details ?? result);
       return offlineStatus;
     }
@@ -208,7 +226,8 @@ export async function getYouTubeLiveStatus(): Promise<YouTubeLiveStatus> {
       return offlineStatus;
     }
 
-    return toLiveStatus(await fetchLiveSearch(apiKey, channelId));
+    const fallback = await fetchLiveSearch(apiKey, channelId);
+    return isLiveStreamError(fallback) ? offlineStatus : toLiveStatus(fallback);
   } catch {
     return offlineStatus;
   }

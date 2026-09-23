@@ -22,8 +22,8 @@ function ChannelLink({ label }: { label: string }) {
 
 function isLiveSearchResult(
   status: LiveStreamCheckResult,
-): status is Extract<LiveStreamCheckResult, { isLive: boolean }> {
-  return "isLive" in status && status.isLive;
+): status is Extract<LiveStreamCheckResult, { ok: true; isLive: true }> {
+  return status.ok === true && status.isLive;
 }
 
 export default async function ChurchLiveStream() {
@@ -33,6 +33,7 @@ export default async function ChurchLiveStream() {
     status = await checkLiveStreamStatus();
   } catch (error) {
     status = {
+      ok: false,
       error:
         error instanceof Error
           ? `YouTube API request failed: ${error.message}`
@@ -80,7 +81,7 @@ export default async function ChurchLiveStream() {
     }
   }
 
-  const debugError = "error" in status ? status.error : null;
+  const debugError = status.ok === false ? status.error : null;
 
   return (
     <div className="mt-5 rounded-2xl border border-coptic-gold-main/40 bg-white/85 px-5 py-8 text-center shadow-sm">

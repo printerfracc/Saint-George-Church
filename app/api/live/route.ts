@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const status = await checkLiveStreamStatus();
 
-    if ("error" in status) {
+    if (status.ok === false) {
       return NextResponse.json(status, { status: status.status ?? 500 });
     }
 
