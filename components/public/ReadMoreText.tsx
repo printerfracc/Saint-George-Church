@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 function normalizePublicMultiline(text?: string | null) {
   return (text ?? "")
@@ -25,11 +26,13 @@ export default function ReadMoreText({
   lines = 4,
   className = "",
   buttonClassName = "",
+  href,
 }: {
   text?: string | null;
   lines?: number;
   className?: string;
   buttonClassName?: string;
+  href?: string;
 }) {
   const formatted = normalizePublicMultiline(text);
   const paragraphs = formatted.split(/\n{2,}/).filter(Boolean);
@@ -66,26 +69,48 @@ export default function ReadMoreText({
   }
 
   return (
-    <div>
-      <div className={`wrap-break-word ${className}`.trim()}>
-        {expanded ? (
-          <div className="space-y-3">
-            {paragraphs.map((paragraph, index) => (
-              <p key={`${index}-${paragraph.slice(0, 24)}`} className="whitespace-pre-line">
-                {paragraph}
-              </p>
-            ))}
-          </div>
-        ) : (
-          <p
-            ref={clampRef}
-            style={collapsedClampStyle(lines)}
-            className="whitespace-pre-line"
-          >
-            {collapsedText}
-          </p>
-        )}
-      </div>
+    <div className="relative">
+      {href ? (
+        <Link href={href} className={`block wrap-break-word ${className}`.trim()}>
+          {expanded ? (
+            <div className="space-y-3">
+              {paragraphs.map((paragraph, index) => (
+                <p key={`${index}-${paragraph.slice(0, 24)}`} className="whitespace-pre-line">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p
+              ref={clampRef}
+              style={collapsedClampStyle(lines)}
+              className="whitespace-pre-line"
+            >
+              {collapsedText}
+            </p>
+          )}
+        </Link>
+      ) : (
+        <div className={`wrap-break-word ${className}`.trim()}>
+          {expanded ? (
+            <div className="space-y-3">
+              {paragraphs.map((paragraph, index) => (
+                <p key={`${index}-${paragraph.slice(0, 24)}`} className="whitespace-pre-line">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p
+              ref={clampRef}
+              style={collapsedClampStyle(lines)}
+              className="whitespace-pre-line"
+            >
+              {collapsedText}
+            </p>
+          )}
+        </div>
+      )}
       {canExpand ? (
         <button
           type="button"
@@ -94,7 +119,7 @@ export default function ReadMoreText({
             event.stopPropagation();
             setExpanded((current) => !current);
           }}
-          className={`mt-2 inline-flex min-h-11 items-center text-sm font-bold ${buttonClassName}`.trim()}
+          className={`relative z-20 mt-2 inline-flex min-h-11 items-center text-sm font-bold ${buttonClassName}`.trim()}
         >
           {expanded ? "عرض أقل" : "اقرأ المزيد"}
         </button>

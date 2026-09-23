@@ -68,12 +68,16 @@ export default async function MediaPage() {
                 <div className="px-5 pb-5">
                   <ReadMoreText
                     text={collection.description}
+                    href={publicItemPath("media", collection)}
                     className="mt-2 whitespace-pre-line text-sm leading-7 text-deep-red/75"
                     buttonClassName="text-coptic-gold-dark"
                   />
-                  <p className="mt-3 text-xs font-bold text-coptic-gold-dark">
+                  <Link
+                    href={publicItemPath("media", collection)}
+                    className="mt-3 block text-xs font-bold text-coptic-gold-dark"
+                  >
                     {collection.itemCount} ملف
-                  </p>
+                  </Link>
                 </div>
               </article>
             </li>
