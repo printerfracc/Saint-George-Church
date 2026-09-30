@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { preload } from "react-dom";
 import HashScroll from "@/components/HashScroll";
 import HomeFadeIn from "@/components/home/HomeFadeIn";
@@ -21,7 +23,24 @@ import { findDynamicContentByKey } from "@/lib/dynamic-content";
 import { prisma } from "@/lib/prisma";
 import { ensurePriestColumns } from "@/actions/priests";
 
-export const revalidate = 60;
+async function loadChurchNews() {
+  try {
+    return await prisma.newsEvent.findMany({
+      where: { isActive: true },
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+    });
+  } catch (orderError) {
+    try {
+      return await prisma.newsEvent.findMany({
+        where: { isActive: true },
+        orderBy: { createdAt: "desc" },
+      });
+    } catch (error) {
+      console.error("Failed to load church news", error, orderError);
+      throw error;
+    }
+  }
+}
 
 async function loadOr<T>(loader: () => Promise<T>, fallback: T) {
   try {
@@ -56,22 +75,7 @@ export default async function Home() {
           orderBy: { order: "asc" },
         });
       }, []),
-      loadOr(
-        async () => {
-          try {
-            return await prisma.newsEvent.findMany({
-              where: { isActive: true },
-              orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-            });
-          } catch {
-            return prisma.newsEvent.findMany({
-              where: { isActive: true },
-              orderBy: { createdAt: "desc" },
-            });
-          }
-        },
-        [],
-      ),
+      loadChurchNews(),
     ]);
 
   const hero = heroRecord

@@ -51,8 +51,9 @@ function revalidateMedia(collectionId?: string, slug?: string | null) {
 export async function listLibraryCollections(query?: string) {
   try {
     return await listMediaCollections(query);
-  } catch {
-    return [];
+  } catch (error) {
+    console.error("Failed to load media library", error);
+    throw error;
   }
 }
 

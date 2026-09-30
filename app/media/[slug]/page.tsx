@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChurchLogo from "@/components/ChurchLogo";
@@ -8,8 +10,6 @@ import ReadMoreText from "@/components/public/ReadMoreText";
 import { getLibraryCollection } from "@/actions/media";
 import { normalizeSearchQuery } from "@/lib/search";
 import { recordPageMetadata } from "@/lib/seo";
-
-export const revalidate = 60;
 
 export async function generateMetadata({
   params,

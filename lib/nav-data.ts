@@ -53,7 +53,8 @@ export async function getNavEntries() {
       }),
       showTawze3a: Boolean(publishedTawze3a),
     };
-  } catch {
-    return { sectorItems: [], mediaItems: [], showTawze3a: false };
+  } catch (error) {
+    console.error("Failed to load navigation sectors and media", error);
+    throw error;
   }
 }

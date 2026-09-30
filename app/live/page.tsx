@@ -1,8 +1,8 @@
+export const dynamic = "force-dynamic";
+
 import ChurchLogo from "@/components/ChurchLogo";
 import ChurchLiveStream from "@/components/live/ChurchLiveStream";
 import { publicPageMetadata } from "@/lib/seo";
-
-export const revalidate = 60;
 
 export const metadata = publicPageMetadata(
   "البث المباشر",

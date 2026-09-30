@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import ChurchLogo from "@/components/ChurchLogo";
 import LocalSearchInput from "@/components/LocalSearchInput";
 import SectorCard from "@/components/public/SectorCard";
@@ -10,8 +12,6 @@ export const metadata = publicPageMetadata(
   "قطاعات الخدمة في كنيسة الشهيد العظيم مارجرجس بالمطرية: مدارس الأحد، الشباب، الافتقاد، والخدمات المختلفة كما تُنشر من إدارة الموقع.",
 );
 
-export const revalidate = 60;
-
 export default async function SectorsPage({
   searchParams,
 }: {
@@ -19,13 +19,7 @@ export default async function SectorsPage({
 }) {
   const { q } = await searchParams;
   const query = normalizeSearchQuery(q);
-  let sectors: Awaited<ReturnType<typeof listServices>> = [];
-
-  try {
-    sectors = await listServices(null, query);
-  } catch {
-    sectors = [];
-  }
+  const sectors = await listServices(null, query);
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-28 pb-16">

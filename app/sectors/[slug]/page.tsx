@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChurchLogo from "@/components/ChurchLogo";
@@ -12,8 +14,6 @@ import { imageDisplayFrameClass } from "@/lib/image-display";
 import { normalizeSearchQuery, searchItemAnchor } from "@/lib/search";
 import { recordPageMetadata } from "@/lib/seo";
 import { publicItemPath } from "@/lib/slug";
-
-export const revalidate = 60;
 
 export async function generateMetadata({
   params,

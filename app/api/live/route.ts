@@ -1,5 +1,9 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { checkLiveStreamStatus, youtubeCredentialDebug } from "@/lib/youtube";
+
+const noStore = { "Cache-Control": "no-store" };
 
 export async function GET() {
   try {
@@ -7,25 +11,32 @@ export async function GET() {
     const status = await checkLiveStreamStatus();
 
     if (status.ok === false) {
-      return NextResponse.json({
-        ok: true,
-        isLive: false,
-        items: [],
-        debug,
-      });
+      return NextResponse.json(
+        {
+          ok: true,
+          isLive: false,
+          items: [],
+          debug,
+        },
+        { headers: noStore },
+      );
     }
 
-    return NextResponse.json({ ...status, debug });
+    return NextResponse.json({ ...status, debug }, { headers: noStore });
   } catch (error) {
     const message =
       error instanceof Error
         ? `YouTube API request failed: ${error.message}`
         : "YouTube API request failed";
-    return NextResponse.json({
-      ok: true,
-      isLive: false,
-      items: [],
-      error: message,
-    });
+    console.error("Failed to check live stream status", error);
+    return NextResponse.json(
+      {
+        ok: true,
+        isLive: false,
+        items: [],
+        error: message,
+      },
+      { headers: noStore },
+    );
   }
 }

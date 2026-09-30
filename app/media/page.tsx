@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import ChurchLogo from "@/components/ChurchLogo";
 import LocalSearchInput from "@/components/LocalSearchInput";
@@ -14,8 +16,6 @@ export const metadata = publicPageMetadata(
   "مكتبة الوسائط لكنيسة الشهيد العظيم مارجرجس بالمطرية: صور، كتب، وملفات روحية تُنشر من إدارة الموقع.",
 );
 
-export const revalidate = 60;
-
 export default async function MediaPage({
   searchParams,
 }: {
@@ -23,13 +23,7 @@ export default async function MediaPage({
 }) {
   const { q } = await searchParams;
   const query = normalizeSearchQuery(q);
-  let collections: Awaited<ReturnType<typeof listLibraryCollections>> = [];
-
-  try {
-    collections = await listLibraryCollections(query);
-  } catch {
-    collections = [];
-  }
+  const collections = await listLibraryCollections(query);
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-28 pb-16">

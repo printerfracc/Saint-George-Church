@@ -119,8 +119,9 @@ function parseServiceData(data: {
 export async function listServices(parentId: string | null = null, query?: string) {
   try {
     return await listServiceRecords(parentId, query);
-  } catch {
-    return [];
+  } catch (error) {
+    console.error("Failed to load sectors", error);
+    throw error;
   }
 }
 
