@@ -19,6 +19,7 @@ export type NavSubItem = {
 
 type NavItem = {
   title: string;
+  href?: string;
   subItems: NavSubItem[];
 };
 
@@ -69,9 +70,11 @@ function buildNavItems(
     withOverview("الوسائط والمكتبة", "/media", mediaItems),
     ...(showTawze3a
       ? [
-          withOverview("توزيعة الخدام", "/tawze3a", [
-            { title: "دخول الخدام", href: "/tawze3a/login" },
-          ]),
+          {
+            title: "عيد الخدام",
+            href: "/tawze3a",
+            subItems: [{ title: "دخول الخدام", href: "/tawze3a/login" }],
+          },
         ]
       : []),
     withOverview("تواصل معنا", "/contact", [
@@ -84,7 +87,7 @@ function buildNavItems(
 }
 
 function overviewHref(item: NavItem) {
-  return item.subItems.find((subItem) => subItem.isOverview)?.href ?? "/";
+  return item.href ?? item.subItems.find((subItem) => subItem.isOverview)?.href ?? "/";
 }
 
 function isItemActive(item: NavItem, pathname: string) {

@@ -9,16 +9,12 @@ import {
   deleteAllServants,
   deleteServant,
   updateServant,
-  type ServantAssignmentChip,
   type ServantRecord,
 } from "@/actions/servants-crud";
+import { AssignmentYearSelect, DraftBadge } from "@/components/admin/AssignmentYearTools";
 import MultiSelectFilter from "@/components/admin/MultiSelectFilter";
 import type { ServantRoleOption } from "@/lib/servant-roles";
-import {
-  serializeIdList,
-  servantMatchesFilters,
-  UNASSIGNED_KHEDMA_VALUE,
-} from "@/lib/servant-filters";
+import { serializeIdList, servantMatchesFilters } from "@/lib/servant-filters";
 import {
   AdminEmptyState,
   AdminMobileCard,
@@ -58,19 +54,23 @@ function displayPhone(value?: string | null) {
   return phone || "غير مسجل";
 }
 
-function AssignmentChips({ assignments }: { assignments: ServantAssignmentChip[] }) {
-  if (assignments.length === 0) {
-    return <span className="text-gray-400">غير مسند</span>;
+function uniqueLabels(values: Array<string | null | undefined>) {
+  return [...new Set(values.map((value) => value?.trim() ?? "").filter(Boolean))];
+}
+
+function LabelChips({ labels, emptyLabel }: { labels: string[]; emptyLabel: string }) {
+  if (labels.length === 0) {
+    return <span className="text-gray-400">{emptyLabel}</span>;
   }
 
   return (
     <span className="flex flex-wrap gap-1">
-      {assignments.map((assignment) => (
+      {labels.map((label) => (
         <span
-          key={assignment.id}
+          key={label}
           className="inline-block rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-800"
         >
-          {assignment.khedmaName} - {assignment.roleName}
+          {label}
         </span>
       ))}
     </span>
@@ -89,6 +89,28 @@ const emptyForm: ServantFormState = {
   nationalId: "",
 };
 
+function KhedmaChips({ assignments }: { assignments: ServantRow["assignments"] }) {
+  const items = assignments.filter((assignment) => assignment.khedmaName);
+
+  if (items.length === 0) {
+    return <span className="text-gray-400">غير مسند</span>;
+  }
+
+  return (
+    <span className="flex flex-wrap gap-1">
+      {items.map((assignment) => (
+        <span
+          key={assignment.id}
+          className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-800"
+        >
+          {assignment.khedmaName}
+          {assignment.isDraft ? <DraftBadge /> : null}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export default function ServantDirectory({
   initialServants,
   initialTotal,
@@ -97,6 +119,8 @@ export default function ServantDirectory({
   query,
   roleIds,
   khedmaIds,
+  years,
+  selectedYear,
 }: {
   initialServants: ServantRow[];
   initialTotal: number;
@@ -105,6 +129,8 @@ export default function ServantDirectory({
   query: string;
   roleIds: string[];
   khedmaIds: string[];
+  years: number[];
+  selectedYear: number;
 }) {
   const router = useRouter();
   const [servants, setServants] = useState(initialServants);
@@ -150,13 +176,11 @@ export default function ServantDirectory({
   );
 
   const khedmaOptions = useMemo(
-    () => [
-      { id: UNASSIGNED_KHEDMA_VALUE, label: "غير مسند لأي خدمة" },
-      ...khedmat.map((item) => ({
+    () =>
+      khedmat.map((item) => ({
         id: item.id,
         label: item.tawze3aTitle ? `${item.name} — ${item.tawze3aTitle}` : item.name,
       })),
-    ],
     [khedmat],
   );
 
@@ -206,6 +230,8 @@ export default function ServantDirectory({
     if (nextKhedma) {
       params.set("khedma", nextKhedma);
     }
+
+    params.set("year", String(selectedYear));
 
     const qs = params.toString();
     router.replace(qs ? `/admin/servants?${qs}` : "/admin/servants");
@@ -318,6 +344,7 @@ export default function ServantDirectory({
         q: searchInput.trim() || pageParams.get("q") || "",
         role: serializeIdList(selectedRoles) || pageParams.get("role") || "",
         khedma: serializeIdList(selectedKhedmat) || pageParams.get("khedma") || "",
+        year: String(selectedYear),
       };
 
       const response = await fetch("/api/admin/servants/export", {
@@ -381,6 +408,9 @@ export default function ServantDirectory({
               emptyLabel="جميع الخدمات"
               countLabel={(count) => `تم تحديد ${count} خدمات`}
             />
+            <div className="w-full sm:w-36">
+              <AssignmentYearSelect years={years} selectedYear={selectedYear} />
+            </div>
           </div>
           <div className="flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto">
             <button type="button" onClick={openCreate} className={adminActionGold}>
@@ -423,12 +453,13 @@ export default function ServantDirectory({
         <AdminResponsiveTable
           empty={false}
           emptyLabel="لا يوجد خدام"
-          colSpan={6}
+          colSpan={7}
           head={
             <>
               <th className="px-4 py-3 font-bold">الاسم</th>
               <th className="px-4 py-3 font-bold">رقم الموبايل</th>
               <th className="px-4 py-3 font-bold">الرقم القومي</th>
+              <th className="px-4 py-3 font-bold">الرتبة</th>
               <th className="px-4 py-3 font-bold">الخدمة الحالية</th>
               <th className="px-4 py-3 font-bold">تاريخ الإضافة</th>
               <th className="px-4 py-3 font-bold">الإجراء</th>
@@ -444,7 +475,13 @@ export default function ServantDirectory({
                 {maskNationalId(servant.nationalId)}
               </p>
               <div className="mt-2">
-                <AssignmentChips assignments={servant.assignments} />
+                <LabelChips
+                  labels={uniqueLabels(servant.assignments.map((assignment) => assignment.roleName))}
+                  emptyLabel="بدون رتبة"
+                />
+              </div>
+              <div className="mt-2">
+                <KhedmaChips assignments={servant.assignments} />
               </div>
               <p className="mt-1 text-sm text-deep-red/70">
                 {new Date(servant.createdAt).toLocaleString("ar-EG")}
@@ -477,7 +514,13 @@ export default function ServantDirectory({
                 {maskNationalId(servant.nationalId)}
               </td>
               <td className="px-4 py-3">
-                <AssignmentChips assignments={servant.assignments} />
+                <LabelChips
+                  labels={uniqueLabels(servant.assignments.map((assignment) => assignment.roleName))}
+                  emptyLabel="بدون رتبة"
+                />
+              </td>
+              <td className="px-4 py-3">
+                <KhedmaChips assignments={servant.assignments} />
               </td>
               <td className="whitespace-nowrap px-4 py-3">
                 {new Date(servant.createdAt).toLocaleString("ar-EG")}

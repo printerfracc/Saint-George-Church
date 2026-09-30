@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
-import { requireTawze3aAdmin } from "@/lib/require-admin";
+import { calendarYear } from "@/lib/tawze3a-year";
 import {
   cellToString,
   isInvalidNationalId,
@@ -89,6 +88,7 @@ export async function processTawze3aRows(
   let imported = 0;
   let skipped = 0;
   let failed = 0;
+  const year = calendarYear();
 
   for (const row of rows) {
     const nationalIdRaw = rowValue(row, "ServantNationalID");
@@ -153,7 +153,7 @@ export async function processTawze3aRows(
       const category = await ensureCategory(khedma.id, role);
 
       const existingAssignment = await prisma.servantAssignment.findFirst({
-        where: { servantId: servant.id, khedmaId: khedma.id },
+        where: { servantId: servant.id, khedmaId: khedma.id, year },
       });
 
       if (!existingAssignment) {
@@ -163,6 +163,8 @@ export async function processTawze3aRows(
             khedmaId: khedma.id,
             roleId: role.id,
             categoryId: category.id,
+            year,
+            isDraft: false,
           },
         });
       } else if (existingAssignment.roleId !== role.id) {
@@ -192,66 +194,4 @@ export async function processTawze3aRows(
   revalidateImportPaths(tawze3aId);
 
   return { success: true, imported, skipped, failed };
-}
-
-export async function importTawze3aExcel(formData: FormData): Promise<Tawze3aImportResult> {
-  const session = await requireTawze3aAdmin();
-
-  if (!session) {
-    return { success: false, error: "غير مصرح لك بتنفيذ هذه العملية" };
-  }
-
-  const tawze3aId = cellToString(formData.get("tawze3aId"));
-  const file = formData.get("file");
-
-  if (!tawze3aId) {
-    return { success: false, error: "تعذر تحديد التوزيعة المطلوب استيرادها" };
-  }
-
-  if (!(file instanceof File) || file.size === 0) {
-    return { success: false, error: "يرجى اختيار ملف Excel صالح" };
-  }
-
-  const fileName = file.name.toLowerCase();
-
-  if (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls")) {
-    return { success: false, error: "يُسمح فقط بملفات Excel ذات الامتداد xlsx أو xls" };
-  }
-
-  const tawze3a = await prisma.tawze3a.findUnique({
-    where: { id: tawze3aId },
-    select: { id: true },
-  });
-
-  if (!tawze3a) {
-    return { success: false, error: "التوزيعة غير موجودة" };
-  }
-
-  let rows: Tawze3aExcelRow[];
-
-  try {
-    const buffer = await file.arrayBuffer();
-    const workbook = XLSX.read(buffer);
-    const sheetName =
-      workbook.SheetNames.find((name) => name.trim().toLowerCase() === "twze3a") ??
-      workbook.SheetNames[0];
-
-    if (!sheetName) {
-      return { success: false, error: "الملف لا يحتوي على أي ورقة عمل" };
-    }
-
-    const sheet = workbook.Sheets[sheetName];
-    rows = XLSX.utils.sheet_to_json<Tawze3aExcelRow>(sheet, {
-      defval: "",
-      raw: false,
-    });
-  } catch {
-    return { success: false, error: "تعذر قراءة ملف Excel. تأكد من صحة الملف ثم حاول مرة أخرى." };
-  }
-
-  if (rows.length === 0) {
-    return { success: false, error: "لا توجد صفوف في ورقة التوزيعة" };
-  }
-
-  return processTawze3aRows(tawze3aId, rows);
 }

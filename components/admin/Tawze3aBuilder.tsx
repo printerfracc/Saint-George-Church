@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { addKhedma, togglePublishTawze3a, type BuilderTawze3a } from "@/actions/tawze3a-admin";
-import Tawze3aExcelImportButton from "@/components/admin/Tawze3aExcelImportButton";
 import { adminActionGold, adminActionOutline } from "@/components/admin/admin-ui";
 
 export default function Tawze3aBuilder({
   initialTawze3a,
+  selectedYear,
 }: {
   initialTawze3a: BuilderTawze3a;
+  selectedYear: number;
 }) {
   const [tawze3a, setTawze3a] = useState(initialTawze3a);
   const [khedmaName, setKhedmaName] = useState("");
@@ -130,12 +131,9 @@ export default function Tawze3aBuilder({
               </button>
             </form>
           ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              <Tawze3aExcelImportButton tawze3aId={tawze3a.id} />
-              <button type="button" className={adminActionGold} onClick={() => setAddingKhedma(true)}>
-                إضافة خدمة
-              </button>
-            </div>
+            <button type="button" className={adminActionGold} onClick={() => setAddingKhedma(true)}>
+              إضافة خدمة
+            </button>
           )}
         </div>
       </div>
@@ -155,7 +153,7 @@ export default function Tawze3aBuilder({
           {tawze3a.khedmat.map((khedma) => (
             <li key={khedma.id}>
               <Link
-                href={`/admin/tawze3a/${tawze3a.id}/khedma/${khedma.id}`}
+                href={`/admin/tawze3a/${tawze3a.id}/khedma/${khedma.id}?year=${selectedYear}`}
                 className="flex items-center justify-between gap-3 rounded-2xl border border-coptic-gold-main/40 bg-white/80 px-5 py-4 shadow-sm transition hover:border-coptic-gold-main hover:bg-white"
               >
                 <h2 className="truncate text-lg font-bold text-deep-red">{khedma.name}</h2>

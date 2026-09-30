@@ -1,12 +1,23 @@
 import { Prisma } from "@prisma/client";
+import { parseYear } from "@/lib/assignment-year";
 
-export const UNASSIGNED_KHEDMA_VALUE = "unassigned";
+export const assignedKhedmaFilter: Prisma.ServantAssignmentWhereInput = {
+  OR: [{ khedmaId: { not: null } }, { categoryId: { not: null } }],
+};
+
+export function publishedAssignmentWhere(year: number): Prisma.ServantAssignmentWhereInput {
+  return {
+    year,
+    isDraft: false,
+    AND: [assignedKhedmaFilter],
+  };
+}
 
 export type ServantQueryFilters = {
   query?: string;
   roleIds: string[];
   khedmaIds: string[];
-  unassignedOnly?: boolean;
+  year: number;
 };
 
 export function parseIdList(value?: string | string[] | null): string[] {
@@ -22,18 +33,18 @@ export function parseServantListFilters(params: {
   q?: string | string[] | null;
   role?: string | string[] | null;
   khedma?: string | string[] | null;
+  year?: string | string[] | null;
 }): ServantQueryFilters {
   const query = (Array.isArray(params.q) ? params.q[0] : params.q)?.trim() ?? "";
   const roleIds = parseIdList(params.role);
-  const khedmaValues = parseIdList(params.khedma);
-  const unassignedOnly = khedmaValues.includes(UNASSIGNED_KHEDMA_VALUE);
-  const khedmaIds = khedmaValues.filter((id) => id !== UNASSIGNED_KHEDMA_VALUE);
+  const khedmaIds = parseIdList(params.khedma);
+  const yearValue = Array.isArray(params.year) ? params.year[0] : params.year;
 
   return {
     query: query || undefined,
     roleIds,
     khedmaIds,
-    unassignedOnly,
+    year: parseYear(yearValue),
   };
 }
 
@@ -44,7 +55,6 @@ export function servantListWhere(
   const query = filters.query?.trim() ?? "";
   const roleIds = (filters.roleIds ?? []).filter(Boolean);
   const khedmaIds = (filters.khedmaIds ?? []).filter(Boolean);
-  const unassignedOnly = Boolean(filters.unassignedOnly);
   const hasRole = roleIds.length > 0;
   const hasKhedma = khedmaIds.length > 0;
 
@@ -54,37 +64,37 @@ export function servantListWhere(
     });
   }
 
-  if (unassignedOnly && !hasKhedma) {
-    and.push({ assignments: { none: {} } });
-  } else if (unassignedOnly && hasKhedma) {
+  if (hasKhedma) {
     and.push({
-      OR: [
-        { assignments: { none: {} } },
-        { assignments: { some: { khedmaId: { in: khedmaIds } } } },
-      ],
+      assignments: { some: { khedmaId: { in: khedmaIds }, year: filters.year } },
     });
-  } else if (hasKhedma) {
-    and.push({ assignments: { some: { khedmaId: { in: khedmaIds } } } });
   }
 
   if (hasRole) {
-    and.push({ assignments: { some: { roleId: { in: roleIds } } } });
+    and.push({
+      assignments: { some: { roleId: { in: roleIds }, year: filters.year } },
+    });
   }
 
   return and.length > 0 ? { AND: and } : undefined;
 }
 
 export function assignmentMatchesFilters(
-  assignment: { roleId: string; khedmaId?: string | null; category?: { khedmaId: string } },
+  assignment: {
+    roleId: string;
+    khedmaId?: string | null;
+    year?: number;
+    category?: { khedmaId: string } | null;
+  },
   filters: ServantQueryFilters,
 ) {
-  if (filters.unassignedOnly && filters.khedmaIds.length === 0) {
+  if (assignment.year !== undefined && assignment.year !== filters.year) {
     return false;
   }
 
-  const assignmentKhedmaId = assignment.khedmaId ?? assignment.category?.khedmaId;
+  const assignmentKhedmaId = assignment.khedmaId ?? assignment.category?.khedmaId ?? "";
 
-  if (filters.khedmaIds.length > 0 && (!assignmentKhedmaId || !filters.khedmaIds.includes(assignmentKhedmaId))) {
+  if (filters.khedmaIds.length > 0 && !filters.khedmaIds.includes(assignmentKhedmaId)) {
     return false;
   }
 
@@ -102,13 +112,9 @@ export function servantMatchesFilters(
   selectedRoles: string[],
   selectedKhedmat: string[],
 ) {
-  const khedmaIds = selectedKhedmat.filter((id) => id !== UNASSIGNED_KHEDMA_VALUE);
-  const includeUnassigned = selectedKhedmat.includes(UNASSIGNED_KHEDMA_VALUE);
-
   const matchesKhedma =
     selectedKhedmat.length === 0 ||
-    (includeUnassigned && servant.assignments.length === 0) ||
-    servant.assignments.some((assignment) => khedmaIds.includes(assignment.khedmaId ?? ""));
+    servant.assignments.some((assignment) => selectedKhedmat.includes(assignment.khedmaId ?? ""));
 
   const matchesRole =
     selectedRoles.length === 0 ||

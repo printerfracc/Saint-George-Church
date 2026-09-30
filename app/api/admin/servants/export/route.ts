@@ -40,6 +40,7 @@ async function exportFilteredServants(filters: ServantQueryFilters) {
       orderBy: { name: "asc" },
       include: {
         assignments: {
+          where: { year: filters.year },
           include: {
             khedma: true,
             role: true,
@@ -80,9 +81,9 @@ async function exportFilteredServants(filters: ServantQueryFilters) {
     }) as Buffer;
 
     const suffix = [
+      String(filters.year),
       serializeIdList(filters.roleIds),
       serializeIdList(filters.khedmaIds),
-      filters.unassignedOnly ? "unassigned" : "",
       filters.query,
     ]
       .filter(Boolean)
@@ -111,6 +112,7 @@ export async function GET(request: NextRequest) {
       q: request.nextUrl.searchParams.get("q"),
       role: request.nextUrl.searchParams.get("role"),
       khedma: request.nextUrl.searchParams.get("khedma"),
+      year: request.nextUrl.searchParams.get("year"),
     }),
   );
 }
@@ -120,6 +122,7 @@ export async function POST(request: NextRequest) {
     q?: string;
     role?: string;
     khedma?: string;
+    year?: string;
   } | null;
 
   return exportFilteredServants(
@@ -127,6 +130,7 @@ export async function POST(request: NextRequest) {
       q: body?.q,
       role: body?.role,
       khedma: body?.khedma,
+      year: body?.year,
     }),
   );
 }

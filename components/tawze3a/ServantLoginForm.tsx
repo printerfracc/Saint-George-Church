@@ -37,7 +37,7 @@ export default function ServantLoginForm() {
         <h1 className="text-2xl font-bold text-coptic-gold-light">دخول الخدام</h1>
         <div className="mx-auto mt-3 w-16 border-b-4 border-coptic-gold-main" />
         <p className="mt-4 text-sm leading-7 text-cream/75">
-          أدخل رقم الموبايل وآخر 4 أرقام من الرقم القومي لعرض توزيعة الخدام.
+          أدخل رقم الموبايل وآخر 4 أرقام من الرقم القومي لعرض عيد الخدام.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4 text-right">

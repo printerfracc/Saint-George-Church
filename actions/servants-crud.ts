@@ -6,6 +6,7 @@ import { requireTawze3aAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { servantListWhere } from "@/lib/servant-filters";
 import { wipeServantRolesAndCategories } from "@/lib/tawze3a-wipe";
+import { calendarYear } from "@/lib/tawze3a-year";
 
 export type ServantAssignmentChip = {
   id: string;
@@ -13,6 +14,8 @@ export type ServantAssignmentChip = {
   khedmaName: string;
   roleId: string;
   roleName: string;
+  year: number;
+  isDraft: boolean;
 };
 
 export type ServantRecord = {
@@ -29,7 +32,7 @@ export type ServantRecord = {
 export type ServantListFilters = {
   roleIds?: string[];
   khedmaIds?: string[];
-  unassignedOnly?: boolean;
+  year?: number;
 };
 
 export type ServantMutationResult =
@@ -228,11 +231,12 @@ export async function getServants(
   const trimmedQuery = query?.trim() ?? "";
   const currentPage = Math.max(1, page ?? 1);
   const pageSize = Math.min(100, Math.max(1, limit ?? 50));
+  const year = filters?.year ?? calendarYear();
   const where = servantListWhere({
     query: trimmedQuery,
     roleIds: filters?.roleIds ?? [],
     khedmaIds: filters?.khedmaIds ?? [],
-    unassignedOnly: filters?.unassignedOnly,
+    year,
   });
 
   try {
@@ -244,9 +248,15 @@ export async function getServants(
         take: pageSize,
         include: {
           assignments: {
+            where: { year },
             include: {
               khedma: true,
               role: true,
+              category: {
+                include: {
+                  khedma: true,
+                },
+              },
             },
           },
         },
@@ -266,10 +276,12 @@ export async function getServants(
         createdAt: servant.createdAt,
         assignments: servant.assignments.map((assignment) => ({
           id: assignment.id,
-          khedmaId: assignment.khedmaId ?? assignment.khedma?.id ?? "",
-          khedmaName: assignment.khedma?.name ?? "",
+          khedmaId: assignment.khedmaId ?? assignment.khedma?.id ?? assignment.category?.khedmaId ?? "",
+          khedmaName: assignment.khedma?.name ?? assignment.category?.khedma?.name ?? "",
           roleId: assignment.roleId,
           roleName: assignment.role?.name ?? "",
+          year: assignment.year,
+          isDraft: assignment.isDraft,
         })),
       })),
       total,

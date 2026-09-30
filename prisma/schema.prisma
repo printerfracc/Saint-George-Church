@@ -261,18 +261,22 @@ model KhedmaCategory {
 }
 
 model ServantAssignment {
-  id         String         @id @default(cuid())
-  categoryId String
-  category   KhedmaCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  id         String          @id @default(cuid())
+  categoryId String?
+  category   KhedmaCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   khedmaId   String?
-  khedma     Khedma?        @relation(fields: [khedmaId], references: [id], onDelete: Cascade)
+  khedma     Khedma?         @relation(fields: [khedmaId], references: [id], onDelete: Cascade)
   servantId  String
   servant    Servant        @relation(fields: [servantId], references: [id], onDelete: Cascade)
   roleId     String
   role       ServantRole    @relation(fields: [roleId], references: [id])
+  year       Int
+  isDraft    Boolean         @default(true)
 
+  @@unique([servantId, khedmaId, year])
   @@index([categoryId])
   @@index([khedmaId])
   @@index([servantId])
   @@index([roleId])
+  @@index([year])
 }

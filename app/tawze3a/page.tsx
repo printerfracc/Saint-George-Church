@@ -1,16 +1,19 @@
 import { notFound, redirect } from "next/navigation";
 import Tawze3aViewer, {
+  type HistoryAssignment,
   type MyAssignment,
   type PublicTawze3a,
 } from "@/components/tawze3a/Tawze3aViewer";
 import { prisma } from "@/lib/prisma";
+import { assignedKhedmaFilter, publishedAssignmentWhere } from "@/lib/servant-filters";
 import { getServantSession } from "@/lib/servant-session";
+import { getCurrentActiveYear } from "@/lib/tawze3a-year";
 
 export const metadata = {
-  title: "توزيعة الخدام",
+  title: "عيد الخدام",
 };
 
-async function getPublishedTawze3a() {
+async function getPublishedTawze3a(currentActiveYear: number) {
   return prisma.tawze3a.findFirst({
     where: { isPublished: true },
     include: {
@@ -20,6 +23,7 @@ async function getPublishedTawze3a() {
             include: {
               role: true,
               assignments: {
+                where: publishedAssignmentWhere(currentActiveYear),
                 include: {
                   servant: true,
                   role: true,
@@ -49,7 +53,8 @@ export default async function Tawze3aPage() {
     redirect("/tawze3a/login");
   }
 
-  const fullTawze3a = await getPublishedTawze3a();
+  const currentActiveYear = await getCurrentActiveYear();
+  const fullTawze3a = await getPublishedTawze3a(currentActiveYear);
 
   if (!fullTawze3a) {
     notFound();
@@ -65,12 +70,25 @@ export default async function Tawze3aPage() {
       }>
     >
   > = [];
+  let historyRaw: Awaited<
+    ReturnType<
+      typeof prisma.servantAssignment.findMany<{
+        include: {
+          role: true;
+          khedma: true;
+          category: { include: { khedma: true; role: true } };
+        };
+      }>
+    >
+  > = [];
 
   try {
     myAssignmentsRaw = await prisma.servantAssignment.findMany({
       where: {
         servantId: session.servantId,
-        category: { khedma: { tawze3aId: fullTawze3a.id } },
+        year: currentActiveYear,
+        isDraft: false,
+        AND: [assignedKhedmaFilter, { category: { khedma: { tawze3aId: fullTawze3a.id } } }],
       },
       include: {
         role: true,
@@ -81,6 +99,22 @@ export default async function Tawze3aPage() {
     });
   } catch {
     myAssignmentsRaw = [];
+  }
+
+  try {
+    historyRaw = await prisma.servantAssignment.findMany({
+      where: { servantId: session.servantId, isDraft: false },
+      orderBy: { year: "desc" },
+      include: {
+        role: true,
+        khedma: true,
+        category: {
+          include: { khedma: true, role: true },
+        },
+      },
+    });
+  } catch {
+    historyRaw = [];
   }
 
   const viewerTawze3a: PublicTawze3a = {
@@ -109,19 +143,48 @@ export default async function Tawze3aPage() {
     })),
   };
 
-  const myAssignments: MyAssignment[] = myAssignmentsRaw.map((assignment) => ({
-    id: assignment.id,
-    categoryLabel: assignment.category.label,
-    roleName: assignment.role?.name ?? assignment.category.role?.name ?? assignment.category.label,
-    khedmaId: assignment.category.khedma.id,
-    khedmaName: assignment.category.khedma.name,
-  }));
+  const history: HistoryAssignment[] = historyRaw.flatMap((assignment) => {
+    const khedmaName = assignment.khedma?.name ?? assignment.category?.khedma.name ?? "";
+    const roleName =
+      assignment.role?.name ?? assignment.category?.role?.name ?? assignment.category?.label ?? "";
+
+    if (!khedmaName) {
+      return [];
+    }
+
+    return [
+      {
+        id: assignment.id,
+        year: assignment.year,
+        roleName,
+        khedmaName,
+      },
+    ];
+  });
+
+  const myAssignments: MyAssignment[] = myAssignmentsRaw.flatMap((assignment) => {
+    if (!assignment.category) {
+      return [];
+    }
+
+    return [
+      {
+        id: assignment.id,
+        categoryLabel: assignment.category.label,
+        roleName: assignment.role?.name ?? assignment.category.role?.name ?? assignment.category.label,
+        khedmaId: assignment.category.khedma.id,
+        khedmaName: assignment.category.khedma.name,
+      },
+    ];
+  });
 
   return (
     <Tawze3aViewer
       publishedTawze3a={viewerTawze3a}
       servantName={session.name}
       myAssignments={myAssignments}
+      history={history}
+      activeYear={currentActiveYear}
       servantId={session.servantId}
     />
   );

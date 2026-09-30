@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { logoutServant } from "@/actions/servant-auth";
+import { normalizeArabic } from "@/lib/arabicNormalizer";
 
 export type PublicServant = {
   id: string;
@@ -43,6 +44,13 @@ export type MyAssignment = {
   khedmaName: string;
 };
 
+export type HistoryAssignment = {
+  id: string;
+  year: number;
+  roleName: string;
+  khedmaName: string;
+};
+
 function assignmentPhrase(assignment: MyAssignment) {
   return `${assignment.roleName} في خدمة ${assignment.khedmaName}`;
 }
@@ -51,11 +59,15 @@ export default function Tawze3aViewer({
   publishedTawze3a,
   servantName,
   myAssignments,
+  history,
+  activeYear,
   servantId,
 }: {
   publishedTawze3a: PublicTawze3a;
   servantName: string;
   myAssignments: MyAssignment[];
+  history: HistoryAssignment[];
+  activeYear: number;
   servantId: string;
 }) {
   const defaultKhedmaId = myAssignments[0]?.khedmaId ?? "all";
@@ -71,25 +83,41 @@ export default function Tawze3aViewer({
     return () => window.clearTimeout(handle);
   }, [query]);
 
+  const historyByYear = useMemo(() => {
+    const groups = new Map<number, HistoryAssignment[]>();
+
+    for (const assignment of history) {
+      const items = groups.get(assignment.year) ?? [];
+      items.push(assignment);
+      groups.set(assignment.year, items);
+    }
+
+    return [...groups.entries()];
+  }, [history]);
+
   const visibleKhedmat = useMemo(() => {
-    const search = debouncedQuery.toLowerCase();
+    const search = normalizeArabic(debouncedQuery);
+    const scopedKhedmat = publishedTawze3a.khedmat.filter(
+      (khedma) => selectedKhedmaId === "all" || khedma.id === selectedKhedmaId,
+    );
+
+    if (!search) {
+      return scopedKhedmat;
+    }
 
     return publishedTawze3a.khedmat
-      .filter((khedma) => selectedKhedmaId === "all" || khedma.id === selectedKhedmaId)
       .map((khedma) => ({
         ...khedma,
         categories: khedma.categories
           .map((category) => ({
             ...category,
-            assignments: search
-              ? category.assignments.filter((assignment) =>
-                  assignment.servant.name.toLowerCase().includes(search),
-                )
-              : category.assignments,
+            assignments: category.assignments.filter((assignment) =>
+              normalizeArabic(assignment.servant.name).includes(search),
+            ),
           }))
-          .filter((category) => !search || category.assignments.length > 0),
+          .filter((category) => category.assignments.length > 0),
       }))
-      .filter((khedma) => !search || khedma.categories.length > 0);
+      .filter((khedma) => khedma.categories.length > 0);
   }, [debouncedQuery, publishedTawze3a.khedmat, selectedKhedmaId]);
 
   return (
@@ -97,7 +125,9 @@ export default function Tawze3aViewer({
       <section className="rounded-2xl border border-coptic-gold-main/40 bg-gray-900 p-5 shadow-xl md:p-7">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-sm font-bold text-coptic-gold-main">{publishedTawze3a.title}</p>
+            <p className="text-sm font-bold text-coptic-gold-main">
+              عيد الخدام — {activeYear}
+            </p>
             <h1 className="mt-2 text-2xl font-bold text-coptic-gold-light md:text-3xl">
               أهلاً بيك يا {servantName}
             </h1>
@@ -131,6 +161,33 @@ export default function Tawze3aViewer({
             لست مسجلاً في أي خدمة في هذا التوزيع
           </p>
         )}
+
+        <div className="mt-6 border-t border-coptic-gold-main/20 pt-6">
+          <h2 className="text-sm font-bold text-cream">سجل الخدمات</h2>
+          {historyByYear.length === 0 ? (
+            <p className="mt-3 text-sm leading-7 text-cream/70">لا يوجد سجل خدمات منشور بعد.</p>
+          ) : (
+            <div className="mt-4 space-y-4">
+              {historyByYear.map(([year, assignments]) => (
+                <div key={year}>
+                  <p className="text-sm font-bold text-coptic-gold-main">{year}</p>
+                  <ul className="mt-2 space-y-2">
+                    {assignments.map((assignment) => (
+                      <li
+                        key={assignment.id}
+                        className="rounded-xl border border-coptic-gold-main/20 bg-black/30 px-4 py-2 text-sm text-cream"
+                      >
+                        {assignment.roleName
+                          ? `${assignment.roleName} في خدمة ${assignment.khedmaName}`
+                          : assignment.khedmaName}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="mt-8">
@@ -169,7 +226,7 @@ export default function Tawze3aViewer({
           <div className="mt-6 space-y-4">
             {visibleKhedmat.map((khedma) => (
               <details
-                key={khedma.id}
+                key={`${khedma.id}-${debouncedQuery ? "search" : "browse"}`}
                 open
                 className="rounded-2xl border border-coptic-gold-main/30 bg-gray-900 p-4 open:pb-5"
               >

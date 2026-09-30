@@ -21,7 +21,7 @@ export default async function ImportServantsPage() {
         title="رفع ملف Excel"
         description={
           <p className="mt-2 text-sm leading-7 text-deep-red/75">
-            ارفع ملف Excel. الموبايل والرقم القومي مش لازم.
+            ارفع ملف Excel على دفعات. الاسم والرتبة مطلوبان، والموبايل والرقم القومي والخدمة اختياريون.
           </p>
         }
       />

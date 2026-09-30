@@ -5,19 +5,17 @@ import { AdminPageHeader } from "@/components/admin/admin-ui";
 import { getServants, listKhedmaFilters } from "@/actions/servants-crud";
 import { listServantRoles } from "@/actions/tawze3a-admin";
 import { authOptions } from "@/lib/auth";
-import {
-  parseServantListFilters,
-  UNASSIGNED_KHEDMA_VALUE,
-} from "@/lib/servant-filters";
+import { parseServantListFilters } from "@/lib/servant-filters";
+import { listAssignmentYears } from "@/lib/tawze3a-year";
 
 export const metadata = {
-  title: "إضافة الخدام",
+  title: "إدارة الخدام",
 };
 
 export default async function ServantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; role?: string; khedma?: string }>;
+  searchParams: Promise<{ q?: string; role?: string; khedma?: string; year?: string }>;
 }) {
   const session = await getServerSession(authOptions);
 
@@ -29,19 +27,17 @@ export default async function ServantsPage({
   const filters = parseServantListFilters(params);
   const query = filters.query ?? "";
   const roleIds = filters.roleIds;
-  const khedmaIds = [
-    ...(filters.unassignedOnly ? [UNASSIGNED_KHEDMA_VALUE] : []),
-    ...filters.khedmaIds,
-  ];
+  const khedmaIds = filters.khedmaIds;
 
-  const [result, khedmat, roles] = await Promise.all([
+  const [result, khedmat, roles, years] = await Promise.all([
     getServants(query, 1, 100, {
       roleIds,
-      khedmaIds: filters.khedmaIds,
-      unassignedOnly: filters.unassignedOnly,
+      khedmaIds,
+      year: filters.year,
     }),
     listKhedmaFilters(),
     listServantRoles(),
+    listAssignmentYears(),
   ]);
 
   const servants: ServantRow[] =
@@ -55,10 +51,10 @@ export default async function ServantsPage({
   return (
     <main className="px-4 py-8 md:px-8">
       <AdminPageHeader
-        title="إضافة الخدام"
+        title="إدارة الخدام"
         description={
           <p className="mt-2 text-sm leading-7 text-deep-red/75">
-            ضيف خدام، عدّل البيانات، أو ارفع Excel. الموبايل والرقم القومي اختياري.
+            ضيف خدام، عدّل البيانات، أو ارفع Excel. الموبايل والرقم القومي والخدمة اختيارية، ويمكنك التصفية بالرتبة.
           </p>
         }
       />
@@ -74,6 +70,8 @@ export default async function ServantsPage({
         query={query}
         roleIds={roleIds}
         khedmaIds={khedmaIds}
+        years={years}
+        selectedYear={filters.year}
       />
     </main>
   );

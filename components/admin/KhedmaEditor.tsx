@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -12,16 +12,18 @@ import {
   type BuilderKhedma,
   type ServantSearchHit,
 } from "@/actions/tawze3a-admin";
+import { DraftBadge } from "@/components/admin/AssignmentYearTools";
 import ServantSearchDialog from "@/components/admin/ServantSearchDialog";
-import Tawze3aExcelImportButton from "@/components/admin/Tawze3aExcelImportButton";
 import { adminActionOutline } from "@/components/admin/admin-ui";
 
 export default function KhedmaEditor({
   tawze3a,
   initialKhedma,
+  selectedYear,
 }: {
   tawze3a: { id: string; title: string };
   initialKhedma: BuilderKhedma;
+  selectedYear: number;
 }) {
   const router = useRouter();
   const [khedma, setKhedma] = useState(initialKhedma);
@@ -62,10 +64,10 @@ export default function KhedmaEditor({
 
     updateCategory(targetCategory.id, (category) => ({
       ...category,
-      assignments: [...category.assignments, { id: tempId, servant }],
+      assignments: [...category.assignments, { id: tempId, servant, isDraft: true }],
     }));
 
-    const result = await assignServant(categoryId, servant.id, roleId);
+    const result = await assignServant(categoryId, servant.id, roleId, selectedYear);
 
     if (!result.success) {
       updateCategory(targetCategory.id, (category) => ({
@@ -137,16 +139,17 @@ export default function KhedmaEditor({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <Link
-              href={`/admin/tawze3a/${tawze3a.id}`}
+              href={`/admin/tawze3a/${tawze3a.id}?year=${selectedYear}`}
               className="text-sm font-bold text-coptic-gold-dark hover:text-deep-red"
             >
               العودة إلى الخدمات
             </Link>
             <h1 className="mt-2 text-2xl font-bold text-deep-red md:text-3xl">{khedma.name}</h1>
-            <p className="mt-1 text-sm text-deep-red/70">{tawze3a.title}</p>
+            <p className="mt-1 text-sm text-deep-red/70">
+              {tawze3a.title} — {selectedYear}
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Tawze3aExcelImportButton tawze3aId={tawze3a.id} />
             <button
               type="button"
               disabled={deleting}
@@ -166,7 +169,7 @@ export default function KhedmaEditor({
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {khedma.categories.map((category, index) => (
+        {khedma.categories.map((category) => (
           <CategoryCard
             key={category.id}
             category={category}
@@ -181,7 +184,6 @@ export default function KhedmaEditor({
               }
             }}
             onAddServant={() => setSearchCategoryId(category.id)}
-            importAction={index === 0 ? <Tawze3aExcelImportButton tawze3aId={tawze3a.id} /> : null}
             onRemoveAssignment={(assignmentId) =>
               void handleRemoveAssignment(category.id, assignmentId)
             }
@@ -205,13 +207,11 @@ function CategoryCard({
   onLabelSave,
   onAddServant,
   onRemoveAssignment,
-  importAction,
 }: {
   category: BuilderCategory;
   onLabelSave: (label: string) => Promise<void>;
   onAddServant: () => void;
   onRemoveAssignment: (assignmentId: string) => void;
-  importAction?: ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(category.label);
@@ -275,6 +275,7 @@ function CategoryCard({
               className="flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1 text-sm text-gray-900 shadow-sm"
             >
               {assignment.servant.name}
+              {assignment.isDraft ? <DraftBadge /> : null}
               <button
                 type="button"
                 aria-label={`إزالة ${assignment.servant.name}`}
@@ -297,7 +298,6 @@ function CategoryCard({
         >
           إضافة خادم
         </button>
-        {importAction}
       </div>
     </article>
   );

@@ -21,7 +21,7 @@ const navItems = [
   { href: "/admin/prayer-requests", label: "طلبات الصلاة والافتقاد" },
   { href: "/admin/news", label: "الأخبار" },
   { href: "/admin/tawze3a", label: "إدارة التوزيعة", tawze3aRolesOnly: true },
-  { href: "/admin/servants", label: "إضافة الخدام", tawze3aRolesOnly: true },
+  { href: "/admin/servants", label: "إدارة الخدام", tawze3aRolesOnly: true },
   { href: "/admin/invitations", label: "الدعوات", superAdminOnly: true },
   { href: "/admin/users", label: "إدارة الحسابات", superAdminOnly: true },
 ] as const;

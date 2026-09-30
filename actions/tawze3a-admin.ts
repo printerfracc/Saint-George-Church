@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
 import type { ServantRoleOption } from "@/lib/servant-roles";
+import { calendarYear } from "@/lib/tawze3a-year";
 
 export type Tawze3aActionResult =
   | { success: true }
@@ -26,6 +27,7 @@ export type Tawze3aListItem = {
 
 export type BuilderAssignment = {
   id: string;
+  isDraft: boolean;
   servant: ServantSearchHit;
 };
 
@@ -52,14 +54,17 @@ export type BuilderTawze3a = {
   khedmat: BuilderKhedma[];
 };
 
-const builderCategoryInclude = {
-  role: { select: { id: true, name: true } },
-  assignments: {
-    include: {
-      servant: { select: { id: true, name: true, phone: true } },
+function builderCategoryInclude(year: number) {
+  return {
+    role: { select: { id: true, name: true } },
+    assignments: {
+      where: { year },
+      include: {
+        servant: { select: { id: true, name: true, phone: true } },
+      },
     },
-  },
-} as const;
+  };
+}
 
 async function ensureTawze3aAdmin(): Promise<true | { success: false; error: string }> {
   const session = await requireTawze3aAdmin();
@@ -88,10 +93,12 @@ function revalidateTawze3aPaths(id?: string, khedmaId?: string) {
 
 function mapAssignment(assignment: {
   id: string;
+  isDraft: boolean;
   servant: ServantSearchHit;
 }): BuilderAssignment {
   return {
     id: assignment.id,
+    isDraft: assignment.isDraft,
     servant: assignment.servant,
   };
 }
@@ -102,7 +109,7 @@ function mapCategory(category: {
   order: number;
   roleId: string | null;
   role: { id: string; name: string } | null;
-  assignments: Array<{ id: string; servant: ServantSearchHit }>;
+  assignments: Array<{ id: string; isDraft: boolean; servant: ServantSearchHit }>;
 }): BuilderCategory {
   return {
     id: category.id,
@@ -183,7 +190,10 @@ export async function listTawze3at(): Promise<Tawze3aListItem[]> {
   }
 }
 
-export async function getTawze3a(id: string): Promise<BuilderTawze3a | null> {
+export async function getTawze3a(
+  id: string,
+  year = calendarYear(),
+): Promise<BuilderTawze3a | null> {
   const auth = await ensureTawze3aAdmin();
   if (auth !== true) return null;
 
@@ -196,7 +206,7 @@ export async function getTawze3a(id: string): Promise<BuilderTawze3a | null> {
           include: {
             categories: {
               orderBy: { order: "asc" },
-              include: builderCategoryInclude,
+              include: builderCategoryInclude(year),
             },
           },
         },
@@ -224,6 +234,7 @@ export async function getTawze3a(id: string): Promise<BuilderTawze3a | null> {
 export async function getKhedma(
   tawze3aId: string,
   khedmaId: string,
+  year = calendarYear(),
 ): Promise<{ tawze3a: { id: string; title: string }; khedma: BuilderKhedma } | null> {
   const auth = await ensureTawze3aAdmin();
   if (auth !== true) return null;
@@ -235,7 +246,7 @@ export async function getKhedma(
         tawze3a: { select: { id: true, title: true } },
         categories: {
           orderBy: { order: "asc" },
-          include: builderCategoryInclude,
+          include: builderCategoryInclude(year),
         },
       },
     });
@@ -355,7 +366,7 @@ export async function addKhedma(
       include: {
         categories: {
           orderBy: { order: "asc" },
-          include: builderCategoryInclude,
+          include: builderCategoryInclude(calendarYear()),
         },
       },
     });
@@ -464,6 +475,7 @@ export async function assignServant(
   categoryId: string,
   servantId: string,
   roleId?: string,
+  year = calendarYear(),
 ): Promise<{ success: true; assignment: BuilderAssignment } | { success: false; error: string }> {
   const auth = await ensureTawze3aAdmin();
   if (auth !== true) return auth;
@@ -513,12 +525,16 @@ export async function assignServant(
         : await ensureCategoryForRole(category.khedma.id, role);
 
     const existing = await prisma.servantAssignment.findFirst({
-      where: { categoryId: targetCategory.id, servantId },
+      where: {
+        servantId,
+        year,
+        OR: [{ categoryId: targetCategory.id }, { khedmaId: category.khedma.id }],
+      },
       select: { id: true },
     });
 
     if (existing) {
-      return { success: false, error: "هذا الخادم مضاف بالفعل إلى هذا التصنيف" };
+      return { success: false, error: "هذا الخادم مضاف بالفعل إلى هذه الخدمة في السنة المحددة" };
     }
 
     const assignment = await prisma.servantAssignment.create({
@@ -527,6 +543,8 @@ export async function assignServant(
         khedmaId: category.khedma.id,
         servantId,
         roleId: role.id,
+        year,
+        isDraft: true,
       },
       include: {
         servant: { select: { id: true, name: true, phone: true } },
@@ -559,12 +577,43 @@ export async function removeServantAssignment(
     }
 
     await prisma.servantAssignment.delete({ where: { id: assignmentId } });
-    revalidateTawze3aPaths(
-      assignment.category.khedma.tawze3aId,
-      assignment.category.khedma.id,
-    );
+
+    if (assignment.category?.khedma) {
+      revalidateTawze3aPaths(
+        assignment.category.khedma.tawze3aId,
+        assignment.category.khedma.id,
+      );
+    } else {
+      revalidateTawze3aPaths();
+    }
     return { success: true };
   } catch {
     return { success: false, error: "تعذر إزالة الخادم. حاول مرة أخرى." };
+  }
+}
+
+export async function publishAssignmentYear(year: number): Promise<Tawze3aActionResult> {
+  const auth = await ensureTawze3aAdmin();
+  if (auth !== true) return auth;
+
+  if (!Number.isInteger(year) || year < 1 || year > 9999) {
+    return { success: false, error: "السنة غير صالحة" };
+  }
+
+  try {
+    const result = await prisma.servantAssignment.updateMany({
+      where: { year, isDraft: true },
+      data: { isDraft: false },
+    });
+
+    if (result.count === 0) {
+      return { success: false, error: "لا توجد مسودات في هذه السنة" };
+    }
+
+    revalidateTawze3aPaths();
+    revalidatePath("/admin/servants");
+    return { success: true };
+  } catch {
+    return { success: false, error: "تعذر نشر تعيينات السنة. حاول مرة أخرى." };
   }
 }
