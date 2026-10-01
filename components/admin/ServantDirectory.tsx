@@ -164,6 +164,7 @@ export default function ServantDirectory({
   const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const skipFilterSync = useRef(false);
+  const isComposing = useRef(false);
   const incomingRoleKey = serializeIdList(roleIds);
   const incomingKhedmaKey = serializeIdList(khedmaIds);
 
@@ -171,10 +172,6 @@ export default function ServantDirectory({
     setServants(initialServants);
     setTotal(initialTotal);
   }, [initialServants, initialTotal]);
-
-  useEffect(() => {
-    setSearchInput((current) => (current.trim() === query ? current : query));
-  }, [query]);
 
   useEffect(() => {
     if (skipFilterSync.current) {
@@ -209,7 +206,15 @@ export default function ServantDirectory({
   );
 
   useEffect(() => {
+    if (isComposing.current) {
+      return;
+    }
+
     const handle = window.setTimeout(() => {
+      if (isComposing.current) {
+        return;
+      }
+
       const nextQuery = searchInput.trim();
 
       if (nextQuery === query) {
@@ -248,7 +253,7 @@ export default function ServantDirectory({
     }
 
     const qs = params.toString().replaceAll("+", "%20");
-    router.replace(qs ? `/admin/servants?${qs}` : "/admin/servants");
+    router.replace(qs ? `/admin/servants?${qs}` : "/admin/servants", { scroll: false });
   }
 
   function handleRolesChange(ids: string[]) {
@@ -400,14 +405,23 @@ export default function ServantDirectory({
             <input
               id="servant-search"
               type="text"
-              inputMode="search"
               autoComplete="off"
-              suppressHydrationWarning
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              aria-autocomplete="none"
               value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="ابحث بالاسم أو رقم الموبايل"
-            className="min-h-11 w-full rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
-          />
+              onChange={(event) => setSearchInput(event.target.value)}
+              onCompositionStart={() => {
+                isComposing.current = true;
+              }}
+              onCompositionEnd={(event) => {
+                isComposing.current = false;
+                setSearchInput(event.currentTarget.value);
+              }}
+              placeholder="ابحث بالاسم أو رقم الموبايل"
+              className="min-h-11 w-full rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
+            />
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="grid w-full grid-cols-1 gap-3 overflow-visible sm:grid-cols-2 xl:max-w-2xl">
               <MultiSelectFilter
