@@ -388,6 +388,44 @@ export async function addKhedma(
   }
 }
 
+export async function reorderKhedmat(
+  tawze3aId: string,
+  items: { id: string; order: number }[],
+): Promise<Tawze3aActionResult> {
+  const auth = await ensureTawze3aAdmin();
+  if (auth !== true) return auth;
+
+  if (items.length === 0) {
+    return { success: true };
+  }
+
+  try {
+    const existing = await prisma.khedma.findMany({
+      where: { tawze3aId },
+      select: { id: true },
+    });
+    const allowed = new Set(existing.map((row) => row.id));
+
+    if (items.some((item) => !allowed.has(item.id))) {
+      return { success: false, error: "تعذر حفظ ترتيب الخدمات" };
+    }
+
+    await prisma.$transaction(
+      items.map((item) =>
+        prisma.khedma.update({
+          where: { id: item.id },
+          data: { order: item.order },
+        }),
+      ),
+    );
+
+    revalidateTawze3aPaths(tawze3aId);
+    return { success: true };
+  } catch {
+    return { success: false, error: "تعذر حفظ ترتيب الخدمات" };
+  }
+}
+
 export async function deleteKhedma(khedmaId: string): Promise<Tawze3aActionResult> {
   const auth = await ensureTawze3aAdmin();
   if (auth !== true) return auth;
@@ -546,7 +584,7 @@ export async function assignServant(
         servantId,
         roleId: role.id,
         year,
-        isDraft: true,
+        isDraft: false,
       },
       include: {
         servant: { select: { id: true, name: true, phone: true } },

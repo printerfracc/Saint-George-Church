@@ -64,7 +64,7 @@ export default function KhedmaEditor({
 
     updateCategory(targetCategory.id, (category) => ({
       ...category,
-      assignments: [...category.assignments, { id: tempId, servant, isDraft: true }],
+      assignments: [...category.assignments, { id: tempId, servant, isDraft: false }],
     }));
 
     const result = await assignServant(categoryId, servant.id, roleId, selectedYear);

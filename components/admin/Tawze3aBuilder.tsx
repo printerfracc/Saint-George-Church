@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { addKhedma, togglePublishTawze3a, type BuilderTawze3a } from "@/actions/tawze3a-admin";
+import { addKhedma, reorderKhedmat, togglePublishTawze3a, type BuilderTawze3a } from "@/actions/tawze3a-admin";
+import DraggableList from "@/components/admin/DraggableList";
 import { adminActionGold, adminActionOutline } from "@/components/admin/admin-ui";
 
 export default function Tawze3aBuilder({
@@ -57,6 +58,22 @@ export default function Tawze3aBuilder({
     }));
     setKhedmaName("");
     setAddingKhedma(false);
+  }
+
+  function handleReorder(next: BuilderTawze3a["khedmat"]) {
+    const previous = tawze3a.khedmat;
+    const ordered = next.map((khedma, index) => ({ ...khedma, order: index }));
+    setTawze3a((current) => ({ ...current, khedmat: ordered }));
+
+    void reorderKhedmat(
+      tawze3a.id,
+      ordered.map((khedma) => ({ id: khedma.id, order: khedma.order })),
+    ).then((result) => {
+      if (!result.success) {
+        setTawze3a((current) => ({ ...current, khedmat: previous }));
+        setError(result.error);
+      }
+    });
   }
 
   return (
@@ -144,27 +161,23 @@ export default function Tawze3aBuilder({
         </p>
       ) : null}
 
-      {tawze3a.khedmat.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-coptic-gold-main/50 bg-white/70 px-4 py-8 text-center text-sm text-deep-red/70">
-          لا توجد خدمات. أضف خدمة الأول.
-        </p>
-      ) : (
-        <ul className="space-y-3">
-          {tawze3a.khedmat.map((khedma) => (
-            <li key={khedma.id}>
-              <Link
-                href={`/admin/tawze3a/${tawze3a.id}/khedma/${khedma.id}?year=${selectedYear}`}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-coptic-gold-main/40 bg-white/80 px-5 py-4 shadow-sm transition hover:border-coptic-gold-main hover:bg-white"
-              >
-                <h2 className="truncate text-lg font-bold text-deep-red">{khedma.name}</h2>
-                <span className="shrink-0 text-sm font-bold text-coptic-gold-dark" aria-hidden>
-                  ←
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+      <DraggableList
+        items={tawze3a.khedmat}
+        onReorder={handleReorder}
+        emptyLabel="لا توجد خدمات. أضف خدمة الأول."
+      >
+        {(khedma) => (
+          <Link
+            href={`/admin/tawze3a/${tawze3a.id}/khedma/${khedma.id}?year=${selectedYear}`}
+            className="flex min-h-11 items-center justify-between gap-3"
+          >
+            <h2 className="truncate text-lg font-bold text-deep-red">{khedma.name}</h2>
+            <span className="shrink-0 text-sm font-bold text-coptic-gold-dark" aria-hidden>
+              ←
+            </span>
+          </Link>
+        )}
+      </DraggableList>
     </div>
   );
 }

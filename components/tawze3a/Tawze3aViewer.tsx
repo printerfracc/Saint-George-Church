@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { logoutServant } from "@/actions/servant-auth";
 import { normalizeArabic } from "@/lib/arabicNormalizer";
+import { isAmenRole, roleDisplayIndex } from "@/lib/servant-role-order";
 
 export type PublicServant = {
   id: string;
@@ -97,27 +98,26 @@ function groupHistory(assignments: HistoryAssignment[]) {
 }
 
 function servantsInKhedma(khedma: PublicKhedma) {
-  const servants = new Map<string, { id: string; name: string; roles: string[] }>();
+  return khedma.categories
+    .flatMap((category) => {
+      const roleName = category.roleName || category.label;
 
-  for (const category of khedma.categories) {
-    const roleName = category.roleName || category.label;
-
-    for (const assignment of category.assignments) {
-      const current = servants.get(assignment.servant.id) ?? {
-        id: assignment.servant.id,
+      return category.assignments.map((assignment) => ({
+        id: assignment.id,
+        servantId: assignment.servant.id,
         name: assignment.servant.name,
-        roles: [],
-      };
+        roleName,
+      }));
+    })
+    .sort((left, right) => {
+      const byRole = roleDisplayIndex(left.roleName) - roleDisplayIndex(right.roleName);
 
-      if (roleName && !current.roles.includes(roleName)) {
-        current.roles.push(roleName);
+      if (byRole !== 0) {
+        return byRole;
       }
 
-      servants.set(assignment.servant.id, current);
-    }
-  }
-
-  return [...servants.values()];
+      return left.name.localeCompare(right.name, "ar");
+    });
 }
 
 export default function Tawze3aViewer({
@@ -302,37 +302,33 @@ export default function Tawze3aViewer({
                   ) : (
                     <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
                       {servantsInKhedma(khedma).map((servant) => {
-                        const isMe = servant.id === servantId;
+                        const isMe = servant.servantId === servantId;
+                        const amen = isAmenRole(servant.roleName);
 
                         return (
                           <li
                             key={servant.id}
-                            className={`rounded-lg px-3 py-2 text-sm ${
+                            className={`flex flex-col rounded-lg px-3 py-2 text-sm ${
                               isMe
                                 ? "bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark font-bold text-gray-950"
                                 : "bg-gray-950/70 text-cream"
                             }`}
                           >
-                            <span>
+                            {servant.roleName ? (
+                              <span
+                                className={`mb-1.5 w-fit rounded-full px-2 py-0.5 text-xs font-bold ${
+                                  isMe
+                                    ? "bg-gray-950/15 text-gray-950"
+                                    : "bg-coptic-gold-main/15 text-coptic-gold-light"
+                                }`}
+                              >
+                                {servant.roleName}
+                              </span>
+                            ) : null}
+                            <span className={amen && !isMe ? "text-base font-bold text-coptic-gold-light" : undefined}>
                               {servant.name}
                               {isMe ? " (أنت)" : ""}
                             </span>
-                            {servant.roles.length > 0 ? (
-                              <span className="mt-2 flex flex-wrap gap-1">
-                                {servant.roles.map((role) => (
-                                  <span
-                                    key={role}
-                                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                                      isMe
-                                        ? "bg-gray-950/15 text-gray-950"
-                                        : "bg-coptic-gold-main/15 text-coptic-gold-light"
-                                    }`}
-                                  >
-                                    {role}
-                                  </span>
-                                ))}
-                              </span>
-                            ) : null}
                           </li>
                         );
                       })}
