@@ -54,10 +54,44 @@ function emptyToNull(value?: string | null) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function isUniquePhoneError(error: unknown) {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
-  );
+function uniqueConstraintText(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    const target = error.meta?.target;
+    const fields = (Array.isArray(target) ? target : target != null ? [target] : []).map(String);
+    return fields.join(" ");
+  }
+
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  const message = error.message;
+  const isDuplicate =
+    message.includes("1062") ||
+    message.includes("Duplicate entry") ||
+    message.includes("P2002");
+
+  return isDuplicate ? message : null;
+}
+
+function uniqueConstraintMessage(error: unknown) {
+  const text = uniqueConstraintText(error);
+
+  if (!text) {
+    return null;
+  }
+
+  const joined = text.toLowerCase();
+
+  if (joined.includes("national")) {
+    return "الرقم القومي مسجل بالفعل لخادم آخر";
+  }
+
+  if (joined.includes("phone")) {
+    return "رقم الموبايل مسجل بالفعل لخادم آخر";
+  }
+
+  return null;
 }
 
 export async function createServant(input: {
@@ -94,10 +128,13 @@ export async function createServant(input: {
 
     return { success: true, servant: { ...servant, assignments: [] } };
   } catch (error) {
-    if (isUniquePhoneError(error)) {
-      return { error: "رقم الموبايل مسجّل بالفعل لخادم آخر" };
+    const uniqueMessage = uniqueConstraintMessage(error);
+
+    if (uniqueMessage) {
+      return { error: uniqueMessage };
     }
 
+    console.error("createServant failed", error);
     return { error: "تعذر إضافة الخادم حالياً. حاول مرة أخرى." };
   }
 }
@@ -158,10 +195,13 @@ export async function updateServant(
 
     return { success: true, servant: { ...servant, assignments: [] } };
   } catch (error) {
-    if (isUniquePhoneError(error)) {
-      return { error: "رقم الموبايل مسجّل بالفعل لخادم آخر" };
+    const uniqueMessage = uniqueConstraintMessage(error);
+
+    if (uniqueMessage) {
+      return { error: uniqueMessage };
     }
 
+    console.error("updateServant failed", error);
     return { error: "تعذر تعديل بيانات الخادم حالياً. حاول مرة أخرى." };
   }
 }

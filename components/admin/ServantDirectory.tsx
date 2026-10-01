@@ -11,7 +11,7 @@ import {
   updateServant,
   type ServantRecord,
 } from "@/actions/servants-crud";
-import { AssignmentYearSelect, DraftBadge } from "@/components/admin/AssignmentYearTools";
+import { DraftBadge } from "@/components/admin/AssignmentYearTools";
 import MultiSelectFilter from "@/components/admin/MultiSelectFilter";
 import type { ServantRoleOption } from "@/lib/servant-roles";
 import { serializeIdList, servantMatchesFilters } from "@/lib/servant-filters";
@@ -52,6 +52,24 @@ function maskNationalId(value?: string | null) {
 function displayPhone(value?: string | null) {
   const phone = value?.trim() ?? "";
   return phone || "غير مسجل";
+}
+
+function formatAddedAt(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("ar-EG", {
+    timeZone: "Africa/Cairo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(date);
 }
 
 function uniqueLabels(values: Array<string | null | undefined>) {
@@ -119,7 +137,6 @@ export default function ServantDirectory({
   query,
   roleIds,
   khedmaIds,
-  years,
   selectedYear,
 }: {
   initialServants: ServantRow[];
@@ -129,7 +146,6 @@ export default function ServantDirectory({
   query: string;
   roleIds: string[];
   khedmaIds: string[];
-  years: number[];
   selectedYear: number;
 }) {
   const router = useRouter();
@@ -157,7 +173,7 @@ export default function ServantDirectory({
   }, [initialServants, initialTotal]);
 
   useEffect(() => {
-    setSearchInput(query);
+    setSearchInput((current) => (current.trim() === query ? current : query));
   }, [query]);
 
   useEffect(() => {
@@ -233,7 +249,7 @@ export default function ServantDirectory({
 
     params.set("year", String(selectedYear));
 
-    const qs = params.toString();
+    const qs = params.toString().replaceAll("+", "%20");
     router.replace(qs ? `/admin/servants?${qs}` : "/admin/servants");
   }
 
@@ -379,62 +395,64 @@ export default function ServantDirectory({
   return (
     <div className="space-y-5">
       <div className="relative z-10 overflow-visible rounded-2xl border border-coptic-gold-main/40 bg-white/80 p-4 shadow-sm">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-visible sm:flex-row sm:items-center">
-            <label className="sr-only" htmlFor="servant-search">
-              بحث عن خادم
-            </label>
+        <div className="flex flex-col gap-3">
+          <label className="sr-only" htmlFor="servant-search">
+            بحث عن خادم
+          </label>
             <input
               id="servant-search"
-              type="search"
+              type="text"
+              inputMode="search"
+              autoComplete="off"
+              suppressHydrationWarning
               value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="ابحث بالاسم أو رقم الموبايل"
-              className="min-h-11 w-full min-w-0 flex-1 rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
-            />
-            <MultiSelectFilter
-              label="الرتبة"
-              options={roleOptions}
-              selectedIds={selectedRoles}
-              onChange={handleRolesChange}
-              emptyLabel="جميع الرتب"
-              countLabel={(count) => `تم تحديد ${count} رتب`}
-            />
-            <MultiSelectFilter
-              label="الخدمة"
-              options={khedmaOptions}
-              selectedIds={selectedKhedmat}
-              onChange={handleKhedmatChange}
-              emptyLabel="جميع الخدمات"
-              countLabel={(count) => `تم تحديد ${count} خدمات`}
-            />
-            <div className="w-full sm:w-36">
-              <AssignmentYearSelect years={years} selectedYear={selectedYear} />
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="ابحث بالاسم أو رقم الموبايل"
+            className="min-h-11 w-full rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
+          />
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="grid w-full grid-cols-1 gap-3 overflow-visible sm:grid-cols-2 xl:max-w-2xl">
+              <MultiSelectFilter
+                label="الرتبة"
+                options={roleOptions}
+                selectedIds={selectedRoles}
+                onChange={handleRolesChange}
+                emptyLabel="جميع الرتب"
+                countLabel={(count) => `تم تحديد ${count} رتب`}
+              />
+              <MultiSelectFilter
+                label="الخدمة"
+                options={khedmaOptions}
+                selectedIds={selectedKhedmat}
+                onChange={handleKhedmatChange}
+                emptyLabel="جميع الخدمات"
+                countLabel={(count) => `تم تحديد ${count} خدمات`}
+              />
             </div>
-          </div>
-          <div className="flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto">
-            <button type="button" onClick={openCreate} className={adminActionGold}>
-              إضافة خادم
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleExport()}
-              disabled={isExporting}
-              className={adminActionOutline}
-            >
-              {isExporting ? "جاري التصدير..." : "تصدير إلى Excel"}
-            </button>
-            <Link href="/admin/servants/import" className={adminActionMuted}>
-              رفع ملف Excel
-            </Link>
-            <button
-              type="button"
-              onClick={() => setShowDeleteAll(true)}
-              disabled={total === 0 || isDeletingAll}
-              className={adminActionDanger}
-            >
-              حذف الكل
-            </button>
+            <div className="flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto">
+              <button type="button" onClick={openCreate} className={adminActionGold}>
+                إضافة خادم
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleExport()}
+                disabled={isExporting}
+                className={adminActionOutline}
+              >
+                {isExporting ? "جاري التصدير..." : "تصدير إلى Excel"}
+              </button>
+              <Link href="/admin/servants/import" className={adminActionMuted}>
+                رفع ملف Excel
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowDeleteAll(true)}
+                disabled={total === 0 || isDeletingAll}
+                className={adminActionDanger}
+              >
+                حذف الكل
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -483,8 +501,8 @@ export default function ServantDirectory({
               <div className="mt-2">
                 <KhedmaChips assignments={servant.assignments} />
               </div>
-              <p className="mt-1 text-sm text-deep-red/70">
-                {new Date(servant.createdAt).toLocaleString("ar-EG")}
+              <p className="mt-1 text-sm text-deep-red/70" suppressHydrationWarning>
+                {formatAddedAt(servant.createdAt)}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
@@ -522,8 +540,8 @@ export default function ServantDirectory({
               <td className="px-4 py-3">
                 <KhedmaChips assignments={servant.assignments} />
               </td>
-              <td className="whitespace-nowrap px-4 py-3">
-                {new Date(servant.createdAt).toLocaleString("ar-EG")}
+              <td className="whitespace-nowrap px-4 py-3" suppressHydrationWarning>
+                {formatAddedAt(servant.createdAt)}
               </td>
               <td className="px-4 py-3">
                 <div className="flex flex-wrap gap-2">
@@ -568,11 +586,17 @@ export default function ServantDirectory({
               role="dialog"
               aria-modal="true"
               aria-labelledby="servant-form-title"
+              suppressHydrationWarning
             >
               <h2 id="servant-form-title" className="text-lg font-bold text-deep-red">
                 {title}
               </h2>
-              <form onSubmit={(event) => void handleSubmit(event)} className="mt-4 space-y-4">
+              <form
+                onSubmit={(event) => void handleSubmit(event)}
+                className="mt-4 space-y-4"
+                autoComplete="off"
+                suppressHydrationWarning
+              >
                 <div>
                   <label htmlFor="servant-name" className="mb-2 block text-sm font-bold text-deep-red">
                     الاسم
@@ -580,6 +604,8 @@ export default function ServantDirectory({
                   <input
                     id="servant-name"
                     required
+                    autoComplete="off"
+                    suppressHydrationWarning
                     value={form.name}
                     onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
                     className="w-full rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
@@ -593,6 +619,8 @@ export default function ServantDirectory({
                     id="servant-phone"
                     type="tel"
                     inputMode="tel"
+                    autoComplete="off"
+                    suppressHydrationWarning
                     value={form.phone}
                     onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
                     placeholder="اختياري"
@@ -609,6 +637,8 @@ export default function ServantDirectory({
                   <input
                     id="servant-national-id"
                     inputMode="numeric"
+                    autoComplete="off"
+                    suppressHydrationWarning
                     value={form.nationalId}
                     onChange={(event) =>
                       setForm((current) => ({ ...current, nationalId: event.target.value }))

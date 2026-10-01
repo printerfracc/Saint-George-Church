@@ -8,7 +8,6 @@ import { getServants, listKhedmaFilters } from "@/actions/servants-crud";
 import { listServantRoles } from "@/actions/tawze3a-admin";
 import { authOptions } from "@/lib/auth";
 import { parseServantListFilters } from "@/lib/servant-filters";
-import { listAssignmentYears } from "@/lib/tawze3a-year";
 
 export const metadata = {
   title: "إدارة الخدام",
@@ -31,7 +30,7 @@ export default async function ServantsPage({
   const roleIds = filters.roleIds;
   const khedmaIds = filters.khedmaIds;
 
-  const [result, khedmat, roles, years] = await Promise.all([
+  const [result, khedmat, roles] = await Promise.all([
     getServants(query, 1, 100, {
       roleIds,
       khedmaIds,
@@ -39,7 +38,6 @@ export default async function ServantsPage({
     }),
     listKhedmaFilters(),
     listServantRoles(),
-    listAssignmentYears(),
   ]);
 
   const servants: ServantRow[] =
@@ -72,7 +70,6 @@ export default async function ServantsPage({
         query={query}
         roleIds={roleIds}
         khedmaIds={khedmaIds}
-        years={years}
         selectedYear={filters.year}
       />
     </main>

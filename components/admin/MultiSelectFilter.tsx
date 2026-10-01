@@ -78,26 +78,37 @@ export default function MultiSelectFilter({
     onChange([...selectedIds, id]);
   }
 
+  const active = selectedIds.length > 0;
+
   return (
-    <div ref={rootRef} className="relative z-20 min-w-0 w-full sm:max-w-56">
-      <label className="sr-only" htmlFor={buttonId}>
-        {label}
-      </label>
+    <div ref={rootRef} className="relative z-20 min-w-0 w-full">
       <button
         id={buttonId}
         type="button"
         aria-haspopup="true"
         aria-expanded={open}
         aria-controls={listId}
+        aria-label={label}
         onClick={() => setOpen((current) => !current)}
-        className="flex min-h-11 w-full min-w-0 items-center justify-between gap-2 rounded-xl border border-deep-red/20 bg-white px-3 py-2 text-right text-sm text-deep-red outline-none focus:ring-2 focus:ring-gold"
+        className={`flex min-h-14 w-full min-w-0 items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-2 text-right shadow-sm outline-none transition hover:border-coptic-gold-main focus:ring-2 focus:ring-gold ${
+          open || active
+            ? "border-coptic-gold-main ring-1 ring-coptic-gold-main/40"
+            : "border-coptic-gold-main/45"
+        }`}
       >
-        <span className="min-w-0 truncate">{buttonText}</span>
+        <span className="min-w-0">
+          <span className="block text-[11px] font-bold leading-4 text-coptic-gold-dark">{label}</span>
+          <span className="block truncate text-sm font-semibold leading-6 text-deep-red">{buttonText}</span>
+        </span>
         <span
           aria-hidden="true"
-          className={`shrink-0 text-xs text-deep-red/60 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`flex size-8 shrink-0 items-center justify-center rounded-full border border-coptic-gold-main/50 bg-cream text-deep-red transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
         >
-          ▾
+          <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M5 8l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </span>
       </button>
       <AnimatePresence>
@@ -108,9 +119,9 @@ export default function MultiSelectFilter({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
-            className="absolute start-0 z-30 mt-1 w-max min-w-full max-w-[min(22rem,90vw)] overflow-hidden rounded-xl border border-deep-red/15 bg-white text-right shadow-lg"
+            className="absolute start-0 z-30 mt-2 w-max min-w-full max-w-[min(24rem,90vw)] overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white text-right shadow-lg"
           >
-            <div className="flex items-center justify-between gap-2 border-b border-deep-red/10 bg-white px-3 py-2">
+            <div className="flex items-center justify-between gap-3 border-b border-coptic-gold-main/25 bg-cream/70 px-3 py-2">
               <button
                 type="button"
                 onClick={() => onChange(options.map((option) => option.id))}
