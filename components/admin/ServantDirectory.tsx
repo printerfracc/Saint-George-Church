@@ -247,8 +247,6 @@ export default function ServantDirectory({
       params.set("khedma", nextKhedma);
     }
 
-    params.set("year", String(selectedYear));
-
     const qs = params.toString().replaceAll("+", "%20");
     router.replace(qs ? `/admin/servants?${qs}` : "/admin/servants");
   }

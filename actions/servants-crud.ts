@@ -288,7 +288,6 @@ export async function getServants(
         take: pageSize,
         include: {
           assignments: {
-            where: { year },
             include: {
               khedma: true,
               role: true,

@@ -66,13 +66,13 @@ export function servantListWhere(
 
   if (hasKhedma) {
     and.push({
-      assignments: { some: { khedmaId: { in: khedmaIds }, year: filters.year } },
+      assignments: { some: { khedmaId: { in: khedmaIds } } },
     });
   }
 
   if (hasRole) {
     and.push({
-      assignments: { some: { roleId: { in: roleIds }, year: filters.year } },
+      assignments: { some: { roleId: { in: roleIds } } },
     });
   }
 
@@ -88,10 +88,6 @@ export function assignmentMatchesFilters(
   },
   filters: ServantQueryFilters,
 ) {
-  if (assignment.year !== undefined && assignment.year !== filters.year) {
-    return false;
-  }
-
   const assignmentKhedmaId = assignment.khedmaId ?? assignment.category?.khedmaId ?? "";
 
   if (filters.khedmaIds.length > 0 && !filters.khedmaIds.includes(assignmentKhedmaId)) {

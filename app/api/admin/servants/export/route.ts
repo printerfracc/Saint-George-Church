@@ -40,7 +40,6 @@ async function exportFilteredServants(filters: ServantQueryFilters) {
       orderBy: { name: "asc" },
       include: {
         assignments: {
-          where: { year: filters.year },
           include: {
             khedma: true,
             role: true,
