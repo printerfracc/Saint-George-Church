@@ -1,14 +1,18 @@
 "use client";
 
-import { useId, useMemo, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, type ReactNode } from "react";
 import {
   DndContext,
   KeyboardSensor,
+  MeasuringStrategy,
   PointerSensor,
   closestCenter,
+  useDndContext,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
+  type DragOverEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -19,6 +23,54 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { AdminEmptyState } from "@/components/admin/admin-ui";
+
+const measuring = {
+  droppable: {
+    strategy: MeasuringStrategy.Always,
+    frequency: 50,
+  },
+};
+
+const collisionDetection: CollisionDetection = (args) =>
+  closestCenter({
+    ...args,
+    droppableContainers: args.droppableContainers.filter(
+      (container) => container.id !== args.active.id,
+    ),
+  });
+
+function RemeasureOnScroll() {
+  const { active, measureDroppableContainers } = useDndContext();
+
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+
+    let frame = 0;
+
+    function schedule() {
+      if (frame) {
+        return;
+      }
+
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        measureDroppableContainers();
+      });
+    }
+
+    window.addEventListener("scroll", schedule, true);
+    return () => {
+      window.removeEventListener("scroll", schedule, true);
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, [active, measureDroppableContainers]);
+
+  return null;
+}
 
 export type DraggableListItem = {
   id: string;
@@ -48,8 +100,8 @@ function SortableRow({
   } = useSortable({ id });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: CSS.Translate.toString(transform),
+    transition: isDragging ? undefined : transition,
   };
 
   return (
@@ -84,6 +136,8 @@ export default function DraggableList<T extends DraggableListItem>({
   emptyLabel = "لا توجد بيانات",
 }: DraggableListProps<T>) {
   const dndId = useId();
+  const itemsRef = useRef(items);
+  const lastOverId = useRef<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 },
@@ -93,22 +147,42 @@ export default function DraggableList<T extends DraggableListItem>({
     }),
   );
   const ids = useMemo(() => items.map((item) => item.id), [items]);
+  itemsRef.current = items;
+
+  function rememberOver(event: DragOverEvent) {
+    if (!event.over || event.over.id === event.active.id) {
+      return;
+    }
+
+    lastOverId.current = String(event.over.id);
+  }
 
   function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
+    const activeId = String(event.active.id);
+    const overId =
+      event.over && String(event.over.id) !== activeId
+        ? String(event.over.id)
+        : lastOverId.current;
 
-    if (!over || active.id === over.id) {
+    lastOverId.current = null;
+
+    if (!overId || overId === activeId) {
       return;
     }
 
-    const oldIndex = items.findIndex((item) => item.id === active.id);
-    const newIndex = items.findIndex((item) => item.id === over.id);
+    const currentItems = itemsRef.current;
+    const oldIndex = currentItems.findIndex((item) => item.id === activeId);
+    const newIndex = currentItems.findIndex((item) => item.id === overId);
 
-    if (oldIndex < 0 || newIndex < 0) {
+    if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) {
       return;
     }
 
-    onReorder(arrayMove(items, oldIndex, newIndex));
+    onReorder(arrayMove(currentItems, oldIndex, newIndex));
+  }
+
+  function handleDragCancel() {
+    lastOverId.current = null;
   }
 
   if (items.length === 0) {
@@ -119,9 +193,13 @@ export default function DraggableList<T extends DraggableListItem>({
     <DndContext
       id={dndId}
       sensors={sensors}
-      collisionDetection={closestCenter}
+      measuring={measuring}
+      collisionDetection={collisionDetection}
+      onDragOver={rememberOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
+      <RemeasureOnScroll />
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <div className="space-y-3">
           {items.map((item) => (

@@ -1,44 +1,53 @@
-function CopticDivider() {
+import Image from "next/image";
+
+function CopticMark() {
   return (
-    <div className="flex items-center gap-3" aria-hidden="true">
-      <span className="h-px flex-1 bg-linear-to-l from-coptic-gold-main to-transparent" />
-      <svg viewBox="0 0 48 48" className="h-8 w-8 text-coptic-gold-dark">
+    <div className="flex justify-center" aria-hidden="true">
+      <svg viewBox="0 0 48 48" className="h-5 w-5 text-coptic-gold-main">
         <path
-          d="M24 5v38M8 20h32"
+          d="M24 6v36M10 20h28"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2.2"
+          strokeWidth="2"
           strokeLinecap="round"
         />
-        <circle cx="24" cy="20" r="5.5" fill="#fffdf6" stroke="currentColor" strokeWidth="1.7" />
+        <circle cx="24" cy="20" r="4.5" fill="#f7f3e9" stroke="currentColor" strokeWidth="1.6" />
       </svg>
-      <span className="h-px flex-1 bg-linear-to-r from-coptic-gold-main to-transparent" />
     </div>
   );
 }
 
-function Inscription({
-  label,
-  text,
-  emphasis = false,
-}: {
-  label: string;
-  text: string;
-  emphasis?: boolean;
-}) {
+function Inscription({ label, text }: { label: string; text: string }) {
   return (
-    <div className="relative">
+    <div>
       <p className="text-sm font-bold text-coptic-gold-dark">{label}</p>
-      <span className="mx-auto mt-2 block h-0.5 w-10 rounded-full bg-coptic-gold-main" />
-      <p
-        className={`mx-auto mt-4 max-w-3xl font-bold whitespace-pre-line ${
-          emphasis
-            ? "text-3xl leading-relaxed text-deep-red md:text-5xl"
-            : "text-2xl leading-[1.9] text-deep-red/90 md:text-4xl"
-        }`}
-      >
+      <p className="mt-4 text-pretty text-xl font-bold leading-[2.2] whitespace-pre-line text-deep-red md:text-2xl">
         {text}
       </p>
+    </div>
+  );
+}
+
+function SloganBlock({ logo, text }: { logo: string; text: string }) {
+  return (
+    <div>
+      <p className="text-sm font-bold text-coptic-gold-dark">الشعار</p>
+      {logo ? (
+        <div className="relative mx-auto mt-5 aspect-square w-36 md:w-44">
+          <Image
+            src={logo}
+            alt="شعار عيد الخدام"
+            fill
+            unoptimized
+            className="object-contain"
+          />
+        </div>
+      ) : null}
+      {text ? (
+        <p className="mt-4 text-pretty text-sm leading-8 whitespace-pre-line text-deep-red/80 md:text-base">
+          {text}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -46,35 +55,27 @@ function Inscription({
 export default function EedContentBanner({
   goal,
   slogan,
-  compact = false,
+  sloganLogo,
 }: {
   goal?: string | null;
   slogan?: string | null;
-  compact?: boolean;
+  sloganLogo?: string | null;
 }) {
   const goalText = goal?.trim() ?? "";
   const sloganText = slogan?.trim() ?? "";
+  const logo = sloganLogo?.trim() ?? "";
+  const hasSlogan = Boolean(logo || sloganText);
 
-  if (!goalText && !sloganText) {
+  if (!goalText && !hasSlogan) {
     return null;
   }
 
   return (
-    <section
-      className={`relative mb-8 overflow-hidden rounded-4xl border-2 border-coptic-gold-main bg-[#fffdf6] text-center shadow-[0_22px_50px_-28px_rgba(139,30,63,0.55)] ${
-        compact ? "px-5 py-8" : "px-6 py-10 md:px-14 md:py-14"
-      }`}
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.28),transparent_46%)]" />
-      <div className="pointer-events-none absolute inset-3 rounded-3xl border border-deep-red/20 md:inset-4" />
-      <span className="pointer-events-none absolute top-5 right-5 h-4 w-4 border-t-2 border-r-2 border-coptic-gold-dark" />
-      <span className="pointer-events-none absolute top-5 left-5 h-4 w-4 border-t-2 border-l-2 border-coptic-gold-dark" />
-      <span className="pointer-events-none absolute right-5 bottom-5 h-4 w-4 border-r-2 border-b-2 border-coptic-gold-dark" />
-      <span className="pointer-events-none absolute bottom-5 left-5 h-4 w-4 border-b-2 border-l-2 border-coptic-gold-dark" />
-      <div className="relative space-y-8">
+    <section className="mx-auto mb-10 max-w-md text-center">
+      <div className="space-y-8">
         {goalText ? <Inscription label="الهدف" text={goalText} /> : null}
-        {goalText && sloganText ? <CopticDivider /> : null}
-        {sloganText ? <Inscription label="الشعار" text={sloganText} emphasis /> : null}
+        {goalText && hasSlogan ? <CopticMark /> : null}
+        {hasSlogan ? <SloganBlock logo={logo} text={sloganText} /> : null}
       </div>
     </section>
   );

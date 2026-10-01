@@ -124,6 +124,7 @@ function servantsInKhedma(khedma: PublicKhedma) {
 export type EedBanner = {
   goal: string | null;
   slogan: string | null;
+  sloganLogo: string | null;
 };
 
 export default function Tawze3aViewer({
@@ -195,7 +196,11 @@ export default function Tawze3aViewer({
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-4 pt-28 pb-16 text-cream">
-      <EedContentBanner goal={banner?.goal} slogan={banner?.slogan} />
+      <EedContentBanner
+        goal={banner?.goal}
+        slogan={banner?.slogan}
+        sloganLogo={banner?.sloganLogo}
+      />
       <section className="rounded-2xl border border-coptic-gold-main/40 bg-gray-900 p-5 shadow-xl md:p-7">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>

@@ -7,7 +7,7 @@ import Tawze3aViewer, {
 import { prisma } from "@/lib/prisma";
 import { assignedKhedmaFilter, publishedAssignmentWhere } from "@/lib/servant-filters";
 import { getServantSession } from "@/lib/servant-session";
-import { EED_EL_KHODAM_CONTENT_ID } from "@/lib/eed-content";
+import { getEedSiteContent } from "@/lib/eed-content";
 import { getCurrentActiveYear } from "@/lib/tawze3a-year";
 
 export const metadata = {
@@ -179,16 +179,7 @@ export default async function Tawze3aPage() {
     ];
   });
 
-  let banner: { goal: string | null; slogan: string | null } | null = null;
-
-  try {
-    banner = await prisma.siteContent.findUnique({
-      where: { id: EED_EL_KHODAM_CONTENT_ID },
-      select: { goal: true, slogan: true },
-    });
-  } catch {
-    banner = null;
-  }
+  const banner = await getEedSiteContent();
 
   return (
     <Tawze3aViewer

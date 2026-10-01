@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { addKhedma, reorderKhedmat, togglePublishTawze3a, type BuilderTawze3a } from "@/actions/tawze3a-admin";
 import DraggableList from "@/components/admin/DraggableList";
 import { adminActionGold, adminActionOutline } from "@/components/admin/admin-ui";
+
+function orderKey(khedmat: { id: string }[]) {
+  return khedmat.map((khedma) => khedma.id).join("\n");
+}
+
+function sameMembers(left: string, right: string) {
+  return left.split("\n").sort().join("\n") === right.split("\n").sort().join("\n");
+}
 
 export default function Tawze3aBuilder({
   initialTawze3a,
@@ -19,8 +27,17 @@ export default function Tawze3aBuilder({
   const [isSavingKhedma, setIsSavingKhedma] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
+  const savedOrderKey = useRef<string | null>(null);
 
   useEffect(() => {
+    const incomingKey = orderKey(initialTawze3a.khedmat);
+    const savedKey = savedOrderKey.current;
+
+    if (savedKey && incomingKey !== savedKey && sameMembers(incomingKey, savedKey)) {
+      return;
+    }
+
+    savedOrderKey.current = null;
     setTawze3a(initialTawze3a);
   }, [initialTawze3a]);
 
@@ -63,13 +80,16 @@ export default function Tawze3aBuilder({
   function handleReorder(next: BuilderTawze3a["khedmat"]) {
     const previous = tawze3a.khedmat;
     const ordered = next.map((khedma, index) => ({ ...khedma, order: index }));
+    savedOrderKey.current = orderKey(ordered);
     setTawze3a((current) => ({ ...current, khedmat: ordered }));
+    setError("");
 
     void reorderKhedmat(
       tawze3a.id,
       ordered.map((khedma) => ({ id: khedma.id, order: khedma.order })),
     ).then((result) => {
       if (!result.success) {
+        savedOrderKey.current = null;
         setTawze3a((current) => ({ ...current, khedmat: previous }));
         setError(result.error);
       }

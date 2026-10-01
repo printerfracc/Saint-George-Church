@@ -14,7 +14,8 @@ export type ImagePreviewVariant =
   | "activity"
   | "hero"
   | "wide"
-  | "portrait";
+  | "portrait"
+  | "square";
 
 type ImageUploadProps = {
   value?: string;
@@ -74,6 +75,12 @@ const previewFrames: Record<
       "relative mx-auto aspect-[450/730] w-full max-w-[225px] overflow-hidden rounded-2xl border border-gold/50 bg-white",
     drop: "flex aspect-[450/730] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 text-center",
     image: "object-cover",
+  },
+  square: {
+    frame:
+      "relative mx-auto aspect-square w-full max-w-52 overflow-hidden rounded-2xl border border-coptic-gold-main/50 bg-white",
+    drop: "mx-auto flex aspect-square w-full max-w-52 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 text-center",
+    image: "object-contain",
   },
 };
 

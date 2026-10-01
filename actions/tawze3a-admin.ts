@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
@@ -410,14 +411,17 @@ export async function reorderKhedmat(
       return { success: false, error: "تعذر حفظ ترتيب الخدمات" };
     }
 
-    await prisma.$transaction(
-      items.map((item) =>
-        prisma.khedma.update({
-          where: { id: item.id },
-          data: { order: item.order },
-        }),
-      ),
-    );
+    await prisma.$executeRaw`
+      UPDATE Khedma
+      SET \`order\` = CASE id
+        ${Prisma.join(
+          items.map((item) => Prisma.sql`WHEN ${item.id} THEN ${item.order}`),
+          " ",
+        )}
+      END
+      WHERE tawze3aId = ${tawze3aId}
+        AND id IN (${Prisma.join(items.map((item) => item.id))})
+    `;
 
     revalidateTawze3aPaths(tawze3aId);
     return { success: true };

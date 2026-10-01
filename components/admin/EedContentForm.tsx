@@ -3,18 +3,22 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { upsertEedContent } from "@/actions/site-content";
+import ImageUpload from "@/components/admin/ImageUpload";
 import { AdminPageHeader, adminActionGold } from "@/components/admin/admin-ui";
 
 export default function EedContentForm({
   goal,
   slogan,
+  sloganLogo,
 }: {
   goal: string;
   slogan: string;
+  sloganLogo: string;
 }) {
   const router = useRouter();
   const [goalValue, setGoalValue] = useState(goal);
   const [sloganValue, setSloganValue] = useState(slogan);
+  const [sloganLogoValue, setSloganLogoValue] = useState(sloganLogo);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -28,6 +32,7 @@ export default function EedContentForm({
     const result = await upsertEedContent({
       goal: goalValue,
       slogan: sloganValue,
+      sloganLogo: sloganLogoValue,
     });
 
     setIsSaving(false);
@@ -67,14 +72,22 @@ export default function EedContentForm({
           />
         </label>
 
+        <ImageUpload
+          value={sloganLogoValue}
+          onChange={setSloganLogoValue}
+          label="شعار الصورة"
+          hint="صورة مربعة بنسبة 1:1. يظهر نص الشعار تحتها كوصف."
+          preview="square"
+        />
+
         <label className="block">
-          <span className="text-sm font-bold text-deep-red">الشعار</span>
+          <span className="text-sm font-bold text-deep-red">وصف الشعار</span>
           <textarea
             value={sloganValue}
             onChange={(event) => setSloganValue(event.target.value)}
             rows={3}
             className="mt-2 w-full rounded-xl border border-coptic-gold-main/40 bg-white px-3 py-2 text-sm leading-7 text-deep-red outline-none focus:ring-2 focus:ring-coptic-gold-main"
-            placeholder="اكتب شعار عيد الخدام"
+            placeholder="اكتب وصف الشعار"
           />
         </label>
 

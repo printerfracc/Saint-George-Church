@@ -14,9 +14,27 @@ function optionalText(value: string) {
   return trimmed || null;
 }
 
+function optionalHttpsUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "https:") {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 export async function upsertEedContent(input: {
   goal: string;
   slogan: string;
+  sloganLogo: string;
 }): Promise<SiteContentActionResult> {
   const session = await requireAdmin();
 
@@ -26,6 +44,11 @@ export async function upsertEedContent(input: {
 
   const goal = optionalText(input.goal);
   const slogan = optionalText(input.slogan);
+  const sloganLogo = input.sloganLogo.trim() ? optionalHttpsUrl(input.sloganLogo) : null;
+
+  if (input.sloganLogo.trim() && !sloganLogo) {
+    return { success: false, error: "تعذر حفظ شعار الصورة. أعد رفع الصورة." };
+  }
 
   try {
     await prisma.siteContent.upsert({
@@ -37,6 +60,11 @@ export async function upsertEedContent(input: {
       },
       update: { goal, slogan },
     });
+    await prisma.$executeRaw`
+      UPDATE SiteContent
+      SET sloganLogo = ${sloganLogo}
+      WHERE id = ${EED_EL_KHODAM_CONTENT_ID}
+    `;
   } catch {
     return { success: false, error: "تعذر حفظ المحتوى. حاول مرة أخرى." };
   }

@@ -285,9 +285,10 @@ model ServantAssignment {
 }
 
 model SiteContent {
-  id     String  @id
-  goal   String? @db.Text
-  slogan String? @db.Text
+  id         String  @id
+  goal       String? @db.Text
+  slogan     String? @db.Text
+  sloganLogo String? @db.Text
 }
 
 model GalleryMedia {
