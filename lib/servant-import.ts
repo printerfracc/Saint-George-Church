@@ -280,10 +280,11 @@ async function assignToKhedma(
   try {
     await prisma.servantAssignment.upsert({
       where: {
-        servantId_khedmaId_year: {
+        servantId_khedmaId_year_roleId: {
           servantId,
           khedmaId: khedma.id,
           year,
+          roleId: role.id,
         },
       },
       create: {
@@ -295,7 +296,6 @@ async function assignToKhedma(
         isDraft: false,
       },
       update: {
-        roleId: role.id,
         categoryId,
       },
     });

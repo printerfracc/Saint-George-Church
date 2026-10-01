@@ -51,8 +51,73 @@ export type HistoryAssignment = {
   khedmaName: string;
 };
 
-function assignmentPhrase(assignment: MyAssignment) {
-  return `${assignment.roleName} في خدمة ${assignment.khedmaName}`;
+function assignmentPhrase(khedmaName: string, roles: string[]) {
+  const roleLabel = roles.filter(Boolean).join("، ");
+  return roleLabel ? `${roleLabel} في خدمة ${khedmaName}` : khedmaName;
+}
+
+function groupMyAssignments(assignments: MyAssignment[]) {
+  const groups = new Map<string, { khedmaId: string; khedmaName: string; roles: string[] }>();
+
+  for (const assignment of assignments) {
+    const current = groups.get(assignment.khedmaId) ?? {
+      khedmaId: assignment.khedmaId,
+      khedmaName: assignment.khedmaName,
+      roles: [],
+    };
+
+    if (assignment.roleName && !current.roles.includes(assignment.roleName)) {
+      current.roles.push(assignment.roleName);
+    }
+
+    groups.set(assignment.khedmaId, current);
+  }
+
+  return [...groups.values()];
+}
+
+function groupHistory(assignments: HistoryAssignment[]) {
+  const groups = new Map<string, { id: string; khedmaName: string; roles: string[] }>();
+
+  for (const assignment of assignments) {
+    const current = groups.get(assignment.khedmaName) ?? {
+      id: assignment.id,
+      khedmaName: assignment.khedmaName,
+      roles: [],
+    };
+
+    if (assignment.roleName && !current.roles.includes(assignment.roleName)) {
+      current.roles.push(assignment.roleName);
+    }
+
+    groups.set(assignment.khedmaName, current);
+  }
+
+  return [...groups.values()];
+}
+
+function servantsInKhedma(khedma: PublicKhedma) {
+  const servants = new Map<string, { id: string; name: string; roles: string[] }>();
+
+  for (const category of khedma.categories) {
+    const roleName = category.roleName || category.label;
+
+    for (const assignment of category.assignments) {
+      const current = servants.get(assignment.servant.id) ?? {
+        id: assignment.servant.id,
+        name: assignment.servant.name,
+        roles: [],
+      };
+
+      if (roleName && !current.roles.includes(roleName)) {
+        current.roles.push(roleName);
+      }
+
+      servants.set(assignment.servant.id, current);
+    }
+  }
+
+  return [...servants.values()];
 }
 
 export default function Tawze3aViewer({
@@ -146,12 +211,12 @@ export default function Tawze3aViewer({
           <div className="mt-6">
             <p className="text-sm font-bold text-cream">أنت متسجل في:</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {myAssignments.map((assignment) => (
+              {groupMyAssignments(myAssignments).map((assignment) => (
                 <span
-                  key={assignment.id}
+                  key={assignment.khedmaId}
                   className="rounded-full bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark px-4 py-2 text-sm font-bold text-gray-950"
                 >
-                  {assignmentPhrase(assignment)}
+                  {assignmentPhrase(assignment.khedmaName, assignment.roles)}
                 </span>
               ))}
             </div>
@@ -172,14 +237,12 @@ export default function Tawze3aViewer({
                 <div key={year}>
                   <p className="text-sm font-bold text-coptic-gold-main">{year}</p>
                   <ul className="mt-2 space-y-2">
-                    {assignments.map((assignment) => (
+                    {groupHistory(assignments).map((assignment) => (
                       <li
                         key={assignment.id}
                         className="rounded-xl border border-coptic-gold-main/20 bg-black/30 px-4 py-2 text-sm text-cream"
                       >
-                        {assignment.roleName
-                          ? `${assignment.roleName} في خدمة ${assignment.khedmaName}`
-                          : assignment.khedmaName}
+                        {assignmentPhrase(assignment.khedmaName, assignment.roles)}
                       </li>
                     ))}
                   </ul>
@@ -233,38 +296,48 @@ export default function Tawze3aViewer({
                 <summary className="cursor-pointer list-none text-lg font-bold text-coptic-gold-light">
                   {khedma.name}
                 </summary>
-                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {khedma.categories.map((category) => (
-                    <article
-                      key={category.id}
-                      className="rounded-xl border border-coptic-gold-main/20 bg-black/30 p-4"
-                    >
-                      <h2 className="text-sm font-bold text-coptic-gold-main">{category.label}</h2>
-                      {category.assignments.length === 0 ? (
-                        <p className="mt-3 text-xs text-cream/50">لا يوجد خدام في هذا التصنيف</p>
-                      ) : (
-                        <ul className="mt-3 space-y-2">
-                          {category.assignments.map((assignment) => {
-                            const isMe = assignment.servant.id === servantId;
+                <div className="mt-4">
+                  {servantsInKhedma(khedma).length === 0 ? (
+                    <p className="text-xs text-cream/50">لا يوجد خدام في هذه الخدمة</p>
+                  ) : (
+                    <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+                      {servantsInKhedma(khedma).map((servant) => {
+                        const isMe = servant.id === servantId;
 
-                            return (
-                              <li
-                                key={assignment.id}
-                                className={`rounded-lg px-3 py-2 text-sm ${
-                                  isMe
-                                    ? "bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark font-bold text-gray-950"
-                                    : "bg-gray-950/70 text-cream"
-                                }`}
-                              >
-                                {assignment.servant.name}
-                                {isMe ? " (أنت)" : ""}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </article>
-                  ))}
+                        return (
+                          <li
+                            key={servant.id}
+                            className={`rounded-lg px-3 py-2 text-sm ${
+                              isMe
+                                ? "bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark font-bold text-gray-950"
+                                : "bg-gray-950/70 text-cream"
+                            }`}
+                          >
+                            <span>
+                              {servant.name}
+                              {isMe ? " (أنت)" : ""}
+                            </span>
+                            {servant.roles.length > 0 ? (
+                              <span className="mt-2 flex flex-wrap gap-1">
+                                {servant.roles.map((role) => (
+                                  <span
+                                    key={role}
+                                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                                      isMe
+                                        ? "bg-gray-950/15 text-gray-950"
+                                        : "bg-coptic-gold-main/15 text-coptic-gold-light"
+                                    }`}
+                                  >
+                                    {role}
+                                  </span>
+                                ))}
+                              </span>
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
               </details>
             ))}

@@ -273,7 +273,7 @@ model ServantAssignment {
   year       Int
   isDraft    Boolean         @default(true)
 
-  @@unique([servantId, khedmaId, year])
+  @@unique([servantId, khedmaId, year, roleId])
   @@index([categoryId])
   @@index([khedmaId])
   @@index([servantId])

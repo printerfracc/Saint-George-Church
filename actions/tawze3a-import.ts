@@ -153,7 +153,8 @@ export async function processTawze3aRows(
       const category = await ensureCategory(khedma.id, role);
 
       const existingAssignment = await prisma.servantAssignment.findFirst({
-        where: { servantId: servant.id, khedmaId: khedma.id, year },
+        where: { servantId: servant.id, khedmaId: khedma.id, roleId: role.id, year },
+        select: { id: true },
       });
 
       if (!existingAssignment) {
@@ -165,14 +166,6 @@ export async function processTawze3aRows(
             categoryId: category.id,
             year,
             isDraft: false,
-          },
-        });
-      } else if (existingAssignment.roleId !== role.id) {
-        await prisma.servantAssignment.update({
-          where: { id: existingAssignment.id },
-          data: {
-            roleId: role.id,
-            categoryId: category.id,
           },
         });
       }

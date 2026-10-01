@@ -108,7 +108,29 @@ const emptyForm: ServantFormState = {
 };
 
 function KhedmaChips({ assignments }: { assignments: ServantRow["assignments"] }) {
-  const items = assignments.filter((assignment) => assignment.khedmaName);
+  const groups = new Map<string, { name: string; roles: string[]; isDraft: boolean }>();
+
+  for (const assignment of assignments) {
+    if (!assignment.khedmaName) {
+      continue;
+    }
+
+    const key = assignment.khedmaId || assignment.khedmaName;
+    const current = groups.get(key) ?? {
+      name: assignment.khedmaName,
+      roles: [],
+      isDraft: false,
+    };
+
+    if (assignment.roleName && !current.roles.includes(assignment.roleName)) {
+      current.roles.push(assignment.roleName);
+    }
+
+    current.isDraft = current.isDraft || assignment.isDraft;
+    groups.set(key, current);
+  }
+
+  const items = [...groups.entries()];
 
   if (items.length === 0) {
     return <span className="text-gray-400">غير مسند</span>;
@@ -116,13 +138,14 @@ function KhedmaChips({ assignments }: { assignments: ServantRow["assignments"] }
 
   return (
     <span className="flex flex-wrap gap-1">
-      {items.map((assignment) => (
+      {items.map(([key, item]) => (
         <span
-          key={assignment.id}
+          key={key}
           className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-800"
         >
-          {assignment.khedmaName}
-          {assignment.isDraft ? <DraftBadge /> : null}
+          {item.name}
+          {item.roles.length > 0 ? ` — ${item.roles.join("، ")}` : ""}
+          {item.isDraft ? <DraftBadge /> : null}
         </span>
       ))}
     </span>

@@ -262,8 +262,9 @@ export async function getKhedma(
         categories: row.categories.map(mapCategory),
       },
     };
-  } catch {
-    return null;
+  } catch (error) {
+    console.error("getKhedma failed", { tawze3aId, khedmaId, year }, error);
+    throw error;
   }
 }
 
@@ -527,6 +528,7 @@ export async function assignServant(
     const existing = await prisma.servantAssignment.findFirst({
       where: {
         servantId,
+        roleId: role.id,
         year,
         OR: [{ categoryId: targetCategory.id }, { khedmaId: category.khedma.id }],
       },
@@ -534,7 +536,7 @@ export async function assignServant(
     });
 
     if (existing) {
-      return { success: false, error: "هذا الخادم مضاف بالفعل إلى هذه الخدمة في السنة المحددة" };
+      return { success: false, error: "هذا الخادم مضاف بالفعل بهذه الرتبة في هذه الخدمة" };
     }
 
     const assignment = await prisma.servantAssignment.create({
