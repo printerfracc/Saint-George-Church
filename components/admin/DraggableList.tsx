@@ -56,7 +56,7 @@ function RemeasureOnScroll() {
 
       frame = window.requestAnimationFrame(() => {
         frame = 0;
-        measureDroppableContainers();
+        measureDroppableContainers([]);
       });
     }
 
