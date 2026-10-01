@@ -1,0 +1,1 @@
+ALTER TABLE `ChurchActivity` ADD COLUMN `linkLabel` VARCHAR(191) NULL;

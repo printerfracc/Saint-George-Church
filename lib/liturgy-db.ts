@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { Prisma } from "@prisma/client";
+import { connect } from "@tidbcloud/serverless";
 import { prisma } from "@/lib/prisma";
 import type { LiturgySectionKey } from "@/lib/liturgies";
 
@@ -9,6 +11,8 @@ export type LiturgyRecord = {
   description: string;
   detail: string | null;
   imageUrl: string | null;
+  link: string | null;
+  linkLabel: string | null;
   order: number;
   createdAt: Date;
 };
@@ -20,6 +24,93 @@ export type LiturgyRecordInput = {
   detail: string | null;
   imageUrl: string | null;
 };
+
+export type LiturgyLinkFields = {
+  link: string | null;
+  linkLabel: string | null;
+};
+
+let liturgyColumnsReady = false;
+
+async function addLiturgyColumn(sql: string) {
+  const url = process.env.DATABASE_URL;
+
+  if (!url) {
+    return;
+  }
+
+  try {
+    await connect({ url }).execute(sql);
+  } catch {
+    // Column may already exist.
+  }
+}
+
+export async function ensureLiturgyColumns() {
+  if (liturgyColumnsReady) {
+    return;
+  }
+
+  await addLiturgyColumn("ALTER TABLE LiturgyEntry ADD COLUMN link TEXT NULL");
+  await addLiturgyColumn(
+    "ALTER TABLE LiturgyEntry ADD COLUMN linkLabel VARCHAR(191) NULL",
+  );
+
+  liturgyColumnsReady = true;
+}
+
+async function loadLiturgyLinkFields(ids: string[]) {
+  if (ids.length === 0) {
+    return new Map<string, LiturgyLinkFields>();
+  }
+
+  await ensureLiturgyColumns();
+
+  try {
+    const rows = await prisma.$queryRaw<
+      Array<{ id: string; link: string | null; linkLabel: string | null }>
+    >`
+      SELECT id, link, linkLabel
+      FROM LiturgyEntry
+      WHERE id IN (${Prisma.join(ids)})
+    `;
+
+    return new Map(
+      rows.map((row) => [
+        row.id,
+        {
+          link: row.link?.trim() || null,
+          linkLabel: row.linkLabel?.trim() || null,
+        },
+      ]),
+    );
+  } catch {
+    return new Map<string, LiturgyLinkFields>();
+  }
+}
+
+export async function saveLiturgyLinkFields(
+  id: string,
+  fields: LiturgyLinkFields,
+) {
+  await ensureLiturgyColumns();
+  await prisma.$executeRaw`
+    UPDATE LiturgyEntry
+    SET link = ${fields.link},
+        linkLabel = ${fields.linkLabel}
+    WHERE id = ${id}
+  `;
+}
+
+async function withLinkFields(rows: LiturgyRecord[]) {
+  const extras = await loadLiturgyLinkFields(rows.map((row) => row.id));
+
+  return rows.map((row) => ({
+    ...row,
+    link: extras.get(row.id)?.link ?? row.link ?? null,
+    linkLabel: extras.get(row.id)?.linkLabel ?? row.linkLabel ?? null,
+  }));
+}
 
 function hasDelegate() {
   try {
@@ -40,6 +131,8 @@ function toRecord(row: {
   description: string;
   detail: string | null;
   imageUrl: string | null;
+  link?: string | null;
+  linkLabel?: string | null;
   order?: number | null;
   createdAt: Date | string;
 }): LiturgyRecord {
@@ -50,6 +143,8 @@ function toRecord(row: {
     description: row.description,
     detail: row.detail,
     imageUrl: row.imageUrl,
+    link: row.link?.trim() || null,
+    linkLabel: row.linkLabel?.trim() || null,
     order: row.order ?? 0,
     createdAt: toDate(row.createdAt),
   };
@@ -60,19 +155,25 @@ function isActiveSection(section: string): section is LiturgySectionKey {
 }
 
 export async function listLiturgyRecords() {
+  await ensureLiturgyColumns();
+
   if (hasDelegate()) {
     try {
       const rows = (await prisma.liturgyEntry.findMany({
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
       })) as Array<LiturgyRecord & { order?: number }>;
 
-      return rows.filter((row) => isActiveSection(row.section)).map(toRecord);
+      return withLinkFields(
+        rows.filter((row) => isActiveSection(row.section)).map(toRecord),
+      );
     } catch {
       const rows = (await prisma.liturgyEntry.findMany({
         orderBy: { createdAt: "asc" },
       })) as Array<LiturgyRecord & { order?: number }>;
 
-      return rows.filter((row) => isActiveSection(row.section)).map(toRecord);
+      return withLinkFields(
+        rows.filter((row) => isActiveSection(row.section)).map(toRecord),
+      );
     }
   }
 
@@ -94,7 +195,7 @@ export async function listLiturgyRecords() {
     ORDER BY \`order\` ASC, createdAt ASC
   `;
 
-  return rows.map(toRecord);
+  return withLinkFields(rows.map(toRecord));
 }
 
 async function nextLiturgyOrder(section: LiturgySectionKey) {
@@ -127,6 +228,8 @@ export async function createLiturgyRecord(data: LiturgyRecordInput) {
   const created: LiturgyRecord = {
     id: randomUUID(),
     ...data,
+    link: null,
+    linkLabel: null,
     order,
     createdAt: new Date(),
   };

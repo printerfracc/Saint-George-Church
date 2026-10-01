@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { logoutServant } from "@/actions/servant-auth";
+import EedContentBanner from "@/components/tawze3a/EedContentBanner";
 import { normalizeArabic } from "@/lib/arabicNormalizer";
 import { isAmenRole, roleDisplayIndex } from "@/lib/servant-role-order";
 
@@ -120,6 +121,11 @@ function servantsInKhedma(khedma: PublicKhedma) {
     });
 }
 
+export type EedBanner = {
+  goal: string | null;
+  slogan: string | null;
+};
+
 export default function Tawze3aViewer({
   publishedTawze3a,
   servantName,
@@ -127,6 +133,7 @@ export default function Tawze3aViewer({
   history,
   activeYear,
   servantId,
+  banner,
 }: {
   publishedTawze3a: PublicTawze3a;
   servantName: string;
@@ -134,6 +141,7 @@ export default function Tawze3aViewer({
   history: HistoryAssignment[];
   activeYear: number;
   servantId: string;
+  banner?: EedBanner | null;
 }) {
   const defaultKhedmaId = myAssignments[0]?.khedmaId ?? "all";
   const [query, setQuery] = useState("");
@@ -187,6 +195,7 @@ export default function Tawze3aViewer({
 
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-4 pt-28 pb-16 text-cream">
+      <EedContentBanner goal={banner?.goal} slogan={banner?.slogan} />
       <section className="rounded-2xl border border-coptic-gold-main/40 bg-gray-900 p-5 shadow-xl md:p-7">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>

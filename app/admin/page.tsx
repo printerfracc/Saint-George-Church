@@ -131,6 +131,24 @@ export default async function AdminDashboardPage() {
               </Link>
             ))
           : null}
+        {!isTawze3aOnly ? (
+          <>
+            <Link
+              href="/admin/eed-content"
+              className="flex min-h-11 flex-col rounded-2xl border border-coptic-gold-main/40 bg-white/80 p-5 shadow-sm transition hover:-translate-y-1 hover:border-coptic-gold-main"
+            >
+              <p className="text-sm font-bold text-coptic-gold-dark/80">محتوى عيد الخدام</p>
+              <p className="mt-3 text-base font-bold text-coptic-gold-dark">الهدف والشعار</p>
+            </Link>
+            <Link
+              href="/admin/gallery"
+              className="flex min-h-11 flex-col rounded-2xl border border-coptic-gold-main/40 bg-white/80 p-5 shadow-sm transition hover:-translate-y-1 hover:border-coptic-gold-main"
+            >
+              <p className="text-sm font-bold text-coptic-gold-dark/80">إدارة الصور</p>
+              <p className="mt-3 text-base font-bold text-coptic-gold-dark">معرض الصور</p>
+            </Link>
+          </>
+        ) : null}
         {canManageTawze3a ? (
           <>
             <Link

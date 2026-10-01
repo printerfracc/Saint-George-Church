@@ -1,6 +1,9 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
+import { connect } from "@tidbcloud/serverless";
 import { revalidatePath } from "next/cache";
+import { parseOptionalHref } from "@/lib/link-button";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 
@@ -13,6 +16,7 @@ export type ActivityData = {
   description: string;
   imageUrl?: string | null;
   link?: string | null;
+  linkLabel?: string | null;
 };
 
 async function ensureAdmin(): Promise<ActivityActionResult | true> {
@@ -25,12 +29,40 @@ async function ensureAdmin(): Promise<ActivityActionResult | true> {
   return true;
 }
 
+let activityColumnsReady = false;
+
+async function addActivityColumn(sql: string) {
+  const url = process.env.DATABASE_URL;
+
+  if (!url) {
+    return;
+  }
+
+  try {
+    await connect({ url }).execute(sql);
+  } catch {
+    // Column may already exist.
+  }
+}
+
+export async function ensureActivityColumns() {
+  if (activityColumnsReady) {
+    return;
+  }
+
+  await addActivityColumn(
+    "ALTER TABLE ChurchActivity ADD COLUMN linkLabel VARCHAR(191) NULL",
+  );
+
+  activityColumnsReady = true;
+}
+
 function parseActivityData(data: ActivityData) {
   const name = data.name.trim();
   const description = data.description.trim();
   const imageUrl = data.imageUrl?.trim() || null;
-  const rawLink = data.link?.trim() || null;
-  const link = parseActivityLink(rawLink);
+  const link = parseOptionalHref(data.link);
+  const linkLabel = link ? data.linkLabel?.trim() || null : null;
 
   if (!name) {
     throw new Error("يرجى إدخال الاسم");
@@ -40,23 +72,38 @@ function parseActivityData(data: ActivityData) {
     throw new Error("يرجى إدخال الوصف");
   }
 
-  return { name, description, imageUrl, link };
+  return { name, description, imageUrl, link, linkLabel };
 }
 
-function parseActivityLink(value: string | null) {
-  if (!value) {
-    return null;
+async function saveActivityLinkLabel(id: string, linkLabel: string | null) {
+  await ensureActivityColumns();
+  await prisma.$executeRaw`
+    UPDATE ChurchActivity
+    SET linkLabel = ${linkLabel}
+    WHERE id = ${id}
+  `;
+}
+
+async function loadActivityLinkLabels(ids: string[]) {
+  if (ids.length === 0) {
+    return new Map<string, string | null>();
   }
 
-  if (value.startsWith("/") && !value.startsWith("//")) {
-    return value;
-  }
+  await ensureActivityColumns();
 
-  if (/^https?:\/\//i.test(value)) {
-    return value;
-  }
+  try {
+    const rows = await prisma.$queryRaw<
+      Array<{ id: string; linkLabel: string | null }>
+    >`
+      SELECT id, linkLabel
+      FROM ChurchActivity
+      WHERE id IN (${Prisma.join(ids)})
+    `;
 
-  throw new Error("يمكنك كتابة رابط داخلي يبدأ بـ / أو رابط خارجي كامل.");
+    return new Map(rows.map((row) => [row.id, row.linkLabel?.trim() || null]));
+  } catch {
+    return new Map<string, string | null>();
+  }
 }
 
 function revalidateActivities() {
@@ -67,9 +114,16 @@ function revalidateActivities() {
 
 export async function listActivities() {
   try {
-    return await prisma.churchActivity.findMany({
+    await ensureActivityColumns();
+    const rows = await prisma.churchActivity.findMany({
       orderBy: { order: "asc" },
     });
+    const labels = await loadActivityLinkLabels(rows.map((row) => row.id));
+
+    return rows.map((row) => ({
+      ...row,
+      linkLabel: labels.get(row.id) ?? null,
+    }));
   } catch {
     return [];
   }
@@ -82,15 +136,18 @@ export async function createActivity(
   if (auth !== true) return auth;
 
   try {
+    await ensureActivityColumns();
     const maxOrder = await prisma.churchActivity.aggregate({
       _max: { order: true },
     });
-    await prisma.churchActivity.create({
+    const { linkLabel, ...record } = parseActivityData(data);
+    const created = await prisma.churchActivity.create({
       data: {
-        ...parseActivityData(data),
+        ...record,
         order: (maxOrder._max.order ?? -1) + 1,
       },
     });
+    await saveActivityLinkLabel(created.id, linkLabel);
     revalidateActivities();
     return { success: true };
   } catch (error) {
@@ -109,10 +166,13 @@ export async function updateActivity(
   if (auth !== true) return auth;
 
   try {
+    await ensureActivityColumns();
+    const { linkLabel, ...record } = parseActivityData(data);
     await prisma.churchActivity.update({
       where: { id },
-      data: parseActivityData(data),
+      data: record,
     });
+    await saveActivityLinkLabel(id, linkLabel);
     revalidateActivities();
     return { success: true };
   } catch (error) {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import OptionalImage from "@/components/public/OptionalImage";
+import LinkButton from "@/components/public/LinkButton";
 import ReadMoreText from "@/components/public/ReadMoreText";
 import { hasImageSrc } from "@/lib/optional-image";
 import {
@@ -41,6 +42,7 @@ export type HomeNamedItem = {
   description: string;
   imageUrl: string | null;
   link?: string | null;
+  linkLabel?: string | null;
 };
 
 export type HomeNewsItem = {
@@ -573,28 +575,6 @@ function ServicesSection({ activities }: { activities: HomeNamedItem[] }) {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {activities.map((activity) => {
               const href = activity.link?.trim() || "";
-              const isExternal = /^https?:\/\//i.test(href);
-              const card = (
-                <>
-                  <OptionalImage
-                    src={activity.imageUrl}
-                    alt={activity.name}
-                    fill
-                    frameClassName="relative aspect-16/10"
-                    className="object-cover"
-                  />
-                  <div className="p-5">
-                    <h3 className="text-lg font-bold text-coptic-gold-dark">
-                      {activity.name}
-                    </h3>
-                    <ReadMoreText
-                      text={activity.description}
-                      className="mt-2 whitespace-pre-line text-sm leading-7 text-deep-red/75"
-                      buttonClassName="text-coptic-gold-dark"
-                    />
-                  </div>
-                </>
-              );
 
               return (
                 <motion.article
@@ -603,20 +583,28 @@ function ServicesSection({ activities }: { activities: HomeNamedItem[] }) {
                   {...fadeIn}
                   whileHover={{ scale: 1.04, y: -4 }}
                   whileTap={{ scale: 0.98 }}
-                  className="scroll-mt-24 overflow-hidden rounded-2xl border border-coptic-gold-main/50 bg-white/80 shadow-sm"
+                  className="flex scroll-mt-24 flex-col overflow-hidden rounded-2xl border border-coptic-gold-main/50 bg-white/80 shadow-sm"
                 >
-                  {href ? (
-                    <Link
-                      href={href}
-                      className="block group"
-                      target={isExternal ? "_blank" : "_self"}
-                      rel={isExternal ? "noopener noreferrer" : undefined}
-                    >
-                      {card}
-                    </Link>
-                  ) : (
-                    <div className="block">{card}</div>
-                  )}
+                  <OptionalImage
+                    src={activity.imageUrl}
+                    alt={activity.name}
+                    fill
+                    frameClassName="relative aspect-16/10"
+                    className="object-cover"
+                  />
+                  <div className="flex flex-1 flex-col p-5">
+                    <h3 className="text-lg font-bold text-coptic-gold-dark">
+                      {activity.name}
+                    </h3>
+                    <ReadMoreText
+                      text={activity.description}
+                      className="mt-2 whitespace-pre-line text-sm leading-7 text-deep-red/75"
+                      buttonClassName="text-coptic-gold-dark"
+                    />
+                    {href ? (
+                      <LinkButton href={href} label={activity.linkLabel} />
+                    ) : null}
+                  </div>
                 </motion.article>
               );
             })}

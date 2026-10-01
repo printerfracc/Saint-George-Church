@@ -139,6 +139,7 @@ model ChurchActivity {
   description String   @db.Text
   imageUrl    String?
   link        String?
+  linkLabel   String?
   order       Int      @default(0)
   createdAt   DateTime @default(now())
 }
@@ -163,6 +164,8 @@ model LiturgyEntry {
   description String         @db.Text
   detail      String?
   imageUrl    String?
+  link        String?        @db.Text
+  linkLabel   String?
   order       Int            @default(0)
   createdAt   DateTime       @default(now())
 
@@ -279,4 +282,17 @@ model ServantAssignment {
   @@index([servantId])
   @@index([roleId])
   @@index([year])
+}
+
+model SiteContent {
+  id     String  @id
+  goal   String? @db.Text
+  slogan String? @db.Text
+}
+
+model GalleryMedia {
+  id        String   @id @default(cuid())
+  type      String
+  url       String   @db.Text
+  createdAt DateTime @default(now())
 }

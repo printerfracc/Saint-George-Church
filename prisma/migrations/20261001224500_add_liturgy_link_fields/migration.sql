@@ -1,0 +1,2 @@
+ALTER TABLE `LiturgyEntry` ADD COLUMN `link` TEXT NULL;
+ALTER TABLE `LiturgyEntry` ADD COLUMN `linkLabel` VARCHAR(191) NULL;

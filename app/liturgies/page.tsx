@@ -1,6 +1,7 @@
 import ChurchLogo from "@/components/ChurchLogo";
 import HashScroll from "@/components/HashScroll";
 import OptionalImage from "@/components/public/OptionalImage";
+import LinkButton from "@/components/public/LinkButton";
 import ChurchLiveStream from "@/components/live/ChurchLiveStream";
 import LiturgyScheduleTable from "@/components/public/LiturgyScheduleTable";
 import ReadMoreText from "@/components/public/ReadMoreText";
@@ -92,6 +93,7 @@ export default async function LiturgiesPage() {
                   const title = item.title.trim();
                   const description = item.description.trim();
                   const detail = item.detail?.trim() ?? "";
+                  const href = item.link?.trim() || "";
 
                   return (
                     <li
@@ -106,7 +108,7 @@ export default async function LiturgiesPage() {
                         frameClassName="relative aspect-video"
                         className="object-cover"
                       />
-                      {title || description || detail ? (
+                      {title || description || detail || href ? (
                         <div className="p-5">
                           {title ? (
                             <h3 className="text-lg font-bold text-deep-red">{title}</h3>
@@ -122,6 +124,9 @@ export default async function LiturgiesPage() {
                               className="mt-2 whitespace-pre-line text-sm leading-7 text-deep-red/75"
                               buttonClassName="text-coptic-gold-dark"
                             />
+                          ) : null}
+                          {href ? (
+                            <LinkButton href={href} label={item.linkLabel} />
                           ) : null}
                         </div>
                       ) : null}

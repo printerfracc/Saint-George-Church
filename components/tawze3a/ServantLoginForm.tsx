@@ -26,7 +26,7 @@ export default function ServantLoginForm() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 pt-28 pb-16 text-cream">
+    <div className="mx-auto w-full max-w-md text-cream">
       <section className="rounded-2xl border border-coptic-gold-main/40 bg-gray-900 p-6 text-center shadow-2xl">
         <div className="mb-4 flex justify-center">
           <span className="overflow-hidden rounded-xl bg-cream">

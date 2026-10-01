@@ -11,6 +11,7 @@ import {
 import { updateItemOrder } from "@/actions/reorder";
 import DraggableList from "@/components/admin/DraggableList";
 import ImageUpload from "@/components/admin/ImageUpload";
+import LinkButtonFields from "@/components/admin/LinkButtonFields";
 import SlideOver from "@/components/admin/SlideOver";
 import {
   AdminActions,
@@ -31,6 +32,8 @@ export type LiturgyRow = {
   description: string;
   detail: string | null;
   imageUrl: string | null;
+  link: string | null;
+  linkLabel: string | null;
 };
 
 const emptyForm = {
@@ -38,6 +41,8 @@ const emptyForm = {
   description: "",
   detail: "",
   imageUrl: "",
+  link: "",
+  linkLabel: "",
 };
 
 export default function LiturgyManager({ entries }: { entries: LiturgyRow[] }) {
@@ -66,6 +71,7 @@ export default function LiturgyManager({ entries }: { entries: LiturgyRow[] }) {
   const current = ADMIN_LITURGY_SECTIONS.find((section) => section.key === activeSection)!;
   const items = grouped[activeSection] ?? [];
   const isSchedule = activeSection === "SCHEDULE";
+  const isRites = activeSection === "RITES";
 
   function handleReorder(next: LiturgyRow[]) {
     const previous = rows;
@@ -98,6 +104,8 @@ export default function LiturgyManager({ entries }: { entries: LiturgyRow[] }) {
       description: item.description,
       detail: item.detail ?? "",
       imageUrl: item.imageUrl ?? "",
+      link: item.link ?? "",
+      linkLabel: item.linkLabel ?? "",
     });
     setError("");
     setOpen(true);
@@ -113,6 +121,7 @@ export default function LiturgyManager({ entries }: { entries: LiturgyRow[] }) {
       description: isSchedule ? "" : form.description,
       detail: form.detail,
       imageUrl: isSchedule ? "" : form.imageUrl,
+      ...(isRites ? { link: form.link, linkLabel: form.linkLabel } : {}),
     };
 
     const result = editing
@@ -288,14 +297,28 @@ export default function LiturgyManager({ entries }: { entries: LiturgyRow[] }) {
           </label>
 
           {isSchedule ? null : (
-            <ImageUpload
-              value={form.imageUrl}
-              onChange={(url) =>
-                setForm((currentForm) => ({ ...currentForm, imageUrl: url }))
-              }
-              label="الصورة (اختياري)"
-              preview="wide"
-            />
+            <>
+              {isRites ? (
+                <LinkButtonFields
+                  link={form.link}
+                  linkLabel={form.linkLabel}
+                  onLinkChange={(value) =>
+                    setForm((currentForm) => ({ ...currentForm, link: value }))
+                  }
+                  onLinkLabelChange={(value) =>
+                    setForm((currentForm) => ({ ...currentForm, linkLabel: value }))
+                  }
+                />
+              ) : null}
+              <ImageUpload
+                value={form.imageUrl}
+                onChange={(url) =>
+                  setForm((currentForm) => ({ ...currentForm, imageUrl: url }))
+                }
+                label="الصورة (اختياري)"
+                preview="wide"
+              />
+            </>
           )}
 
           {error ? <p className="text-sm font-bold text-coptic-gold-dark">{error}</p> : null}

@@ -35,6 +35,7 @@ export default async function AdminActivitiesPage() {
           description: activity.description,
           imageUrl: activity.imageUrl,
           link: activity.link,
+          linkLabel: activity.linkLabel,
         }))}
         onCreate={createActivity}
         onUpdate={updateActivity}

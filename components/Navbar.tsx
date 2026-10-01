@@ -73,7 +73,10 @@ function buildNavItems(
           {
             title: "عيد الخدام",
             href: "/tawze3a",
-            subItems: [{ title: "دخول الخدام", href: "/tawze3a/login" }],
+            subItems: [
+              { title: "دخول الخدام", href: "/tawze3a/login" },
+              { title: "الصور", href: "/tawze3a/gallery" },
+            ],
           },
         ]
       : []),

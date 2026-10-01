@@ -25,6 +25,8 @@ export default async function AdminLiturgiesPage() {
           description: entry.description,
           detail: entry.detail,
           imageUrl: entry.imageUrl,
+          link: entry.link,
+          linkLabel: entry.linkLabel,
         }))}
       />
     </main>

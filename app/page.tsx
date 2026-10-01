@@ -21,6 +21,7 @@ import {
 import { priestDateValue } from "@/lib/admin-labels";
 import { findDynamicContentByKey } from "@/lib/dynamic-content";
 import { prisma } from "@/lib/prisma";
+import { listActivities } from "@/actions/activities";
 import { ensurePriestColumns } from "@/actions/priests";
 
 async function loadChurchNews() {
@@ -62,13 +63,7 @@ export default async function Home() {
           }),
         [],
       ),
-      loadOr(
-        () =>
-          prisma.churchActivity.findMany({
-            orderBy: { order: "asc" },
-          }),
-        [],
-      ),
+      loadOr(() => listActivities(), []),
       loadOr(async () => {
         await ensurePriestColumns();
         return prisma.priest.findMany({
@@ -111,6 +106,7 @@ export default async function Home() {
     description: activity.description,
     imageUrl: activity.imageUrl,
     link: activity.link,
+    linkLabel: activity.linkLabel,
   }));
 
   const priests = priestRecords.map((priest) => ({

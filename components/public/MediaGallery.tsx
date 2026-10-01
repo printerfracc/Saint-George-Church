@@ -14,7 +14,8 @@ import {
   mediaGalleryImage,
   mediaOpenUrl,
 } from "@/lib/media";
-import { isYouTubeUrl } from "@/lib/youtube";
+import { YouTubeEmbedFrame, YouTubePlayOverlay } from "@/components/public/YouTubeMedia";
+import { extractYouTubeVideoId, isYouTubeUrl } from "@/lib/youtube";
 
 export type GalleryItem = {
   id: string;
@@ -80,26 +81,6 @@ function ExternalLinkButton({
   );
 }
 
-function YouTubePlayOverlay({ compact = false }: { compact?: boolean }) {
-  return (
-    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-      <span
-        className={`flex items-center justify-center rounded-full bg-deep-red/90 text-cream shadow-lg ${
-          compact ? "h-8 w-8 md:h-12 md:w-12" : "h-12 w-12"
-        }`}
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className={`ms-0.5 fill-current ${compact ? "h-4 w-4 md:h-6 md:w-6" : "h-6 w-6"}`}
-          aria-hidden
-        >
-          <path d="M8 5.14v13.72L19.5 12 8 5.14Z" />
-        </svg>
-      </span>
-    </span>
-  );
-}
-
 export default function MediaGallery({
   items,
   layout,
@@ -123,6 +104,9 @@ export default function MediaGallery({
     return () => window.cancelAnimationFrame(frame);
   }, [items]);
   const activePreview = active ? mediaGalleryImage(active) : null;
+  const activeYouTubeId = active
+    ? extractYouTubeVideoId(active.link) ?? extractYouTubeVideoId(active.fileUrl)
+    : null;
   const activeIsBook = isPortraitDisplay(active?.imageDisplayMode);
   const collectionIsBook = isPortraitDisplay(layout);
   const bookItems = collectionIsBook
@@ -325,17 +309,24 @@ export default function MediaGallery({
               }`}
               onClick={(event) => event.stopPropagation()}
             >
-              <OptionalImage
-                src={activePreview}
-                alt={active.title.trim() || mediaFileTypeLabel(active.fileType)}
-                fill
-                frameClassName={
-                  activeIsBook
-                    ? "relative mx-auto aspect-[450/730] h-[48vh] w-auto max-w-full overflow-hidden bg-[#1A0A10] md:h-[62vh]"
-                    : `${imageDisplayFrameClass(active.imageDisplayMode, "relative aspect-video")} bg-[#1A0A10]`
-                }
-                className="object-contain"
-              />
+              {activeYouTubeId ? (
+                <YouTubeEmbedFrame
+                  videoId={activeYouTubeId}
+                  title={active.title.trim() || "تشغيل الفيديو"}
+                />
+              ) : (
+                <OptionalImage
+                  src={activePreview}
+                  alt={active.title.trim() || mediaFileTypeLabel(active.fileType)}
+                  fill
+                  frameClassName={
+                    activeIsBook
+                      ? "relative mx-auto aspect-[450/730] h-[48vh] w-auto max-w-full overflow-hidden bg-[#1A0A10] md:h-[62vh]"
+                      : `${imageDisplayFrameClass(active.imageDisplayMode, "relative aspect-video")} bg-[#1A0A10]`
+                  }
+                  className="object-contain"
+                />
+              )}
               <div
                 className={`flex shrink-0 flex-col ${
                   activeIsBook ? "gap-3 p-4 md:p-5" : "gap-4 p-5"

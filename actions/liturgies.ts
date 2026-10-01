@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { isAdminLiturgySection } from "@/lib/liturgies";
+import { parseOptionalHref } from "@/lib/link-button";
 import {
   createLiturgyRecord,
   deleteLiturgyRecord,
   listLiturgyRecords,
+  saveLiturgyLinkFields,
   updateLiturgyRecord,
 } from "@/lib/liturgy-db";
 import { requireAdmin } from "@/lib/require-admin";
@@ -20,6 +22,8 @@ export type LiturgyEntryData = {
   description?: string | null;
   detail?: string | null;
   imageUrl?: string | null;
+  link?: string | null;
+  linkLabel?: string | null;
 };
 
 async function ensureAdmin(): Promise<LiturgyActionResult | true> {
@@ -38,25 +42,31 @@ function parseLiturgyData(data: LiturgyEntryData) {
   }
 
   const isSchedule = data.section === "SCHEDULE";
+  const isRites = data.section === "RITES";
   const title = data.title?.trim() ?? "";
   const description = isSchedule ? "" : (data.description?.trim() ?? "");
   const detail = data.detail?.trim() || null;
   const imageUrl = isSchedule ? null : data.imageUrl?.trim() || null;
+  const link = isRites ? parseOptionalHref(data.link) : null;
+  const linkLabel = link ? data.linkLabel?.trim() || null : null;
 
   if (isSchedule) {
     if (!title && !detail) {
       throw new Error("يرجى إدخال اسم القداس أو الموعد");
     }
-  } else if (!title && !description && !detail && !imageUrl) {
+  } else if (!title && !description && !detail && !imageUrl && !link) {
     throw new Error("يرجى إدخال حقل واحد على الأقل");
   }
 
   return {
-    section: data.section,
-    title,
-    description,
-    detail,
-    imageUrl,
+    record: {
+      section: data.section,
+      title,
+      description,
+      detail,
+      imageUrl,
+    },
+    linkFields: { link, linkLabel },
   };
 }
 
@@ -81,7 +91,9 @@ export async function createLiturgyEntry(
   if (auth !== true) return auth;
 
   try {
-    await createLiturgyRecord(parseLiturgyData(data));
+    const parsed = parseLiturgyData(data);
+    const created = await createLiturgyRecord(parsed.record);
+    await saveLiturgyLinkFields(created.id, parsed.linkFields);
     revalidateLiturgies();
     return { success: true };
   } catch (error) {
@@ -100,7 +112,9 @@ export async function updateLiturgyEntry(
   if (auth !== true) return auth;
 
   try {
-    await updateLiturgyRecord(id, parseLiturgyData(data));
+    const parsed = parseLiturgyData(data);
+    await updateLiturgyRecord(id, parsed.record);
+    await saveLiturgyLinkFields(id, parsed.linkFields);
     revalidateLiturgies();
     return { success: true };
   } catch (error) {

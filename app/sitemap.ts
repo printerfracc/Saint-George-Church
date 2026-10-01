@@ -62,6 +62,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: "weekly",
             priority: 0.6,
           },
+          {
+            url: `${baseUrl}/tawze3a/gallery`,
+            lastModified: publishedTawze3a.createdAt,
+            changeFrequency: "weekly",
+            priority: 0.6,
+          },
         ]
       : [];
 

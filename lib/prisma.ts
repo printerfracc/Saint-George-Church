@@ -7,7 +7,7 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const clientGeneration = "servant-assignment-year-draft-v1";
+const clientGeneration = "site-content-gallery-v1";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -27,7 +27,9 @@ type RequiredPrismaModel =
   | "prayerRequest"
   | "servant"
   | "servantRole"
-  | "tawze3a";
+  | "tawze3a"
+  | "siteContent"
+  | "galleryMedia";
 
 function hasModel(client: PrismaClient, key: RequiredPrismaModel) {
   try {
@@ -49,7 +51,9 @@ function isCurrentClient(client?: PrismaClient) {
       hasModel(client, "prayerRequest") &&
       hasModel(client, "servant") &&
       hasModel(client, "servantRole") &&
-      hasModel(client, "tawze3a"),
+      hasModel(client, "tawze3a") &&
+      hasModel(client, "siteContent") &&
+      hasModel(client, "galleryMedia"),
   );
 }
 
