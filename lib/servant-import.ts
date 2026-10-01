@@ -2,12 +2,13 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type { ServantImportRow } from "@/lib/servant-import-schema";
-import { calendarYear } from "@/lib/tawze3a-year";
+import { getCurrentActiveYear } from "@/lib/tawze3a-year";
 
 export type ServantChunkResult = {
   imported: number;
   skipped: number;
   failed: number;
+  details?: string;
 };
 
 type RoleRecord = { id: string; name: string };
@@ -15,6 +16,10 @@ type KhedmaRecord = { id: string; name: string };
 
 function isUniqueConstraint(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "تعذر حفظ الصف";
 }
 
 function revalidateServantImportPaths(tawze3aId?: string) {
@@ -252,9 +257,15 @@ async function ensureRoleOnlyAssignment(servantId: string, roleId: string, year:
     return;
   }
 
-  await prisma.servantAssignment.create({
-    data: { servantId, roleId, year, isDraft: false },
-  });
+  try {
+    await prisma.servantAssignment.create({
+      data: { servantId, roleId, year, isDraft: false },
+    });
+  } catch (error) {
+    if (!isUniqueConstraint(error)) {
+      throw error;
+    }
+  }
 }
 
 async function assignToKhedma(
@@ -265,14 +276,17 @@ async function assignToKhedma(
   year: number,
 ) {
   const categoryId = await ensureCategory(khedma.id, role, categoryCache);
-  const existing = await prisma.servantAssignment.findFirst({
-    where: { servantId, khedmaId: khedma.id, year },
-    select: { id: true, roleId: true, categoryId: true },
-  });
 
-  if (!existing) {
-    await prisma.servantAssignment.create({
-      data: {
+  try {
+    await prisma.servantAssignment.upsert({
+      where: {
+        servantId_khedmaId_year: {
+          servantId,
+          khedmaId: khedma.id,
+          year,
+        },
+      },
+      create: {
         servantId,
         khedmaId: khedma.id,
         roleId: role.id,
@@ -280,12 +294,15 @@ async function assignToKhedma(
         year,
         isDraft: false,
       },
+      update: {
+        roleId: role.id,
+        categoryId,
+      },
     });
-  } else if (existing.roleId !== role.id || existing.categoryId !== categoryId) {
-    await prisma.servantAssignment.update({
-      where: { id: existing.id },
-      data: { roleId: role.id, categoryId },
-    });
+  } catch (error) {
+    if (!isUniqueConstraint(error)) {
+      throw error;
+    }
   }
 
   await prisma.servantAssignment.deleteMany({
@@ -301,6 +318,7 @@ async function importRow(
     categories: Map<string, string>;
     tawze3aId: { current: string | null };
   },
+  year: number,
 ) {
   const servant = await upsertServant({
     name: row.name,
@@ -309,7 +327,6 @@ async function importRow(
   });
   const role = await ensureRole(row.role, caches.roles);
   const khedmaNames = row.khedmas ?? [];
-  const year = calendarYear();
   let linked = false;
 
   async function tawze3aId() {
@@ -349,6 +366,7 @@ export async function importServantChunk(rows: ServantImportRow[]): Promise<Serv
     return { imported: 0, skipped: 0, failed: 0 };
   }
 
+  const year = await getCurrentActiveYear();
   const caches = {
     roles: new Map<string, RoleRecord>(),
     khedmas: new Map<string, KhedmaRecord>(),
@@ -357,14 +375,23 @@ export async function importServantChunk(rows: ServantImportRow[]): Promise<Serv
   };
 
   let imported = 0;
+  let skipped = 0;
   let failed = 0;
+  const failures: string[] = [];
 
   for (const row of rows) {
     try {
-      await importRow(row, caches);
+      await importRow(row, caches, year);
       imported += 1;
     } catch (error) {
+      if (isUniqueConstraint(error)) {
+        skipped += 1;
+        continue;
+      }
+
       failed += 1;
+      const message = errorMessage(error);
+      failures.push(`${row.name} / ${row.role}: ${message}`);
       console.error("Failed to import servant row", { name: row.name, role: row.role, error });
     }
   }
@@ -373,5 +400,10 @@ export async function importServantChunk(rows: ServantImportRow[]): Promise<Serv
     revalidateServantImportPaths(caches.tawze3aId.current ?? undefined);
   }
 
-  return { imported, skipped: 0, failed };
+  return {
+    imported,
+    skipped,
+    failed,
+    details: failures.length > 0 ? failures.slice(0, 5).join(" | ") : undefined,
+  };
 }

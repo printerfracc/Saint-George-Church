@@ -5,7 +5,7 @@ import {
   type Tawze3aExcelRow,
 } from "@/lib/tawze3a-excel";
 
-export const SERVANT_IMPORT_CHUNK_SIZE = 100;
+export const SERVANT_IMPORT_CHUNK_SIZE = 50;
 
 export const SERVANT_NAME_COLUMNS = ["ServantName", "الاسم (Name)", "Name"];
 export const SERVANT_ROLE_COLUMNS = ["Role", "الرتبة"];

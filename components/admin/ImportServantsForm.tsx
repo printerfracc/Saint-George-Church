@@ -18,12 +18,42 @@ type ImportProgress = {
   label: string;
 };
 
+type ChunkErrorBody = {
+  message?: string;
+  details?: string;
+};
+
 type ChunkResponse = {
   imported?: number;
   skipped?: number;
   failed?: number;
-  error?: string;
+  error?: string | ChunkErrorBody;
+  message?: string;
+  details?: string;
 };
+
+function chunkErrorText(payload: ChunkResponse | null, raw: string, status: number) {
+  const errorField = payload?.error;
+  const message =
+    typeof errorField === "string"
+      ? errorField
+      : errorField?.message || payload?.message || "";
+  const details =
+    (typeof errorField === "object" ? errorField?.details : undefined) || payload?.details || "";
+  const exact = [message, details].filter(Boolean).join(" — ");
+
+  if (exact) {
+    return exact;
+  }
+
+  const body = raw.trim();
+
+  if (body && !body.startsWith("<")) {
+    return body.slice(0, 500);
+  }
+
+  return `تعذر حفظ هذه الدفعة (${status}).`;
+}
 
 function chunkPayloads(rows: ServantImportPayload[], size: number) {
   const chunks: ServantImportPayload[][] = [];
@@ -119,6 +149,7 @@ export default function ImportServantsForm() {
       let imported = 0;
       let skipped = 0;
       let failed = 0;
+      const failureDetails: string[] = [];
 
       for (const chunk of chunks) {
         const target = saved + chunk.length;
@@ -137,7 +168,8 @@ export default function ImportServantsForm() {
             credentials: "same-origin",
             body: JSON.stringify({ rows: chunk }),
           });
-        } catch {
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : "تعذر الاتصال بالخادم";
           setIsError(true);
           setProgress({
             done: saved,
@@ -145,20 +177,22 @@ export default function ImportServantsForm() {
             label: `جاري الاستيراد: ${saved} من ${total}`,
           });
           setMessage(
-            saved > 0
-              ? `توقف الاستيراد بعد معالجة ${saved} من ${total}. تعذر الاتصال بالخادم.`
-              : "تعذر الاتصال بالخادم. حاول مرة أخرى.",
+            saved > 0 ? `توقف الاستيراد بعد معالجة ${saved} من ${total}. ${detail}` : detail,
           );
           return;
         }
 
-        const payload = (await response.json().catch(() => null)) as ChunkResponse | null;
+        const raw = await response.text();
+        let payload: ChunkResponse | null = null;
+
+        try {
+          payload = raw ? (JSON.parse(raw) as ChunkResponse) : null;
+        } catch {
+          payload = null;
+        }
 
         if (!response.ok) {
-          const error =
-            payload?.error === "Unauthorized" || response.status === 401
-              ? "غير مصرح لك بتنفيذ هذه العملية"
-              : payload?.error || "تعذر حفظ هذه الدفعة. حاول مرة أخرى.";
+          const error = chunkErrorText(payload, raw, response.status);
 
           setIsError(true);
           setProgress({
@@ -176,6 +210,10 @@ export default function ImportServantsForm() {
         imported += payload?.imported ?? 0;
         skipped += payload?.skipped ?? 0;
         failed += payload?.failed ?? 0;
+
+        if (payload?.details) {
+          failureDetails.push(payload.details);
+        }
       }
 
       setProgress({
@@ -183,18 +221,21 @@ export default function ImportServantsForm() {
         total,
         label: `جاري الاستيراد: ${total} من ${total}`,
       });
-      setIsError(false);
-
       const summary = [`تم استيراد ${imported} خادم بنجاح.`];
 
       if (skipped > 0) {
-        summary.push(`تم تخطي ${skipped} صف بدون اسم أو رتبة.`);
+        summary.push(`تم تخطي ${skipped} صف مكرر أو غير مكتمل.`);
       }
 
       if (failed > 0) {
         summary.push(`تعذر حفظ ${failed} صف.`);
       }
 
+      if (failureDetails.length > 0) {
+        summary.push(failureDetails.join(" | "));
+      }
+
+      setIsError(failed > 0);
       setMessage(summary.join(" "));
       form.reset();
     } catch {
