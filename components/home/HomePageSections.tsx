@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
@@ -394,7 +394,136 @@ function ChurchStorySection({
   );
 }
 
+function RelicArrow({
+  label,
+  onClick,
+  disabled,
+  side,
+  className = "",
+}: {
+  label: string;
+  onClick: () => void;
+  disabled: boolean;
+  side: "right" | "left";
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.currentTarget.blur();
+        onClick();
+      }}
+      disabled={disabled}
+      aria-label={label}
+      className={`absolute z-10 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-coptic-gold-main/70 bg-[#2a0909]/90 text-coptic-gold-light shadow-md backdrop-blur-sm transition hover:bg-coptic-gold-main hover:text-black focus:ring-2 focus:ring-coptic-gold-main disabled:pointer-events-none disabled:opacity-30 ${className}`}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="h-5 w-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        aria-hidden="true"
+      >
+        {side === "right" ? (
+          <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+        ) : (
+          <path d="M15 5l-7 7 7 7" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+      </svg>
+    </button>
+  );
+}
+
 function RelicsSection({ relics }: { relics: HomeNamedItem[] }) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [atStart, setAtStart] = useState(true);
+  const [atEnd, setAtEnd] = useState(false);
+  const [hasOverflow, setHasOverflow] = useState(false);
+
+  useEffect(() => {
+    const root = scrollerRef.current;
+    if (!root) {
+      return;
+    }
+
+    function measure() {
+      const current = scrollerRef.current;
+      if (!current) {
+        return;
+      }
+
+      const cards = [...current.querySelectorAll<HTMLElement>("[data-scroll-card]")];
+      const style = getComputedStyle(current);
+      const rootRect = current.getBoundingClientRect();
+      const contentRight = rootRect.right - (Number.parseFloat(style.paddingRight) || 0);
+      const contentLeft = rootRect.left + (Number.parseFloat(style.paddingLeft) || 0);
+      const first = cards[0]?.getBoundingClientRect();
+      const last = cards[cards.length - 1]?.getBoundingClientRect();
+
+      if (current.scrollTop !== 0) {
+        current.scrollTop = 0;
+      }
+
+      setHasOverflow(current.scrollWidth > current.clientWidth + 8);
+      setAtStart(!first || first.right <= contentRight + 16);
+      setAtEnd(!last || last.left >= contentLeft - 12);
+    }
+
+    measure();
+    root.addEventListener("scroll", measure, { passive: true });
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+
+    return () => {
+      root.removeEventListener("scroll", measure);
+      observer.disconnect();
+    };
+  }, [relics]);
+
+  function scrollByCard(direction: "next" | "prev") {
+    const root = scrollerRef.current;
+    if (!root) {
+      return;
+    }
+
+    const cards = [...root.querySelectorAll<HTMLElement>("[data-scroll-card]")];
+    if (cards.length === 0) {
+      return;
+    }
+
+    const style = getComputedStyle(root);
+    const contentRight =
+      root.getBoundingClientRect().right - (Number.parseFloat(style.paddingRight) || 0);
+    let current = 0;
+    let closest = Number.POSITIVE_INFINITY;
+
+    cards.forEach((card, index) => {
+      const distance = Math.abs(card.getBoundingClientRect().right - contentRight);
+      if (distance < closest) {
+        closest = distance;
+        current = index;
+      }
+    });
+
+    const nextIndex =
+      direction === "next"
+        ? Math.min(cards.length - 1, current + 1)
+        : Math.max(0, current - 1);
+    const card = cards[nextIndex];
+    if (!card || nextIndex === current) {
+      return;
+    }
+
+    const cardRight = card.getBoundingClientRect().right;
+    root.scrollTo({
+      left: root.scrollLeft + (cardRight - contentRight),
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
   return (
     <motion.section
       {...fadeIn}
@@ -412,33 +541,62 @@ function RelicsSection({ relics }: { relics: HomeNamedItem[] }) {
         {relics.length === 0 ? (
           <EmptyFallback light title="مزار ورفات القديسين بالكنيسة" />
         ) : (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {relics.map((relic) => (
-              <motion.article
-                key={relic.id}
-                id={searchItemAnchor(relic.id)}
-                {...fadeIn}
-                className="scroll-mt-24 overflow-hidden rounded-3xl border border-coptic-gold-main/40 bg-black/25 shadow-sm"
-              >
-                <OptionalImage
-                  src={relic.imageUrl}
-                  alt={relic.name}
-                  fill
-                  frameClassName="relative aspect-4/3"
-                  className="object-cover"
+          <div className="relative">
+            {hasOverflow ? (
+              <>
+                <RelicArrow
+                  side="right"
+                  label="السابق"
+                  disabled={atStart}
+                  onClick={() => scrollByCard("prev")}
+                  className="start-1 top-[34vw] md:start-0 md:top-32"
                 />
-                <div className="p-5">
-                  <h3 className="text-xl font-bold text-coptic-gold-light">
-                    {relic.name}
-                  </h3>
-                  <ReadMoreText
-                    text={relic.description}
-                    className="mt-2 whitespace-pre-line text-sm leading-7 text-cream/85"
-                    buttonClassName="text-coptic-gold-light"
+                <RelicArrow
+                  side="left"
+                  label="التالي"
+                  disabled={atEnd}
+                  onClick={() => scrollByCard("next")}
+                  className="end-1 top-[34vw] md:end-0 md:top-32"
+                />
+              </>
+            ) : null}
+
+            <div
+              ref={scrollerRef}
+              role="region"
+              aria-label="مزار ورفات القديسين"
+              className="flex snap-x snap-mandatory touch-pan-y gap-0 overflow-x-auto overflow-y-hidden overscroll-x-contain overscroll-y-auto pb-2 [scrollbar-width:none] md:gap-5 md:px-12 md:[scroll-padding-inline:3rem] [&::-webkit-scrollbar]:hidden"
+            >
+              {relics.map((relic) => (
+                <motion.article
+                  key={relic.id}
+                  data-scroll-card
+                  {...fadeIn}
+                  className="w-full shrink-0 basis-full snap-start overflow-hidden rounded-3xl border border-coptic-gold-main/40 bg-black/25 shadow-sm md:w-[calc((100%-1.25rem)/2)] md:basis-auto lg:w-[calc((100%-2.5rem)/3)]"
+                >
+                  <OptionalImage
+                    src={relic.imageUrl}
+                    alt={relic.name}
+                    fill
+                    frameClassName="relative aspect-4/3"
+                    className="object-cover"
                   />
-                </div>
-              </motion.article>
-            ))}
+                  <div className="p-5">
+                    <h3
+                      id={searchItemAnchor(relic.id)}
+                      className="scroll-mt-24 text-xl font-bold text-coptic-gold-light"
+                    >
+                      {relic.name}
+                    </h3>
+                    <ReadMoreText
+                      text={relic.description}
+                      className="mt-2 whitespace-pre-line text-sm leading-7 text-cream/85"
+                      buttonClassName="text-coptic-gold-light"
+                    />
+                  </div>
+                </motion.article>
+              ))}
+            </div>
           </div>
         )}
       </div>

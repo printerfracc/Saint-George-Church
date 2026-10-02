@@ -60,7 +60,11 @@ export function servantListWhere(
 
   if (query) {
     and.push({
-      OR: [{ name: { contains: query } }, { phone: { contains: query } }],
+      OR: [
+        { name: { contains: query } },
+        { phone: { contains: query } },
+        { nationalId: { contains: query } },
+      ],
     });
   }
 

@@ -442,7 +442,7 @@ export default function ServantDirectory({
                 isComposing.current = false;
                 setSearchInput(event.currentTarget.value);
               }}
-              placeholder="ابحث بالاسم أو رقم الموبايل"
+              placeholder="ابحث بالاسم أو رقم الموبايل أو الرقم القومي"
               className="min-h-11 w-full rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
             />
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
