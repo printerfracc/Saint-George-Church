@@ -8,7 +8,6 @@ import {
   isImportableServantRow,
   SERVANT_IMPORT_CHUNK_SIZE,
   SERVANT_NAME_COLUMNS,
-  SERVANT_ROLE_COLUMNS,
   type ServantImportPayload,
 } from "@/lib/servant-import-schema";
 
@@ -125,10 +124,10 @@ export default function ImportServantsForm() {
         return;
       }
 
-      if (!columnExists(rows, SERVANT_NAME_COLUMNS) || !columnExists(rows, SERVANT_ROLE_COLUMNS)) {
+      if (!columnExists(rows, SERVANT_NAME_COLUMNS)) {
         setIsError(true);
         setProgress(null);
-        setMessage("يجب أن يحتوي الملف على عمودي ServantName و Role. باقي الأعمدة اختيارية.");
+        setMessage("يجب أن يحتوي الملف على عمود ServantName. الرتبة والخدمة وباقي الأعمدة اختيارية.");
         return;
       }
 
@@ -257,8 +256,8 @@ export default function ImportServantsForm() {
     >
       <h2 className="text-lg font-bold text-deep-red">رفع ملف Excel</h2>
       <p className="mt-2 text-sm leading-7 text-deep-red/75">
-        الأعمدة المطلوبة: ServantName و Role. الأعمدة الاختيارية: ServantPhone و ServantNationalID و 5edma.
-        الملفات الكبيرة تُرسل على دفعات حتى لا ينقطع الرفع.
+        العمود المطلوب: ServantName. الأعمدة الاختيارية: Role و ServantPhone و ServantNationalID و 5edma.
+        إذا تُركت الرتبة فارغة يُسجَّل الخادم برتبة «خادم غير مسجل» دون خدمة. الملفات الكبيرة تُرسل على دفعات.
       </p>
 
       <label className="mt-4 block text-sm font-bold text-deep-red" htmlFor="servants-file">

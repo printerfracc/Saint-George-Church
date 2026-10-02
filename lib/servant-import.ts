@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import type { ServantImportRow } from "@/lib/servant-import-schema";
+import { UNREGISTERED_SERVANT_ROLE, type ServantImportRow } from "@/lib/servant-import-schema";
 import { getCurrentActiveYear } from "@/lib/tawze3a-year";
 
 export type ServantChunkResult = {
@@ -52,6 +52,16 @@ async function ensureTawze3a() {
   return created.id;
 }
 
+function blankToNull(value: string | null | undefined) {
+  const text = value?.trim() ?? "";
+
+  if (!text || text === "0" || text.toLowerCase() === "undefined" || text.toLowerCase() === "null") {
+    return null;
+  }
+
+  return text;
+}
+
 async function findExistingServant(input: {
   name: string;
   phone: string | null;
@@ -76,7 +86,10 @@ async function upsertServant(input: {
   phone: string | null;
   nationalId: string | null;
 }) {
-  const existing = await findExistingServant(input);
+  const phone = blankToNull(input.phone);
+  const nationalId = blankToNull(input.nationalId);
+  const servantInput = { name: input.name, phone, nationalId };
+  const existing = await findExistingServant(servantInput);
 
   if (existing) {
     try {
@@ -84,8 +97,8 @@ async function upsertServant(input: {
         where: { id: existing.id },
         data: {
           name: input.name,
-          ...(input.phone ? { phone: input.phone } : {}),
-          ...(input.nationalId ? { nationalId: input.nationalId } : {}),
+          ...(phone ? { phone } : {}),
+          ...(nationalId ? { nationalId } : {}),
         },
       });
     } catch (error) {
@@ -104,8 +117,8 @@ async function upsertServant(input: {
     return await prisma.servant.create({
       data: {
         name: input.name,
-        phone: input.phone,
-        nationalId: input.nationalId,
+        phone,
+        nationalId,
       },
     });
   } catch (error) {
@@ -113,7 +126,7 @@ async function upsertServant(input: {
       throw error;
     }
 
-    const raced = await findExistingServant(input);
+    const raced = await findExistingServant(servantInput);
 
     if (raced) {
       return prisma.servant.update({
@@ -126,7 +139,7 @@ async function upsertServant(input: {
       data: {
         name: input.name,
         phone: null,
-        nationalId: input.nationalId,
+        nationalId,
       },
     });
   }
@@ -325,8 +338,8 @@ async function importRow(
     phone: row.mobilePhone,
     nationalId: row.nationalId,
   });
-  const role = await ensureRole(row.role, caches.roles);
-  const khedmaNames = row.khedmas ?? [];
+  const role = await ensureRole(row.role.trim() || UNREGISTERED_SERVANT_ROLE, caches.roles);
+  const khedmaNames = (row.khedmas ?? []).filter((name) => name.trim().length > 0);
   let linked = false;
 
   async function tawze3aId() {

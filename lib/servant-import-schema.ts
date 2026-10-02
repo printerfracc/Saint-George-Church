@@ -6,6 +6,7 @@ import {
 } from "@/lib/tawze3a-excel";
 
 export const SERVANT_IMPORT_CHUNK_SIZE = 50;
+export const UNREGISTERED_SERVANT_ROLE = "خادم غير مسجل";
 
 export const SERVANT_NAME_COLUMNS = ["ServantName", "الاسم (Name)", "Name"];
 export const SERVANT_ROLE_COLUMNS = ["Role", "الرتبة"];
@@ -44,7 +45,12 @@ function optionalNullableString(treatZeroAsEmpty = false) {
 
 export const servantImportRowSchema = z.object({
   name: z.string().trim().min(1),
-  role: z.string().trim().min(1),
+  role: z
+    .string()
+    .trim()
+    .optional()
+    .nullable()
+    .transform((value) => normalizeOptionalText(value) ?? UNREGISTERED_SERVANT_ROLE),
   mobilePhone: optionalNullableString(true),
   nationalId: optionalNullableString(true),
   khedmaId: optionalNullableString(true),
@@ -106,14 +112,16 @@ export function excelRowToImportPayload(row: Tawze3aExcelRow): ServantImportPayl
 
   return {
     name: firstCell(row, SERVANT_NAME_COLUMNS),
-    role: firstCell(row, SERVANT_ROLE_COLUMNS),
-    mobilePhone: firstCell(row, PHONE_COLUMNS) || null,
-    nationalId: firstCell(row, NATIONAL_ID_COLUMNS) || null,
+    role: firstCell(row, SERVANT_ROLE_COLUMNS) || UNREGISTERED_SERVANT_ROLE,
+    mobilePhone: isFilledText(firstCell(row, PHONE_COLUMNS)) ? firstCell(row, PHONE_COLUMNS) : null,
+    nationalId: isFilledText(firstCell(row, NATIONAL_ID_COLUMNS))
+      ? firstCell(row, NATIONAL_ID_COLUMNS)
+      : null,
     khedmaId: null,
-    khedmas: khedma ? [khedma] : null,
+    khedmas: isFilledText(khedma) ? [khedma] : null,
   };
 }
 
 export function isImportableServantRow(row: ServantImportPayload) {
-  return isFilledText(row.name) && isFilledText(row.role);
+  return isFilledText(row.name);
 }
