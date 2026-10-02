@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
@@ -394,17 +394,19 @@ function ChurchStorySection({
   );
 }
 
-function RelicArrow({
+function ScrollArrow({
   label,
   onClick,
   disabled,
   side,
+  tone,
   className = "",
 }: {
   label: string;
   onClick: () => void;
   disabled: boolean;
   side: "right" | "left";
+  tone: "dark" | "light";
   className?: string;
 }) {
   return (
@@ -416,7 +418,11 @@ function RelicArrow({
       }}
       disabled={disabled}
       aria-label={label}
-      className={`absolute z-10 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-coptic-gold-main/70 bg-[#2a0909]/90 text-coptic-gold-light shadow-md backdrop-blur-sm transition hover:bg-coptic-gold-main hover:text-black focus:ring-2 focus:ring-coptic-gold-main disabled:pointer-events-none disabled:opacity-30 ${className}`}
+      className={`absolute z-10 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border shadow-md backdrop-blur-sm transition hover:bg-coptic-gold-main hover:text-black focus:ring-2 focus:ring-coptic-gold-main disabled:pointer-events-none disabled:opacity-30 ${
+        tone === "dark"
+          ? "border-coptic-gold-main/70 bg-[#2a0909]/90 text-coptic-gold-light"
+          : "border-coptic-gold-main/70 bg-white/95 text-coptic-gold-dark"
+      } ${className}`}
     >
       <svg
         viewBox="0 0 24 24"
@@ -436,7 +442,20 @@ function RelicArrow({
   );
 }
 
-function RelicsSection({ relics }: { relics: HomeNamedItem[] }) {
+const scrollCardWidthClass =
+  "w-full shrink-0 basis-full snap-start select-none overflow-hidden md:w-[calc((100%-1.25rem)/2)] md:basis-auto lg:w-[calc((100%-2.5rem)/3)]";
+
+function CardScroller({
+  label,
+  tone,
+  itemCount,
+  children,
+}: {
+  label: string;
+  tone: "dark" | "light";
+  itemCount: number;
+  children: ReactNode;
+}) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
@@ -480,7 +499,7 @@ function RelicsSection({ relics }: { relics: HomeNamedItem[] }) {
       root.removeEventListener("scroll", measure);
       observer.disconnect();
     };
-  }, [relics]);
+  }, [itemCount]);
 
   function scrollByCard(direction: "next" | "prev") {
     const root = scrollerRef.current;
@@ -525,6 +544,42 @@ function RelicsSection({ relics }: { relics: HomeNamedItem[] }) {
   }
 
   return (
+    <div className="relative">
+      {hasOverflow ? (
+        <>
+          <ScrollArrow
+            tone={tone}
+            side="right"
+            label="السابق"
+            disabled={atStart}
+            onClick={() => scrollByCard("prev")}
+            className="start-1 top-[34vw] md:start-0 md:top-32"
+          />
+          <ScrollArrow
+            tone={tone}
+            side="left"
+            label="التالي"
+            disabled={atEnd}
+            onClick={() => scrollByCard("next")}
+            className="end-1 top-[34vw] md:end-0 md:top-32"
+          />
+        </>
+      ) : null}
+
+      <div
+        ref={scrollerRef}
+        role="region"
+        aria-label={label}
+        className="flex snap-x snap-mandatory gap-0 overflow-x-auto overflow-y-hidden overscroll-x-contain overscroll-y-auto pb-2 [scrollbar-width:none] [touch-action:pan-x_pan-y] md:gap-5 md:px-12 md:[scroll-padding-inline:3rem] [&::-webkit-scrollbar]:hidden"
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function RelicsSection({ relics }: { relics: HomeNamedItem[] }) {
+  return (
     <motion.section
       {...fadeIn}
       id="relics"
@@ -541,63 +596,38 @@ function RelicsSection({ relics }: { relics: HomeNamedItem[] }) {
         {relics.length === 0 ? (
           <EmptyFallback light title="مزار ورفات القديسين بالكنيسة" />
         ) : (
-          <div className="relative">
-            {hasOverflow ? (
-              <>
-                <RelicArrow
-                  side="right"
-                  label="السابق"
-                  disabled={atStart}
-                  onClick={() => scrollByCard("prev")}
-                  className="start-1 top-[34vw] md:start-0 md:top-32"
+          <CardScroller label="مزار ورفات القديسين" tone="dark" itemCount={relics.length}>
+            {relics.map((relic) => (
+              <motion.article
+                key={relic.id}
+                data-scroll-card
+                {...fadeIn}
+                className={`${scrollCardWidthClass} rounded-3xl border border-coptic-gold-main/40 bg-black/25 shadow-sm`}
+              >
+                <OptionalImage
+                  src={relic.imageUrl}
+                  alt={relic.name}
+                  fill
+                  draggable={false}
+                  frameClassName="relative aspect-4/3 [touch-action:pan-x_pan-y]"
+                  className="pointer-events-none object-cover select-none"
                 />
-                <RelicArrow
-                  side="left"
-                  label="التالي"
-                  disabled={atEnd}
-                  onClick={() => scrollByCard("next")}
-                  className="end-1 top-[34vw] md:end-0 md:top-32"
-                />
-              </>
-            ) : null}
-
-            <div
-              ref={scrollerRef}
-              role="region"
-              aria-label="مزار ورفات القديسين"
-              className="flex snap-x snap-mandatory touch-pan-y gap-0 overflow-x-auto overflow-y-hidden overscroll-x-contain overscroll-y-auto pb-2 [scrollbar-width:none] md:gap-5 md:px-12 md:[scroll-padding-inline:3rem] [&::-webkit-scrollbar]:hidden"
-            >
-              {relics.map((relic) => (
-                <motion.article
-                  key={relic.id}
-                  data-scroll-card
-                  {...fadeIn}
-                  className="w-full shrink-0 basis-full snap-start overflow-hidden rounded-3xl border border-coptic-gold-main/40 bg-black/25 shadow-sm md:w-[calc((100%-1.25rem)/2)] md:basis-auto lg:w-[calc((100%-2.5rem)/3)]"
-                >
-                  <OptionalImage
-                    src={relic.imageUrl}
-                    alt={relic.name}
-                    fill
-                    frameClassName="relative aspect-4/3"
-                    className="object-cover"
+                <div className="p-5">
+                  <h3
+                    id={searchItemAnchor(relic.id)}
+                    className="scroll-mt-24 text-xl font-bold text-coptic-gold-light"
+                  >
+                    {relic.name}
+                  </h3>
+                  <ReadMoreText
+                    text={relic.description}
+                    className="mt-2 whitespace-pre-line text-sm leading-7 text-cream/85"
+                    buttonClassName="text-coptic-gold-light"
                   />
-                  <div className="p-5">
-                    <h3
-                      id={searchItemAnchor(relic.id)}
-                      className="scroll-mt-24 text-xl font-bold text-coptic-gold-light"
-                    >
-                      {relic.name}
-                    </h3>
-                    <ReadMoreText
-                      text={relic.description}
-                      className="mt-2 whitespace-pre-line text-sm leading-7 text-cream/85"
-                      buttonClassName="text-coptic-gold-light"
-                    />
-                  </div>
-                </motion.article>
-              ))}
-            </div>
-          </div>
+                </div>
+              </motion.article>
+            ))}
+          </CardScroller>
         )}
       </div>
     </motion.section>
@@ -730,28 +760,34 @@ function ServicesSection({ activities }: { activities: HomeNamedItem[] }) {
         {activities.length === 0 ? (
           <EmptyFallback title="خدمات وأنشطة الكنيسة المتنوعة" />
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <CardScroller
+            label="خدمات وأنشطة الكنيسة المتنوعة"
+            tone="light"
+            itemCount={activities.length}
+          >
             {activities.map((activity) => {
               const href = activity.link?.trim() || "";
 
               return (
                 <motion.article
                   key={activity.id}
-                  id={searchItemAnchor(activity.id)}
+                  data-scroll-card
                   {...fadeIn}
-                  whileHover={{ scale: 1.04, y: -4 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex scroll-mt-24 flex-col overflow-hidden rounded-2xl border border-coptic-gold-main/50 bg-white/80 shadow-sm"
+                  className={`${scrollCardWidthClass} flex flex-col rounded-3xl border border-coptic-gold-main/50 bg-white/80 shadow-sm`}
                 >
                   <OptionalImage
                     src={activity.imageUrl}
                     alt={activity.name}
                     fill
-                    frameClassName="relative aspect-16/10"
-                    className="object-cover"
+                    draggable={false}
+                    frameClassName="relative aspect-4/3 [touch-action:pan-x_pan-y]"
+                    className="pointer-events-none object-cover select-none"
                   />
                   <div className="flex flex-1 flex-col p-5">
-                    <h3 className="text-lg font-bold text-coptic-gold-dark">
+                    <h3
+                      id={searchItemAnchor(activity.id)}
+                      className="scroll-mt-24 text-xl font-bold text-coptic-gold-dark"
+                    >
                       {activity.name}
                     </h3>
                     <ReadMoreText
@@ -766,7 +802,7 @@ function ServicesSection({ activities }: { activities: HomeNamedItem[] }) {
                 </motion.article>
               );
             })}
-          </div>
+          </CardScroller>
         )}
       </div>
     </motion.section>
