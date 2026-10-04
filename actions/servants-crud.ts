@@ -4,7 +4,8 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
-import { servantListWhere } from "@/lib/servant-filters";
+import { UNREGISTERED_SERVANT_ROLE } from "@/lib/servant-import-schema";
+import { servantListWhere, type ServantQueryFilters } from "@/lib/servant-filters";
 import { wipeServantRolesAndCategories } from "@/lib/tawze3a-wipe";
 import { calendarYear } from "@/lib/tawze3a-year";
 
@@ -33,6 +34,7 @@ export type ServantListFilters = {
   roleIds?: string[];
   khedmaIds?: string[];
   year?: number;
+  assignedToOtherKhedma?: boolean;
 };
 
 export type ServantMutationResult =
@@ -256,6 +258,60 @@ export async function deleteAllServants(): Promise<
   }
 }
 
+async function resolveServantListWhere(
+  filters: ServantQueryFilters,
+): Promise<ServantQueryFilters> {
+  if (!filters.assignedToOtherKhedma) {
+    return filters;
+  }
+
+  const role = await prisma.servantRole.findUnique({
+    where: { name: UNREGISTERED_SERVANT_ROLE },
+    select: { id: true },
+  });
+
+  if (!role || !filters.roleIds.includes(role.id)) {
+    return { ...filters, assignedToOtherKhedma: false };
+  }
+
+  return { ...filters, unregisteredRoleId: role.id };
+}
+
+export async function clearUnregisteredServantRole(
+  servantId: string,
+  year: number,
+): Promise<{ success: true } | { error: string }> {
+  const session = await requireTawze3aAdmin();
+
+  if (!session) {
+    return { error: "غير مصرح لك بتنفيذ هذه العملية" };
+  }
+
+  if (!servantId.trim() || !Number.isInteger(year)) {
+    return { error: "تعذر تحديد الخادم المطلوب" };
+  }
+
+  try {
+    await prisma.servantAssignment.deleteMany({
+      where: {
+        servantId,
+        year,
+        role: { name: UNREGISTERED_SERVANT_ROLE },
+      },
+    });
+
+    revalidatePath("/admin/servants");
+    revalidatePath("/admin/tawze3a");
+    revalidatePath("/tawze3a");
+    revalidatePath("/tawze3a/login");
+
+    return { success: true };
+  } catch (error) {
+    console.error("clearUnregisteredServantRole failed", error);
+    return { error: "تعذر إزالة صفة غير مسجل حالياً. حاول مرة أخرى." };
+  }
+}
+
 export async function getServants(
   query?: string,
   page?: number,
@@ -272,12 +328,15 @@ export async function getServants(
   const currentPage = Math.max(1, page ?? 1);
   const pageSize = Math.min(100, Math.max(1, limit ?? 50));
   const year = filters?.year ?? calendarYear();
-  const where = servantListWhere({
-    query: trimmedQuery,
-    roleIds: filters?.roleIds ?? [],
-    khedmaIds: filters?.khedmaIds ?? [],
-    year,
-  });
+  const where = servantListWhere(
+    await resolveServantListWhere({
+      query: trimmedQuery,
+      roleIds: filters?.roleIds ?? [],
+      khedmaIds: filters?.khedmaIds ?? [],
+      year,
+      assignedToOtherKhedma: filters?.assignedToOtherKhedma,
+    }),
+  );
 
   try {
     const [servants, total] = await Promise.all([

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
+import { UNREGISTERED_SERVANT_ROLE } from "@/lib/servant-import-schema";
 import {
   assignmentMatchesFilters,
   parseServantListFilters,
@@ -32,7 +33,20 @@ async function exportFilteredServants(filters: ServantQueryFilters) {
     );
   }
 
-  const where = servantListWhere(filters);
+  const unregisteredRole = filters.assignedToOtherKhedma
+    ? await prisma.servantRole.findUnique({
+        where: { name: UNREGISTERED_SERVANT_ROLE },
+        select: { id: true },
+      })
+    : null;
+  const applyOtherKhedma = Boolean(
+    unregisteredRole && filters.roleIds.includes(unregisteredRole.id),
+  );
+  const where = servantListWhere({
+    ...filters,
+    assignedToOtherKhedma: applyOtherKhedma,
+    unregisteredRoleId: unregisteredRole?.id,
+  });
 
   try {
     const servants = await prisma.servant.findMany({
@@ -112,6 +126,7 @@ export async function GET(request: NextRequest) {
       role: request.nextUrl.searchParams.get("role"),
       khedma: request.nextUrl.searchParams.get("khedma"),
       year: request.nextUrl.searchParams.get("year"),
+      other: request.nextUrl.searchParams.get("other"),
     }),
   );
 }
@@ -122,6 +137,7 @@ export async function POST(request: NextRequest) {
     role?: string;
     khedma?: string;
     year?: string;
+    other?: string;
   } | null;
 
   return exportFilteredServants(
@@ -130,6 +146,7 @@ export async function POST(request: NextRequest) {
       role: body?.role,
       khedma: body?.khedma,
       year: body?.year,
+      other: body?.other,
     }),
   );
 }

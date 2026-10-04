@@ -130,6 +130,7 @@ export type EedBanner = {
 export default function Tawze3aViewer({
   publishedTawze3a,
   servantName,
+  unassigned = false,
   myAssignments,
   history,
   activeYear,
@@ -138,6 +139,7 @@ export default function Tawze3aViewer({
 }: {
   publishedTawze3a: PublicTawze3a;
   servantName: string;
+  unassigned?: boolean;
   myAssignments: MyAssignment[];
   history: HistoryAssignment[];
   activeYear: number;
@@ -234,6 +236,12 @@ export default function Tawze3aViewer({
                 </span>
               ))}
             </div>
+          </div>
+        ) : unassigned ? (
+          <div className="mt-6 rounded-2xl border border-coptic-gold-main/40 bg-black/30 px-5 py-4">
+            <p className="text-base font-bold leading-8 text-coptic-gold-light">
+              مرحباً بك {servantName}
+            </p>
           </div>
         ) : (
           <p className="mt-6 rounded-xl border border-coptic-gold-main/20 bg-black/30 px-4 py-3 text-sm leading-7 text-cream/80">

@@ -54,8 +54,26 @@ export default async function Tawze3aPage() {
     redirect("/tawze3a/login");
   }
 
+  const servant = await prisma.servant.findUnique({
+    where: { id: session.servantId },
+    select: { id: true, name: true },
+  });
+
+  if (!servant) {
+    redirect("/tawze3a/login");
+  }
+
   const currentActiveYear = await getCurrentActiveYear();
-  const fullTawze3a = await getPublishedTawze3a(currentActiveYear);
+  const [fullTawze3a, khedmaAssignmentCount] = await Promise.all([
+    getPublishedTawze3a(currentActiveYear),
+    prisma.servantAssignment.count({
+      where: {
+        servantId: servant.id,
+        year: currentActiveYear,
+        khedmaId: { not: null },
+      },
+    }),
+  ]);
 
   if (!fullTawze3a) {
     notFound();
@@ -184,7 +202,8 @@ export default async function Tawze3aPage() {
   return (
     <Tawze3aViewer
       publishedTawze3a={viewerTawze3a}
-      servantName={session.name}
+      servantName={servant.name}
+      unassigned={khedmaAssignmentCount === 0}
       myAssignments={myAssignments}
       history={history}
       activeYear={currentActiveYear}

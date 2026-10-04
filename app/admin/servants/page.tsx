@@ -8,6 +8,8 @@ import { getServants, listKhedmaFilters } from "@/actions/servants-crud";
 import { listServantRoles } from "@/actions/tawze3a-admin";
 import { authOptions } from "@/lib/auth";
 import { parseServantListFilters } from "@/lib/servant-filters";
+import { UNREGISTERED_SERVANT_ROLE } from "@/lib/servant-import-schema";
+import { getCurrentActiveYear } from "@/lib/tawze3a-year";
 
 export const metadata = {
   title: "إدارة الخدام",
@@ -16,7 +18,7 @@ export const metadata = {
 export default async function ServantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; role?: string; khedma?: string; year?: string }>;
+  searchParams: Promise<{ q?: string; role?: string; khedma?: string; year?: string; other?: string }>;
 }) {
   const session = await getServerSession(authOptions);
 
@@ -29,12 +31,14 @@ export default async function ServantsPage({
   const query = filters.query ?? "";
   const roleIds = filters.roleIds;
   const khedmaIds = filters.khedmaIds;
+  const activeYear = await getCurrentActiveYear();
 
   const [result, khedmat, roles] = await Promise.all([
     getServants(query, 1, 100, {
       roleIds,
       khedmaIds,
-      year: filters.year,
+      year: activeYear,
+      assignedToOtherKhedma: filters.assignedToOtherKhedma,
     }),
     listKhedmaFilters(),
     listServantRoles(),
@@ -70,7 +74,11 @@ export default async function ServantsPage({
         query={query}
         roleIds={roleIds}
         khedmaIds={khedmaIds}
-        selectedYear={filters.year}
+        selectedYear={activeYear}
+        assignedToOtherKhedma={
+          Boolean(filters.assignedToOtherKhedma) &&
+          roleIds.includes(roles.find((role) => role.name === UNREGISTERED_SERVANT_ROLE)?.id ?? "")
+        }
       />
     </main>
   );

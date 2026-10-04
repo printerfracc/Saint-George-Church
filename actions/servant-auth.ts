@@ -28,6 +28,11 @@ export async function loginServant(formData: FormData): Promise<ServantLoginResu
   try {
     const servant = await prisma.servant.findFirst({
       where: { phone: trimmedPhone },
+      select: {
+        id: true,
+        name: true,
+        nationalId: true,
+      },
     });
 
     if (!servant) {

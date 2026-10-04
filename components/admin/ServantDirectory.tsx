@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  clearUnregisteredServantRole,
   createServant,
   deleteAllServants,
   deleteServant,
@@ -13,6 +14,7 @@ import {
 } from "@/actions/servants-crud";
 import { DraftBadge } from "@/components/admin/AssignmentYearTools";
 import MultiSelectFilter from "@/components/admin/MultiSelectFilter";
+import { UNREGISTERED_SERVANT_ROLE } from "@/lib/servant-import-schema";
 import type { ServantRoleOption } from "@/lib/servant-roles";
 import { serializeIdList, servantMatchesFilters } from "@/lib/servant-filters";
 import {
@@ -161,6 +163,7 @@ export default function ServantDirectory({
   roleIds,
   khedmaIds,
   selectedYear,
+  assignedToOtherKhedma,
 }: {
   initialServants: ServantRow[];
   initialTotal: number;
@@ -170,6 +173,7 @@ export default function ServantDirectory({
   roleIds: string[];
   khedmaIds: string[];
   selectedYear: number;
+  assignedToOtherKhedma: boolean;
 }) {
   const router = useRouter();
   const [servants, setServants] = useState(initialServants);
@@ -177,6 +181,8 @@ export default function ServantDirectory({
   const [searchInput, setSearchInput] = useState(query);
   const [selectedRoles, setSelectedRoles] = useState<string[]>(roleIds);
   const [selectedKhedmat, setSelectedKhedmat] = useState<string[]>(khedmaIds);
+  const [otherKhedmaOnly, setOtherKhedmaOnly] = useState(assignedToOtherKhedma);
+  const [clearingId, setClearingId] = useState("");
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState<ServantFormState>(emptyForm);
@@ -204,7 +210,16 @@ export default function ServantDirectory({
 
     setSelectedRoles(roleIds);
     setSelectedKhedmat(khedmaIds);
-  }, [incomingKhedmaKey, incomingRoleKey, khedmaIds, roleIds]);
+    setOtherKhedmaOnly(assignedToOtherKhedma);
+  }, [assignedToOtherKhedma, incomingKhedmaKey, incomingRoleKey, khedmaIds, roleIds]);
+
+  const unregisteredRoleId = useMemo(
+    () => roles.find((role) => role.name === UNREGISTERED_SERVANT_ROLE)?.id ?? "",
+    [roles],
+  );
+  const showOtherKhedmaToggle = Boolean(
+    unregisteredRoleId && selectedRoles.includes(unregisteredRoleId),
+  );
 
   const roleOptions = useMemo(
     () => roles.map((item) => ({ id: item.id, label: item.name })),
@@ -248,20 +263,28 @@ export default function ServantDirectory({
     }, 300);
 
     return () => window.clearTimeout(handle);
-  }, [searchInput, query, selectedRoles, selectedKhedmat]);
+  }, [otherKhedmaOnly, searchInput, query, selectedRoles, selectedKhedmat]);
 
   const title = useMemo(
     () => (editing ? "تعديل خادم" : "إضافة خادم"),
     [editing],
   );
 
-  function replaceFilters(next: { q?: string; roleIds?: string[]; khedmaIds?: string[] }) {
+  function replaceFilters(next: {
+    q?: string;
+    roleIds?: string[];
+    khedmaIds?: string[];
+    assignedToOtherKhedma?: boolean;
+  }) {
     const params = new URLSearchParams();
     const nextQuery = "q" in next ? next.q ?? "" : query;
     const nextRoles = "roleIds" in next ? next.roleIds ?? [] : selectedRoles;
     const nextKhedmat = "khedmaIds" in next ? next.khedmaIds ?? [] : selectedKhedmat;
+    const nextOther =
+      "assignedToOtherKhedma" in next ? Boolean(next.assignedToOtherKhedma) : otherKhedmaOnly;
     const nextRole = serializeIdList(nextRoles);
     const nextKhedma = serializeIdList(nextKhedmat);
+    const keepOther = Boolean(unregisteredRoleId && nextRoles.includes(unregisteredRoleId) && nextOther);
 
     if (nextQuery) {
       params.set("q", nextQuery);
@@ -275,6 +298,10 @@ export default function ServantDirectory({
       params.set("khedma", nextKhedma);
     }
 
+    if (keepOther) {
+      params.set("other", "1");
+    }
+
     const qs = params.toString().replaceAll("+", "%20");
     router.replace(qs ? `/admin/servants?${qs}` : "/admin/servants", { scroll: false });
   }
@@ -282,7 +309,15 @@ export default function ServantDirectory({
   function handleRolesChange(ids: string[]) {
     skipFilterSync.current = true;
     setSelectedRoles(ids);
-    replaceFilters({ roleIds: ids });
+    const keepOther = Boolean(unregisteredRoleId && ids.includes(unregisteredRoleId) && otherKhedmaOnly);
+    setOtherKhedmaOnly(keepOther);
+    replaceFilters({ roleIds: ids, assignedToOtherKhedma: keepOther });
+  }
+
+  function handleOtherKhedmaChange(checked: boolean) {
+    skipFilterSync.current = true;
+    setOtherKhedmaOnly(checked);
+    replaceFilters({ assignedToOtherKhedma: checked });
   }
 
   function handleKhedmatChange(ids: string[]) {
@@ -376,6 +411,77 @@ export default function ServantDirectory({
     router.refresh();
   }
 
+  function hasOtherKhedma(servant: ServantRow) {
+    const inYear = servant.assignments.filter((assignment) => assignment.year === selectedYear);
+    const unregistered = inYear.some(
+      (assignment) => assignment.roleName === UNREGISTERED_SERVANT_ROLE && !assignment.khedmaId,
+    );
+    const realKhedma = inYear.some((assignment) => Boolean(assignment.khedmaId));
+
+    return unregistered && realKhedma;
+  }
+
+  async function handleClearUnregistered(servant: ServantRow) {
+    setClearingId(servant.id);
+    setError("");
+
+    const result = await clearUnregisteredServantRole(servant.id, selectedYear);
+    setClearingId("");
+
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+
+    setServants((current) =>
+      current.flatMap((item) => {
+        if (item.id !== servant.id) {
+          return [item];
+        }
+
+        const updated = {
+          ...item,
+          assignments: item.assignments.filter(
+            (assignment) =>
+              !(
+                assignment.year === selectedYear &&
+                assignment.roleName === UNREGISTERED_SERVANT_ROLE
+              ),
+          ),
+        };
+
+        return otherKhedmaOnly ? [] : [updated];
+      }),
+    );
+
+    if (otherKhedmaOnly) {
+      setTotal((current) => Math.max(0, current - 1));
+    }
+
+    if (editing?.id === servant.id) {
+      closeForm();
+    }
+
+    router.refresh();
+  }
+
+  function renderClearUnregistered(servant: ServantRow) {
+    if (!hasOtherKhedma(servant)) {
+      return null;
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => void handleClearUnregistered(servant)}
+        disabled={clearingId === servant.id}
+        className={adminActionOutline}
+      >
+        {clearingId === servant.id ? "جاري الإزالة..." : "إزالة صفة غير مسجل"}
+      </button>
+    );
+  }
+
   async function handleExport() {
     setIsExporting(true);
     setError("");
@@ -387,6 +493,7 @@ export default function ServantDirectory({
         role: serializeIdList(selectedRoles) || pageParams.get("role") || "",
         khedma: serializeIdList(selectedKhedmat) || pageParams.get("khedma") || "",
         year: String(selectedYear),
+        other: otherKhedmaOnly && showOtherKhedmaToggle ? "1" : "",
       };
 
       const response = await fetch("/api/admin/servants/export", {
@@ -463,6 +570,17 @@ export default function ServantDirectory({
                 emptyLabel="جميع الخدمات"
                 countLabel={(count) => `تم تحديد ${count} خدمات`}
               />
+              {showOtherKhedmaToggle ? (
+                <label className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-deep-red/20 bg-white px-4 text-sm font-bold text-deep-red sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={otherKhedmaOnly}
+                    onChange={(event) => handleOtherKhedmaChange(event.target.checked)}
+                    className="h-4 w-4 accent-deep-red"
+                  />
+                  مسند لخدمة أخرى
+                </label>
+              ) : null}
             </div>
             <div className="flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto">
               <button type="button" onClick={openCreate} className={adminActionGold}>
@@ -554,6 +672,7 @@ export default function ServantDirectory({
                 >
                   حذف
                 </button>
+                {renderClearUnregistered(servant)}
               </div>
             </AdminMobileCard>
           ))}
@@ -594,6 +713,7 @@ export default function ServantDirectory({
                   >
                     حذف
                   </button>
+                  {renderClearUnregistered(servant)}
                 </div>
               </td>
             </tr>

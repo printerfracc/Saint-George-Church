@@ -18,6 +18,8 @@ export type ServantQueryFilters = {
   roleIds: string[];
   khedmaIds: string[];
   year: number;
+  assignedToOtherKhedma?: boolean;
+  unregisteredRoleId?: string;
 };
 
 export function parseIdList(value?: string | string[] | null): string[] {
@@ -34,17 +36,20 @@ export function parseServantListFilters(params: {
   role?: string | string[] | null;
   khedma?: string | string[] | null;
   year?: string | string[] | null;
+  other?: string | string[] | null;
 }): ServantQueryFilters {
   const query = (Array.isArray(params.q) ? params.q[0] : params.q)?.trim() ?? "";
   const roleIds = parseIdList(params.role);
   const khedmaIds = parseIdList(params.khedma);
   const yearValue = Array.isArray(params.year) ? params.year[0] : params.year;
+  const otherValue = Array.isArray(params.other) ? params.other[0] : params.other;
 
   return {
     query: query || undefined,
     roleIds,
     khedmaIds,
     year: parseYear(yearValue),
+    assignedToOtherKhedma: otherValue === "1",
   };
 }
 
@@ -78,6 +83,30 @@ export function servantListWhere(
     and.push({
       assignments: { some: { roleId: { in: roleIds } } },
     });
+  }
+
+  if (filters.assignedToOtherKhedma) {
+    if (!filters.unregisteredRoleId) {
+      and.push({ id: { in: [] } });
+    } else {
+      and.push({
+        assignments: {
+          some: {
+            year: filters.year,
+            roleId: filters.unregisteredRoleId,
+            khedmaId: null,
+          },
+        },
+      });
+      and.push({
+        assignments: {
+          some: {
+            year: filters.year,
+            khedmaId: { not: null },
+          },
+        },
+      });
+    }
   }
 
   return and.length > 0 ? { AND: and } : undefined;
