@@ -19,7 +19,7 @@ export type ServantQueryFilters = {
   khedmaIds: string[];
   year: number;
   assignedToOtherKhedma?: boolean;
-  unregisteredRoleId?: string;
+  statusRoleIds?: string[];
 };
 
 export function parseIdList(value?: string | string[] | null): string[] {
@@ -86,14 +86,16 @@ export function servantListWhere(
   }
 
   if (filters.assignedToOtherKhedma) {
-    if (!filters.unregisteredRoleId) {
+    const statusRoleIds = filters.statusRoleIds ?? [];
+
+    if (statusRoleIds.length === 0) {
       and.push({ id: { in: [] } });
     } else {
       and.push({
         assignments: {
           some: {
             year: filters.year,
-            roleId: filters.unregisteredRoleId,
+            roleId: { in: statusRoleIds },
             khedmaId: null,
           },
         },

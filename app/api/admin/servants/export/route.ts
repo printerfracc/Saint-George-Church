@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
-import { UNREGISTERED_SERVANT_ROLE } from "@/lib/servant-import-schema";
+import { OTHER_KHEDMA_STATUS_ROLES } from "@/lib/servant-import-schema";
 import {
   assignmentMatchesFilters,
   parseServantListFilters,
@@ -33,19 +33,19 @@ async function exportFilteredServants(filters: ServantQueryFilters) {
     );
   }
 
-  const unregisteredRole = filters.assignedToOtherKhedma
-    ? await prisma.servantRole.findUnique({
-        where: { name: UNREGISTERED_SERVANT_ROLE },
+  const statusRoles = filters.assignedToOtherKhedma
+    ? await prisma.servantRole.findMany({
+        where: { name: { in: OTHER_KHEDMA_STATUS_ROLES.map((role) => role.name) } },
         select: { id: true },
       })
-    : null;
-  const applyOtherKhedma = Boolean(
-    unregisteredRole && filters.roleIds.includes(unregisteredRole.id),
-  );
+    : [];
+  const statusRoleIds = statusRoles
+    .map((role) => role.id)
+    .filter((roleId) => filters.roleIds.includes(roleId));
   const where = servantListWhere({
     ...filters,
-    assignedToOtherKhedma: applyOtherKhedma,
-    unregisteredRoleId: unregisteredRole?.id,
+    assignedToOtherKhedma: statusRoleIds.length > 0,
+    statusRoleIds,
   });
 
   try {

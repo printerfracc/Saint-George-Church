@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
-import { UNREGISTERED_SERVANT_ROLE } from "@/lib/servant-import-schema";
+import { OTHER_KHEDMA_STATUS_ROLES } from "@/lib/servant-import-schema";
 import { servantListWhere, type ServantQueryFilters } from "@/lib/servant-filters";
 import { wipeServantRolesAndCategories } from "@/lib/tawze3a-wipe";
 import { calendarYear } from "@/lib/tawze3a-year";
@@ -265,21 +265,25 @@ async function resolveServantListWhere(
     return filters;
   }
 
-  const role = await prisma.servantRole.findUnique({
-    where: { name: UNREGISTERED_SERVANT_ROLE },
+  const roles = await prisma.servantRole.findMany({
+    where: { name: { in: OTHER_KHEDMA_STATUS_ROLES.map((role) => role.name) } },
     select: { id: true },
   });
+  const statusRoleIds = roles
+    .map((role) => role.id)
+    .filter((roleId) => filters.roleIds.includes(roleId));
 
-  if (!role || !filters.roleIds.includes(role.id)) {
+  if (statusRoleIds.length === 0) {
     return { ...filters, assignedToOtherKhedma: false };
   }
 
-  return { ...filters, unregisteredRoleId: role.id };
+  return { ...filters, statusRoleIds };
 }
 
-export async function clearUnregisteredServantRole(
+export async function clearServantStatusRole(
   servantId: string,
   year: number,
+  roleName: string,
 ): Promise<{ success: true } | { error: string }> {
   const session = await requireTawze3aAdmin();
 
@@ -287,7 +291,9 @@ export async function clearUnregisteredServantRole(
     return { error: "غير مصرح لك بتنفيذ هذه العملية" };
   }
 
-  if (!servantId.trim() || !Number.isInteger(year)) {
+  const allowed = OTHER_KHEDMA_STATUS_ROLES.some((role) => role.name === roleName);
+
+  if (!servantId.trim() || !Number.isInteger(year) || !allowed) {
     return { error: "تعذر تحديد الخادم المطلوب" };
   }
 
@@ -296,7 +302,7 @@ export async function clearUnregisteredServantRole(
       where: {
         servantId,
         year,
-        role: { name: UNREGISTERED_SERVANT_ROLE },
+        role: { name: roleName },
       },
     });
 
@@ -307,8 +313,8 @@ export async function clearUnregisteredServantRole(
 
     return { success: true };
   } catch (error) {
-    console.error("clearUnregisteredServantRole failed", error);
-    return { error: "تعذر إزالة صفة غير مسجل حالياً. حاول مرة أخرى." };
+    console.error("clearServantStatusRole failed", error);
+    return { error: "تعذر إزالة الصفة حالياً. حاول مرة أخرى." };
   }
 }
 

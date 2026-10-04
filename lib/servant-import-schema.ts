@@ -7,6 +7,12 @@ import {
 
 export const SERVANT_IMPORT_CHUNK_SIZE = 50;
 export const UNREGISTERED_SERVANT_ROLE = "خادم غير مسجل";
+export const SUSPENDED_SERVANT_ROLE = "خادم موقوف";
+
+export const OTHER_KHEDMA_STATUS_ROLES = [
+  { name: UNREGISTERED_SERVANT_ROLE, clearLabel: "إزالة صفة غير مسجل" },
+  { name: SUSPENDED_SERVANT_ROLE, clearLabel: "إزالة صفة موقوف" },
+] as const;
 
 export const SERVANT_NAME_COLUMNS = ["ServantName", "الاسم (Name)", "Name"];
 export const SERVANT_ROLE_COLUMNS = ["Role", "الرتبة"];

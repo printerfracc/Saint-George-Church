@@ -8,7 +8,7 @@ import { getServants, listKhedmaFilters } from "@/actions/servants-crud";
 import { listServantRoles } from "@/actions/tawze3a-admin";
 import { authOptions } from "@/lib/auth";
 import { parseServantListFilters } from "@/lib/servant-filters";
-import { UNREGISTERED_SERVANT_ROLE } from "@/lib/servant-import-schema";
+import { OTHER_KHEDMA_STATUS_ROLES } from "@/lib/servant-import-schema";
 import { getCurrentActiveYear } from "@/lib/tawze3a-year";
 
 export const metadata = {
@@ -77,7 +77,11 @@ export default async function ServantsPage({
         selectedYear={activeYear}
         assignedToOtherKhedma={
           Boolean(filters.assignedToOtherKhedma) &&
-          roleIds.includes(roles.find((role) => role.name === UNREGISTERED_SERVANT_ROLE)?.id ?? "")
+          roles.some(
+            (role) =>
+              roleIds.includes(role.id) &&
+              OTHER_KHEDMA_STATUS_ROLES.some((status) => status.name === role.name),
+          )
         }
       />
     </main>

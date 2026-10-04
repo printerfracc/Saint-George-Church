@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  clearUnregisteredServantRole,
+  clearServantStatusRole,
   createServant,
   deleteAllServants,
   deleteServant,
@@ -14,7 +14,7 @@ import {
 } from "@/actions/servants-crud";
 import { DraftBadge } from "@/components/admin/AssignmentYearTools";
 import MultiSelectFilter from "@/components/admin/MultiSelectFilter";
-import { UNREGISTERED_SERVANT_ROLE } from "@/lib/servant-import-schema";
+import { OTHER_KHEDMA_STATUS_ROLES } from "@/lib/servant-import-schema";
 import type { ServantRoleOption } from "@/lib/servant-roles";
 import { serializeIdList, servantMatchesFilters } from "@/lib/servant-filters";
 import {
@@ -213,13 +213,14 @@ export default function ServantDirectory({
     setOtherKhedmaOnly(assignedToOtherKhedma);
   }, [assignedToOtherKhedma, incomingKhedmaKey, incomingRoleKey, khedmaIds, roleIds]);
 
-  const unregisteredRoleId = useMemo(
-    () => roles.find((role) => role.name === UNREGISTERED_SERVANT_ROLE)?.id ?? "",
+  const statusRoleIds = useMemo(
+    () =>
+      roles
+        .filter((role) => OTHER_KHEDMA_STATUS_ROLES.some((status) => status.name === role.name))
+        .map((role) => role.id),
     [roles],
   );
-  const showOtherKhedmaToggle = Boolean(
-    unregisteredRoleId && selectedRoles.includes(unregisteredRoleId),
-  );
+  const showOtherKhedmaToggle = statusRoleIds.some((roleId) => selectedRoles.includes(roleId));
 
   const roleOptions = useMemo(
     () => roles.map((item) => ({ id: item.id, label: item.name })),
@@ -284,7 +285,9 @@ export default function ServantDirectory({
       "assignedToOtherKhedma" in next ? Boolean(next.assignedToOtherKhedma) : otherKhedmaOnly;
     const nextRole = serializeIdList(nextRoles);
     const nextKhedma = serializeIdList(nextKhedmat);
-    const keepOther = Boolean(unregisteredRoleId && nextRoles.includes(unregisteredRoleId) && nextOther);
+    const keepOther = Boolean(
+      nextOther && nextRoles.some((roleId) => statusRoleIds.includes(roleId)),
+    );
 
     if (nextQuery) {
       params.set("q", nextQuery);
@@ -309,7 +312,9 @@ export default function ServantDirectory({
   function handleRolesChange(ids: string[]) {
     skipFilterSync.current = true;
     setSelectedRoles(ids);
-    const keepOther = Boolean(unregisteredRoleId && ids.includes(unregisteredRoleId) && otherKhedmaOnly);
+    const keepOther = Boolean(
+      otherKhedmaOnly && ids.some((roleId) => statusRoleIds.includes(roleId)),
+    );
     setOtherKhedmaOnly(keepOther);
     replaceFilters({ roleIds: ids, assignedToOtherKhedma: keepOther });
   }
@@ -411,21 +416,44 @@ export default function ServantDirectory({
     router.refresh();
   }
 
-  function hasOtherKhedma(servant: ServantRow) {
+  function statusRolesToClear(servant: ServantRow) {
     const inYear = servant.assignments.filter((assignment) => assignment.year === selectedYear);
-    const unregistered = inYear.some(
-      (assignment) => assignment.roleName === UNREGISTERED_SERVANT_ROLE && !assignment.khedmaId,
+    const realKhedma = inYear.some((assignment) => Boolean(assignment.khedmaId));
+
+    if (!realKhedma) {
+      return [];
+    }
+
+    return OTHER_KHEDMA_STATUS_ROLES.filter((status) =>
+      inYear.some((assignment) => assignment.roleName === status.name && !assignment.khedmaId),
+    );
+  }
+
+  function matchesOtherKhedmaFilter(servant: ServantRow) {
+    const inYear = servant.assignments.filter((assignment) => assignment.year === selectedYear);
+    const selectedStatusNames = new Set(
+      roles
+        .filter(
+          (role) =>
+            selectedRoles.includes(role.id) &&
+            OTHER_KHEDMA_STATUS_ROLES.some((status) => status.name === role.name),
+        )
+        .map((role) => role.name),
+    );
+    const hasStatus = inYear.some(
+      (assignment) => selectedStatusNames.has(assignment.roleName) && !assignment.khedmaId,
     );
     const realKhedma = inYear.some((assignment) => Boolean(assignment.khedmaId));
 
-    return unregistered && realKhedma;
+    return hasStatus && realKhedma;
   }
 
-  async function handleClearUnregistered(servant: ServantRow) {
-    setClearingId(servant.id);
+  async function handleClearStatus(servant: ServantRow, roleName: string) {
+    const clearingKey = `${servant.id}:${roleName}`;
+    setClearingId(clearingKey);
     setError("");
 
-    const result = await clearUnregisteredServantRole(servant.id, selectedYear);
+    const result = await clearServantStatusRole(servant.id, selectedYear, roleName);
     setClearingId("");
 
     if ("error" in result) {
@@ -433,28 +461,25 @@ export default function ServantDirectory({
       return;
     }
 
+    const updated = {
+      ...servant,
+      assignments: servant.assignments.filter(
+        (assignment) => !(assignment.year === selectedYear && assignment.roleName === roleName),
+      ),
+    };
+    const removed = otherKhedmaOnly && !matchesOtherKhedmaFilter(updated);
+
     setServants((current) =>
       current.flatMap((item) => {
         if (item.id !== servant.id) {
           return [item];
         }
 
-        const updated = {
-          ...item,
-          assignments: item.assignments.filter(
-            (assignment) =>
-              !(
-                assignment.year === selectedYear &&
-                assignment.roleName === UNREGISTERED_SERVANT_ROLE
-              ),
-          ),
-        };
-
-        return otherKhedmaOnly ? [] : [updated];
+        return removed ? [] : [updated];
       }),
     );
 
-    if (otherKhedmaOnly) {
+    if (removed) {
       setTotal((current) => Math.max(0, current - 1));
     }
 
@@ -465,21 +490,28 @@ export default function ServantDirectory({
     router.refresh();
   }
 
-  function renderClearUnregistered(servant: ServantRow) {
-    if (!hasOtherKhedma(servant)) {
+  function renderClearStatus(servant: ServantRow) {
+    const statuses = statusRolesToClear(servant);
+
+    if (statuses.length === 0) {
       return null;
     }
 
-    return (
-      <button
-        type="button"
-        onClick={() => void handleClearUnregistered(servant)}
-        disabled={clearingId === servant.id}
-        className={adminActionOutline}
-      >
-        {clearingId === servant.id ? "جاري الإزالة..." : "إزالة صفة غير مسجل"}
-      </button>
-    );
+    return statuses.map((status) => {
+      const clearingKey = `${servant.id}:${status.name}`;
+
+      return (
+        <button
+          key={status.name}
+          type="button"
+          onClick={() => void handleClearStatus(servant, status.name)}
+          disabled={clearingId === clearingKey}
+          className={adminActionOutline}
+        >
+          {clearingId === clearingKey ? "جاري الإزالة..." : status.clearLabel}
+        </button>
+      );
+    });
   }
 
   async function handleExport() {
@@ -672,7 +704,7 @@ export default function ServantDirectory({
                 >
                   حذف
                 </button>
-                {renderClearUnregistered(servant)}
+                {renderClearStatus(servant)}
               </div>
             </AdminMobileCard>
           ))}
@@ -713,7 +745,7 @@ export default function ServantDirectory({
                   >
                     حذف
                   </button>
-                  {renderClearUnregistered(servant)}
+                  {renderClearStatus(servant)}
                 </div>
               </td>
             </tr>
