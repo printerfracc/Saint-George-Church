@@ -60,7 +60,7 @@ export default async function Tawze3aPage() {
   });
 
   if (!servant) {
-    redirect("/tawze3a/login");
+    redirect("/tawze3a/clear-session");
   }
 
   const currentActiveYear = await getCurrentActiveYear();

@@ -78,3 +78,43 @@ export function isAmenRole(name: string) {
 
   return normalized.includes("امين") && !normalized.includes("نايب");
 }
+
+export function isAmanatElKhedma(name: string) {
+  const normalized = roleKey(name);
+
+  return normalized.includes("امانه") && normalized.includes("الخدمه");
+}
+
+export function amanatElKhedmaRoleOrder(name: string) {
+  const normalized = roleKey(name);
+  const deputy = normalized.includes("نايب");
+
+  if (
+    !deputy &&
+    normalized.includes("امين عام") &&
+    !normalized.includes("اسر") &&
+    !normalized.includes("مسرح") &&
+    !normalized.includes("ابتدا") &&
+    !normalized.includes("اعداد")
+  ) {
+    return 0;
+  }
+
+  if (deputy && normalized.includes("امين")) {
+    return 1;
+  }
+
+  if (normalized.includes("ابتدا")) {
+    return 2;
+  }
+
+  if (normalized.includes("اعداد") || normalized.includes("ثانوي")) {
+    return 3;
+  }
+
+  if (normalized.includes("مسرح")) {
+    return 4;
+  }
+
+  return 50 + roleDisplayIndex(name);
+}

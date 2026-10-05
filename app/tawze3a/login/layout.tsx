@@ -22,6 +22,15 @@ export default async function ServantLoginLayout({
   const session = await getServantSession();
 
   if (session) {
+    const servant = await prisma.servant.findUnique({
+      where: { id: session.servantId },
+      select: { id: true },
+    });
+
+    if (!servant) {
+      redirect("/tawze3a/clear-session");
+    }
+
     redirect("/tawze3a");
   }
 

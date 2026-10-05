@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { logoutServant } from "@/actions/servant-auth";
 import EedContentBanner from "@/components/tawze3a/EedContentBanner";
 import { normalizeArabic } from "@/lib/arabicNormalizer";
-import { isAmenRole, roleDisplayIndex } from "@/lib/servant-role-order";
+import {
+  amanatElKhedmaRoleOrder,
+  isAmanatElKhedma,
+  isAmenRole,
+  roleDisplayIndex,
+} from "@/lib/servant-role-order";
 
 export type PublicServant = {
   id: string;
@@ -98,6 +103,19 @@ function groupHistory(assignments: HistoryAssignment[]) {
   return [...groups.values()];
 }
 
+type KhedmaServant = {
+  id: string;
+  servantId: string;
+  name: string;
+  roleName: string;
+};
+
+type KhedmaRoleCard = {
+  id: string;
+  roleName: string;
+  people: KhedmaServant[];
+};
+
 function servantsInKhedma(khedma: PublicKhedma) {
   return khedma.categories
     .flatMap((category) => {
@@ -119,6 +137,41 @@ function servantsInKhedma(khedma: PublicKhedma) {
 
       return left.name.localeCompare(right.name, "ar");
     });
+}
+
+function roleCardsForKhedma(khedma: PublicKhedma): KhedmaRoleCard[] {
+  const servants = servantsInKhedma(khedma);
+
+  if (!isAmanatElKhedma(khedma.name)) {
+    return servants.map((servant) => ({
+      id: servant.id,
+      roleName: servant.roleName,
+      people: [servant],
+    }));
+  }
+
+  const groups = new Map<string, KhedmaRoleCard>();
+
+  for (const servant of servants) {
+    const current = groups.get(servant.roleName) ?? {
+      id: servant.roleName,
+      roleName: servant.roleName,
+      people: [],
+    };
+
+    current.people.push(servant);
+    groups.set(servant.roleName, current);
+  }
+
+  return [...groups.values()]
+    .map((card) => ({
+      ...card,
+      people: [...card.people].sort((left, right) => left.name.localeCompare(right.name, "ar")),
+    }))
+    .sort(
+      (left, right) =>
+        amanatElKhedmaRoleOrder(left.roleName) - amanatElKhedmaRoleOrder(right.roleName),
+    );
 }
 
 export type EedBanner = {
@@ -319,24 +372,27 @@ export default function Tawze3aViewer({
                   {khedma.name}
                 </summary>
                 <div className="mt-4">
-                  {servantsInKhedma(khedma).length === 0 ? (
+                  {roleCardsForKhedma(khedma).length === 0 ? (
                     <p className="text-xs text-cream/50">لا يوجد خدام في هذه الخدمة</p>
                   ) : (
                     <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-                      {servantsInKhedma(khedma).map((servant) => {
-                        const isMe = servant.servantId === servantId;
-                        const amen = isAmenRole(servant.roleName);
+                      {roleCardsForKhedma(khedma).map((card) => {
+                        const solo = card.people.length === 1 ? card.people[0] : undefined;
+                        const isMe = Boolean(solo && solo.servantId === servantId);
+                        const amen = isAmanatElKhedma(khedma.name)
+                          ? amanatElKhedmaRoleOrder(card.roleName) === 0
+                          : isAmenRole(card.roleName);
 
                         return (
                           <li
-                            key={servant.id}
+                            key={card.id}
                             className={`flex flex-col rounded-lg px-3 py-2 text-sm ${
                               isMe
                                 ? "bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark font-bold text-gray-950"
                                 : "bg-gray-950/70 text-cream"
                             }`}
                           >
-                            {servant.roleName ? (
+                            {card.roleName ? (
                               <span
                                 className={`mb-1.5 w-fit rounded-full px-2 py-0.5 text-xs font-bold ${
                                   isMe
@@ -344,13 +400,28 @@ export default function Tawze3aViewer({
                                     : "bg-coptic-gold-main/15 text-coptic-gold-light"
                                 }`}
                               >
-                                {servant.roleName}
+                                {card.roleName}
                               </span>
                             ) : null}
-                            <span className={amen && !isMe ? "text-base font-bold text-coptic-gold-light" : undefined}>
-                              {servant.name}
-                              {isMe ? " (أنت)" : ""}
-                            </span>
+                            <div className="flex flex-col gap-1">
+                              {card.people.map((servant) => {
+                                const personIsMe = servant.servantId === servantId;
+
+                                return (
+                                  <span
+                                    key={servant.id}
+                                    className={
+                                      amen && !personIsMe
+                                        ? "text-base font-bold text-coptic-gold-light"
+                                        : undefined
+                                    }
+                                  >
+                                    {servant.name}
+                                    {personIsMe ? " (أنت)" : ""}
+                                  </span>
+                                );
+                              })}
+                            </div>
                           </li>
                         );
                       })}
