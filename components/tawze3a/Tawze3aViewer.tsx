@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { logoutServant } from "@/actions/servant-auth";
 import EedContentBanner from "@/components/tawze3a/EedContentBanner";
 import { normalizeArabic } from "@/lib/arabicNormalizer";
@@ -33,6 +34,7 @@ export type PublicCategory = {
 export type PublicKhedma = {
   id: string;
   name: string;
+  logoUrl: string | null;
   order: number;
   categories: PublicCategory[];
 };
@@ -368,8 +370,17 @@ export default function Tawze3aViewer({
                 open
                 className="rounded-2xl border border-coptic-gold-main/30 bg-gray-900 p-4 open:pb-5"
               >
-                <summary className="cursor-pointer list-none text-lg font-bold text-coptic-gold-light">
-                  {khedma.name}
+                <summary className="flex cursor-pointer list-none items-center gap-3 text-lg font-bold text-coptic-gold-light">
+                  {khedma.logoUrl ? (
+                    <Image
+                      src={khedma.logoUrl}
+                      alt=""
+                      width={40}
+                      height={40}
+                      className="h-10 w-10 shrink-0 rounded-full border border-gray-200 object-cover shadow-sm"
+                    />
+                  ) : null}
+                  <span className="min-w-0">{khedma.name}</span>
                 </summary>
                 <div className="mt-4">
                   {roleCardsForKhedma(khedma).length === 0 ? (

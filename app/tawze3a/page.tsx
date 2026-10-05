@@ -142,6 +142,7 @@ export default async function Tawze3aPage() {
     khedmat: fullTawze3a.khedmat.map((khedma) => ({
       id: khedma.id,
       name: khedma.name,
+      logoUrl: khedma.logoUrl,
       order: khedma.order,
       categories: [...khedma.categories]
         .sort((left, right) => left.order - right.order)

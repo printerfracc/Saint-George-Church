@@ -242,6 +242,7 @@ model Khedma {
   tawze3aId   String
   tawze3a     Tawze3a             @relation(fields: [tawze3aId], references: [id], onDelete: Cascade)
   name        String
+  logoUrl     String?
   order       Int                 @default(0)
   categories  KhedmaCategory[]
   assignments ServantAssignment[]

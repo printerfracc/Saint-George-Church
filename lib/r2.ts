@@ -97,13 +97,20 @@ function objectKey(folder: string, fileName: string) {
   return `${folder}/${crypto.randomUUID()}-${safeFileName(fileName)}`;
 }
 
+function publicBaseUrl() {
+  const value = process.env.R2_PUBLIC_URL?.trim() || process.env.R2_PUBLIC_DOMAIN?.trim();
+  if (!value) {
+    throw new Error("إعدادات التخزين غير مكتملة");
+  }
+  return value.replace(/\/+$/, "");
+}
+
 export function r2PublicUrl(key: string) {
-  const base = requiredEnv("R2_PUBLIC_DOMAIN").replace(/\/+$/, "");
   const path = key
     .split("/")
     .map((segment) => encodeURIComponent(segment))
     .join("/");
-  return `${base}/${path}`;
+  return `${publicBaseUrl()}/${path}`;
 }
 
 async function ensureUploadCors() {
@@ -147,6 +154,35 @@ async function putObject(key: string, body: Buffer, contentType: string) {
   );
 
   return r2PublicUrl(key);
+}
+
+const LOGO_FOLDER = "saint-george-church/khedma-logos";
+const MAX_LOGO_BYTES = 10 * 1024 * 1024;
+const LOGO_EXTENSIONS: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
+
+export async function uploadToR2(file: File | Buffer, contentType?: string) {
+  const body = file instanceof File ? Buffer.from(await file.arrayBuffer()) : file;
+  const sourceName = file instanceof File ? file.name || "logo" : "logo";
+  const declared = contentTypeForUpload(
+    sourceName,
+    contentType ?? (file instanceof File ? file.type : undefined),
+  );
+
+  if (!LOGO_EXTENSIONS[declared]) {
+    throw new Error("يُسمح برفع الصور فقط (JPG أو PNG أو WEBP أو GIF)");
+  }
+
+  if (body.byteLength === 0 || body.byteLength > MAX_LOGO_BYTES) {
+    throw new Error("حجم الصورة أكبر من 10 ميغابايت");
+  }
+
+  const key = `${LOGO_FOLDER}/${crypto.randomUUID()}.${LOGO_EXTENSIONS[declared]}`;
+  return putObject(key, body, declared);
 }
 
 export async function storeImageFile(file: File) {

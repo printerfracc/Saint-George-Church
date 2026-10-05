@@ -2,7 +2,9 @@
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { validateImageFile } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
+import { uploadToR2 } from "@/lib/r2";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
 import type { ServantRoleOption } from "@/lib/servant-roles";
 import { calendarYear } from "@/lib/tawze3a-year";
@@ -44,6 +46,7 @@ export type BuilderCategory = {
 export type BuilderKhedma = {
   id: string;
   name: string;
+  logoUrl: string | null;
   order: number;
   categories: BuilderCategory[];
 };
@@ -102,6 +105,53 @@ function mapAssignment(assignment: {
     isDraft: assignment.isDraft,
     servant: assignment.servant,
   };
+}
+
+function mapKhedma(khedma: {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  order: number;
+  categories: Parameters<typeof mapCategory>[0][];
+}): BuilderKhedma {
+  return {
+    id: khedma.id,
+    name: khedma.name,
+    logoUrl: khedma.logoUrl,
+    order: khedma.order,
+    categories: khedma.categories.map(mapCategory),
+  };
+}
+
+async function readLogoFile(formData: FormData): Promise<
+  | { file: File }
+  | { file: null }
+  | { error: string }
+> {
+  const file = formData.get("logo");
+
+  if (!(file instanceof File) || file.size === 0) {
+    return { file: null };
+  }
+
+  const validationError = validateImageFile(file);
+  if (validationError) {
+    return { error: validationError };
+  }
+
+  return { file };
+}
+
+async function storeLogo(file: File): Promise<{ url: string } | { error: string }> {
+  try {
+    return { url: await uploadToR2(file) };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.startsWith("يُسمح") || message.startsWith("حجم الصورة")) {
+      return { error: message };
+    }
+    return { error: "تعذر رفع اللوجو. حاول مرة أخرى." };
+  }
 }
 
 function mapCategory(category: {
@@ -220,12 +270,7 @@ export async function getTawze3a(
       id: row.id,
       title: row.title,
       isPublished: row.isPublished,
-      khedmat: row.khedmat.map((khedma) => ({
-        id: khedma.id,
-        name: khedma.name,
-        order: khedma.order,
-        categories: khedma.categories.map(mapCategory),
-      })),
+      khedmat: row.khedmat.map(mapKhedma),
     };
   } catch {
     return null;
@@ -256,12 +301,7 @@ export async function getKhedma(
 
     return {
       tawze3a: row.tawze3a,
-      khedma: {
-        id: row.id,
-        name: row.name,
-        order: row.order,
-        categories: row.categories.map(mapCategory),
-      },
+      khedma: mapKhedma(row),
     };
   } catch (error) {
     console.error("getKhedma failed", { tawze3aId, khedmaId, year }, error);
@@ -331,17 +371,31 @@ export async function togglePublishTawze3a(id: string): Promise<
   }
 }
 
+function khedmaWithCategories() {
+  return {
+    categories: {
+      orderBy: { order: "asc" as const },
+      include: builderCategoryInclude(calendarYear()),
+    },
+  };
+}
+
 export async function addKhedma(
   tawze3aId: string,
-  name: string,
+  formData: FormData,
 ): Promise<{ success: true; khedma: BuilderKhedma } | { success: false; error: string }> {
   const auth = await ensureTawze3aAdmin();
   if (auth !== true) return auth;
 
-  const trimmed = name.trim();
+  const trimmed = String(formData.get("name") ?? "").trim();
 
   if (!trimmed) {
     return { success: false, error: "يرجى إدخال اسم الخدمة" };
+  }
+
+  const logo = await readLogoFile(formData);
+  if ("error" in logo) {
+    return { success: false, error: logo.error };
   }
 
   try {
@@ -354,6 +408,15 @@ export async function addKhedma(
       return { success: false, error: "التوزيعة غير موجودة" };
     }
 
+    let logoUrl: string | null = null;
+    if (logo.file) {
+      const stored = await storeLogo(logo.file);
+      if ("error" in stored) {
+        return { success: false, error: stored.error };
+      }
+      logoUrl = stored.url;
+    }
+
     const maxOrder = await prisma.khedma.aggregate({
       where: { tawze3aId },
       _max: { order: true },
@@ -363,29 +426,68 @@ export async function addKhedma(
       data: {
         tawze3aId,
         name: trimmed,
+        logoUrl,
         order: (maxOrder._max.order ?? -1) + 1,
       },
-      include: {
-        categories: {
-          orderBy: { order: "asc" },
-          include: builderCategoryInclude(calendarYear()),
-        },
-      },
+      include: khedmaWithCategories(),
     });
 
     revalidateTawze3aPaths(tawze3aId);
 
     return {
       success: true,
-      khedma: {
-        id: created.id,
-        name: created.name,
-        order: created.order,
-        categories: created.categories.map(mapCategory),
-      },
+      khedma: mapKhedma(created),
     };
   } catch {
     return { success: false, error: "تعذر إضافة الخدمة. حاول مرة أخرى." };
+  }
+}
+
+export async function updateKhedma(
+  khedmaId: string,
+  formData: FormData,
+): Promise<{ success: true; khedma: BuilderKhedma } | { success: false; error: string }> {
+  const auth = await ensureTawze3aAdmin();
+  if (auth !== true) return auth;
+
+  const logo = await readLogoFile(formData);
+  if ("error" in logo) {
+    return { success: false, error: logo.error };
+  }
+
+  if (!logo.file) {
+    return { success: false, error: "يرجى اختيار صورة للوجو" };
+  }
+
+  try {
+    const existing = await prisma.khedma.findUnique({
+      where: { id: khedmaId },
+      select: { id: true, tawze3aId: true },
+    });
+
+    if (!existing) {
+      return { success: false, error: "الخدمة غير موجودة" };
+    }
+
+    const stored = await storeLogo(logo.file);
+    if ("error" in stored) {
+      return { success: false, error: stored.error };
+    }
+
+    const updated = await prisma.khedma.update({
+      where: { id: khedmaId },
+      data: { logoUrl: stored.url },
+      include: khedmaWithCategories(),
+    });
+
+    revalidateTawze3aPaths(existing.tawze3aId, khedmaId);
+
+    return {
+      success: true,
+      khedma: mapKhedma(updated),
+    };
+  } catch {
+    return { success: false, error: "تعذر حفظ اللوجو. حاول مرة أخرى." };
   }
 }
 
