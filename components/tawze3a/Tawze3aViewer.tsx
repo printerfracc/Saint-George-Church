@@ -53,13 +53,6 @@ export type MyAssignment = {
   khedmaName: string;
 };
 
-export type HistoryAssignment = {
-  id: string;
-  year: number;
-  roleName: string;
-  khedmaName: string;
-};
-
 function assignmentPhrase(khedmaName: string, roles: string[]) {
   const roleLabel = roles.filter(Boolean).join("، ");
   return roleLabel ? `${roleLabel} في خدمة ${khedmaName}` : khedmaName;
@@ -80,26 +73,6 @@ function groupMyAssignments(assignments: MyAssignment[]) {
     }
 
     groups.set(assignment.khedmaId, current);
-  }
-
-  return [...groups.values()];
-}
-
-function groupHistory(assignments: HistoryAssignment[]) {
-  const groups = new Map<string, { id: string; khedmaName: string; roles: string[] }>();
-
-  for (const assignment of assignments) {
-    const current = groups.get(assignment.khedmaName) ?? {
-      id: assignment.id,
-      khedmaName: assignment.khedmaName,
-      roles: [],
-    };
-
-    if (assignment.roleName && !current.roles.includes(assignment.roleName)) {
-      current.roles.push(assignment.roleName);
-    }
-
-    groups.set(assignment.khedmaName, current);
   }
 
   return [...groups.values()];
@@ -187,7 +160,6 @@ export default function Tawze3aViewer({
   servantName,
   unassigned = false,
   myAssignments,
-  history,
   activeYear,
   servantId,
   banner,
@@ -196,7 +168,6 @@ export default function Tawze3aViewer({
   servantName: string;
   unassigned?: boolean;
   myAssignments: MyAssignment[];
-  history: HistoryAssignment[];
   activeYear: number;
   servantId: string;
   banner?: EedBanner | null;
@@ -205,6 +176,7 @@ export default function Tawze3aViewer({
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedKhedmaId, setSelectedKhedmaId] = useState(defaultKhedmaId);
+  const [collapsedKhedmaIds, setCollapsedKhedmaIds] = useState<string[]>([]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -213,18 +185,6 @@ export default function Tawze3aViewer({
 
     return () => window.clearTimeout(handle);
   }, [query]);
-
-  const historyByYear = useMemo(() => {
-    const groups = new Map<number, HistoryAssignment[]>();
-
-    for (const assignment of history) {
-      const items = groups.get(assignment.year) ?? [];
-      items.push(assignment);
-      groups.set(assignment.year, items);
-    }
-
-    return [...groups.entries()];
-  }, [history]);
 
   const visibleKhedmat = useMemo(() => {
     const search = normalizeArabic(debouncedQuery);
@@ -303,31 +263,6 @@ export default function Tawze3aViewer({
             لست مسجلاً في أي خدمة في هذا التوزيع
           </p>
         )}
-
-        <div className="mt-6 border-t border-coptic-gold-main/20 pt-6">
-          <h2 className="text-sm font-bold text-cream">سجل الخدمات</h2>
-          {historyByYear.length === 0 ? (
-            <p className="mt-3 text-sm leading-7 text-cream/70">لا يوجد سجل خدمات منشور بعد.</p>
-          ) : (
-            <div className="mt-4 space-y-4">
-              {historyByYear.map(([year, assignments]) => (
-                <div key={year}>
-                  <p className="text-sm font-bold text-coptic-gold-main">{year}</p>
-                  <ul className="mt-2 space-y-2">
-                    {groupHistory(assignments).map((assignment) => (
-                      <li
-                        key={assignment.id}
-                        className="rounded-xl border border-coptic-gold-main/20 bg-black/30 px-4 py-2 text-sm text-cream"
-                      >
-                        {assignmentPhrase(assignment.khedmaName, assignment.roles)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </section>
 
       <section className="mt-8">
@@ -364,11 +299,26 @@ export default function Tawze3aViewer({
           </p>
         ) : (
           <div className="mt-6 space-y-4">
-            {visibleKhedmat.map((khedma) => (
+            {visibleKhedmat.map((khedma) => {
+              const searching = debouncedQuery.length > 0;
+              const expanded = searching || !collapsedKhedmaIds.includes(khedma.id);
+
+              return (
               <details
-                key={`${khedma.id}-${debouncedQuery ? "search" : "browse"}`}
-                open
-                className="rounded-2xl border border-coptic-gold-main/30 bg-gray-900 p-4 open:pb-5"
+                key={`${khedma.id}-${searching ? "search" : "browse"}`}
+                open={expanded}
+                onToggle={(event) => {
+                  if (searching) return;
+                  const isOpen = event.currentTarget.open;
+                  setCollapsedKhedmaIds((current) => {
+                    const collapsed = current.includes(khedma.id);
+                    if (isOpen === !collapsed) return current;
+                    return isOpen
+                      ? current.filter((id) => id !== khedma.id)
+                      : [...current, khedma.id];
+                  });
+                }}
+                className="group rounded-2xl border border-coptic-gold-main/30 bg-gray-900 p-4 open:pb-5"
               >
                 <summary className="flex cursor-pointer list-none items-center gap-3 text-lg font-bold text-coptic-gold-light">
                   {khedma.logoUrl ? (
@@ -380,13 +330,27 @@ export default function Tawze3aViewer({
                       className="h-10 w-10 shrink-0 rounded-full border border-gray-200 object-cover shadow-sm"
                     />
                   ) : null}
-                  <span className="min-w-0">{khedma.name}</span>
+                  <span className="min-w-0 flex-1">{khedma.name}</span>
+                  <svg
+                    viewBox="0 0 20 20"
+                    aria-hidden="true"
+                    className="h-5 w-5 shrink-0 text-coptic-gold-main transition-transform duration-200 group-open:rotate-180"
+                  >
+                    <path
+                      d="M5.5 7.5 10 12.5 14.5 7.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </summary>
                 <div className="mt-4">
                   {roleCardsForKhedma(khedma).length === 0 ? (
                     <p className="text-xs text-cream/50">لا يوجد خدام في هذه الخدمة</p>
                   ) : (
-                    <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    <ul className="grid grid-cols-2 gap-2 xl:grid-cols-3">
                       {roleCardsForKhedma(khedma).map((card) => {
                         const solo = card.people.length === 1 ? card.people[0] : undefined;
                         const isMe = Boolean(solo && solo.servantId === servantId);
@@ -397,7 +361,7 @@ export default function Tawze3aViewer({
                         return (
                           <li
                             key={card.id}
-                            className={`flex flex-col rounded-lg px-3 py-2 text-sm ${
+                            className={`flex min-w-0 flex-col rounded-lg px-2.5 py-2 text-sm md:px-3 ${
                               isMe
                                 ? "bg-linear-to-r from-coptic-gold-light to-coptic-gold-dark font-bold text-gray-950"
                                 : "bg-gray-950/70 text-cream"
@@ -405,7 +369,7 @@ export default function Tawze3aViewer({
                           >
                             {card.roleName ? (
                               <span
-                                className={`mb-1.5 w-fit rounded-full px-2 py-0.5 text-xs font-bold ${
+                                className={`mb-1.5 w-fit max-w-full rounded-full px-2 py-0.5 text-xs font-bold ${
                                   isMe
                                     ? "bg-gray-950/15 text-gray-950"
                                     : "bg-coptic-gold-main/15 text-coptic-gold-light"
@@ -423,8 +387,8 @@ export default function Tawze3aViewer({
                                     key={servant.id}
                                     className={
                                       amen && !personIsMe
-                                        ? "text-base font-bold text-coptic-gold-light"
-                                        : undefined
+                                        ? "wrap-break-word text-base font-bold text-coptic-gold-light"
+                                        : "wrap-break-word"
                                     }
                                   >
                                     {servant.name}
@@ -440,7 +404,8 @@ export default function Tawze3aViewer({
                   )}
                 </div>
               </details>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

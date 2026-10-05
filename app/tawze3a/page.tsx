@@ -1,6 +1,5 @@
 import { notFound, redirect } from "next/navigation";
 import Tawze3aViewer, {
-  type HistoryAssignment,
   type MyAssignment,
   type PublicTawze3a,
 } from "@/components/tawze3a/Tawze3aViewer";
@@ -89,17 +88,6 @@ export default async function Tawze3aPage() {
       }>
     >
   > = [];
-  let historyRaw: Awaited<
-    ReturnType<
-      typeof prisma.servantAssignment.findMany<{
-        include: {
-          role: true;
-          khedma: true;
-          category: { include: { khedma: true; role: true } };
-        };
-      }>
-    >
-  > = [];
 
   try {
     myAssignmentsRaw = await prisma.servantAssignment.findMany({
@@ -118,22 +106,6 @@ export default async function Tawze3aPage() {
     });
   } catch {
     myAssignmentsRaw = [];
-  }
-
-  try {
-    historyRaw = await prisma.servantAssignment.findMany({
-      where: { servantId: session.servantId, isDraft: false },
-      orderBy: { year: "desc" },
-      include: {
-        role: true,
-        khedma: true,
-        category: {
-          include: { khedma: true, role: true },
-        },
-      },
-    });
-  } catch {
-    historyRaw = [];
   }
 
   const viewerTawze3a: PublicTawze3a = {
@@ -163,25 +135,6 @@ export default async function Tawze3aPage() {
     })),
   };
 
-  const history: HistoryAssignment[] = historyRaw.flatMap((assignment) => {
-    const khedmaName = assignment.khedma?.name ?? assignment.category?.khedma.name ?? "";
-    const roleName =
-      assignment.role?.name ?? assignment.category?.role?.name ?? assignment.category?.label ?? "";
-
-    if (!khedmaName) {
-      return [];
-    }
-
-    return [
-      {
-        id: assignment.id,
-        year: assignment.year,
-        roleName,
-        khedmaName,
-      },
-    ];
-  });
-
   const myAssignments: MyAssignment[] = myAssignmentsRaw.flatMap((assignment) => {
     if (!assignment.category) {
       return [];
@@ -206,7 +159,6 @@ export default async function Tawze3aPage() {
       servantName={servant.name}
       unassigned={khedmaAssignmentCount === 0}
       myAssignments={myAssignments}
-      history={history}
       activeYear={currentActiveYear}
       servantId={session.servantId}
       banner={banner}
