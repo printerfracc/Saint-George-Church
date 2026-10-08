@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { GALLERY_MEDIA_IMAGE, GALLERY_MEDIA_YOUTUBE } from "@/lib/eed-content";
+import { GALLERY_MEDIA_IMAGE, GALLERY_MEDIA_YOUTUBE } from "@/lib/eed-constants";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { extractYouTubeVideoId } from "@/lib/youtube";

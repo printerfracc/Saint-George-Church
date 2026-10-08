@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { EED_EL_KHODAM_CONTENT_ID } from "@/lib/eed-constants";
 
-export const EED_EL_KHODAM_CONTENT_ID = "eed-el-khodam";
-
-export const GALLERY_MEDIA_IMAGE = "IMAGE";
-export const GALLERY_MEDIA_YOUTUBE = "YOUTUBE";
+export {
+  EED_EL_KHODAM_CONTENT_ID,
+  GALLERY_MEDIA_IMAGE,
+  GALLERY_MEDIA_YOUTUBE,
+} from "@/lib/eed-constants";
 
 export type EedSiteContent = {
   goal: string | null;

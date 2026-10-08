@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { YouTubeMediaCard } from "@/components/public/YouTubeMedia";
-import { GALLERY_MEDIA_IMAGE, GALLERY_MEDIA_YOUTUBE } from "@/lib/eed-content";
+import { GALLERY_MEDIA_IMAGE, GALLERY_MEDIA_YOUTUBE } from "@/lib/eed-constants";
 
 export type PublicGalleryItem = {
   id: string;

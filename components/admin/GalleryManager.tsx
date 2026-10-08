@@ -11,7 +11,7 @@ import {
   adminActionDanger,
   adminActionGold,
 } from "@/components/admin/admin-ui";
-import { GALLERY_MEDIA_IMAGE, GALLERY_MEDIA_YOUTUBE } from "@/lib/eed-content";
+import { GALLERY_MEDIA_IMAGE, GALLERY_MEDIA_YOUTUBE } from "@/lib/eed-constants";
 import { formatAdminDate } from "@/lib/admin-labels";
 import { VERCEL_UPLOAD_LIMIT_BYTES } from "@/lib/media";
 import { youtubeThumbnailUrl } from "@/lib/youtube";
