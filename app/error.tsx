@@ -4,10 +4,10 @@ import Link from "next/link";
 import ChurchLogo from "@/components/ChurchLogo";
 
 export default function ErrorPage({
-  retry,
+  reset,
 }: {
   error: Error & { digest?: string };
-  retry: () => void;
+  reset: () => void;
 }) {
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-4 py-16">
@@ -24,7 +24,7 @@ export default function ErrorPage({
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <button
             type="button"
-            onClick={() => retry()}
+            onClick={() => reset()}
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-deep-red px-6 text-sm font-bold text-cream transition hover:bg-deep-red/90"
           >
             إعادة المحاولة

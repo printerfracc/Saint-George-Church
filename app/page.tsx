@@ -38,7 +38,7 @@ async function loadChurchNews() {
       });
     } catch (error) {
       console.error("Failed to load church news", error, orderError);
-      throw error;
+      return [];
     }
   }
 }

@@ -54,22 +54,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }));
 
-    const tawze3aEntries: MetadataRoute.Sitemap = publishedTawze3a
-      ? [
-          {
-            url: `${baseUrl}/tawze3a`,
-            lastModified: publishedTawze3a.createdAt,
-            changeFrequency: "weekly",
-            priority: 0.6,
-          },
-          {
-            url: `${baseUrl}/tawze3a/gallery`,
-            lastModified: publishedTawze3a.createdAt,
-            changeFrequency: "weekly",
-            priority: 0.6,
-          },
-        ]
-      : [];
+    const tawze3aEntries: MetadataRoute.Sitemap = [
+      ...(publishedTawze3a
+        ? [
+            {
+              url: `${baseUrl}/tawze3a`,
+              lastModified: publishedTawze3a.createdAt,
+              changeFrequency: "weekly" as const,
+              priority: 0.6,
+            },
+          ]
+        : []),
+      {
+        url: `${baseUrl}/tawze3a/gallery`,
+        lastModified: publishedTawze3a?.createdAt ?? lastModified,
+        changeFrequency: "weekly",
+        priority: 0.6,
+      },
+    ];
 
     return [...staticEntries, ...mediaEntries, ...sectorEntries, ...tawze3aEntries];
   } catch {

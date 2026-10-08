@@ -37,6 +37,9 @@ yarn-error.log*
 # full database export (contains passwords and personal data)
 /database-backup.json
 
+# printed khedma rosters (names and phone numbers)
+/Khedma_Exports
+
 # vercel
 .vercel
 

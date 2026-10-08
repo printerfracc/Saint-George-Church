@@ -55,6 +55,10 @@ export async function getNavEntries() {
     };
   } catch (error) {
     console.error("Failed to load navigation sectors and media", error);
-    throw error;
+    return {
+      sectorItems: [],
+      mediaItems: [],
+      showTawze3a: false,
+    };
   }
 }

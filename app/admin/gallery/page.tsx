@@ -19,12 +19,21 @@ export default async function AdminGalleryPage() {
   return (
     <main className="px-4 py-8 md:px-8">
       <GalleryManager
-        items={items.map((item) => ({
-          id: item.id,
-          type: item.type,
-          url: item.url,
-          createdAt: item.createdAt.toISOString(),
-        }))}
+        items={items.flatMap((item) => {
+          const createdAt = new Date(item.createdAt);
+          if (Number.isNaN(createdAt.getTime()) || !item.url?.trim()) {
+            return [];
+          }
+
+          return [
+            {
+              id: item.id,
+              type: item.type,
+              url: item.url,
+              createdAt: createdAt.toISOString(),
+            },
+          ];
+        })}
       />
     </main>
   );
