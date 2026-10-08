@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import ChurchLogo from "@/components/ChurchLogo";
 import PublicGallery from "@/components/public/PublicGallery";
 import { prisma } from "@/lib/prisma";
@@ -8,6 +9,15 @@ export const metadata = {
 };
 
 export default async function EedGalleryPage() {
+  const publishedTawze3a = await prisma.tawze3a.findFirst({
+    where: { isPublished: true },
+    select: { id: true },
+  });
+
+  if (!publishedTawze3a) {
+    notFound();
+  }
+
   let items: Awaited<ReturnType<typeof prisma.galleryMedia.findMany>> = [];
 
   try {

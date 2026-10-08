@@ -68,16 +68,18 @@ function buildNavItems(
     ]),
     withOverview("قطاعات الخدمات", "/sectors", sectorItems),
     withOverview("الوسائط والمكتبة", "/media", mediaItems),
-    {
-      title: "عيد الخدام",
-      href: showTawze3a ? "/tawze3a" : "/tawze3a/gallery",
-      subItems: [
-        ...(showTawze3a
-          ? [{ title: "دخول الخدام", href: "/tawze3a/login" }]
-          : []),
-        { title: "الصور", href: "/tawze3a/gallery" },
-      ],
-    },
+    ...(showTawze3a
+      ? [
+          {
+            title: "عيد الخدام",
+            href: "/tawze3a",
+            subItems: [
+              { title: "دخول الخدام", href: "/tawze3a/login" },
+              { title: "الصور", href: "/tawze3a/gallery" },
+            ],
+          },
+        ]
+      : []),
     withOverview("تواصل معنا", "/contact", [
       { title: "حجز المواعيد", href: "/contact#booking" },
       { title: "طلب صلاة أو زيارة افتقاد", href: "/contact#prayer-request" },
