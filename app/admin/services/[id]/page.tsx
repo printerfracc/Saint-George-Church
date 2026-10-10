@@ -1,10 +1,25 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ServiceManager from "@/components/admin/ServiceManager";
 import { getService, listServiceParents } from "@/actions/admin-actions";
+import { recordPageMetadata } from "@/lib/seo";
 
-export const metadata = {
-  title: "أقسام القطاع",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const service = await getService(id);
+
+  return recordPageMetadata({
+    title: service?.title,
+    description: service?.description,
+    imageUrl: service?.imageUrl,
+    fallbackTitle: "أقسام القطاع",
+    path: `/admin/services/${id}`,
+  });
+}
 
 export default async function AdminServiceChildrenPage({
   params,

@@ -208,6 +208,10 @@ export function toWhatsAppUrl(number: string) {
   return `https://wa.me/${international}`;
 }
 
+export function toWhatsAppShareUrl(message: string) {
+  return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
 export function toDateInputValue(value: string | Date) {
   return new Date(value).toISOString().slice(0, 10);
 }

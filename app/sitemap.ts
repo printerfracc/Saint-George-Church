@@ -25,7 +25,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   try {
-    const [collections, sectors, publishedTawze3a] = await Promise.all([
+    const [collections, sectors, publishedTawze3a, news] = await Promise.all([
       prisma.mediaCollection.findMany({
         select: { id: true, slug: true, createdAt: true },
         orderBy: { order: "asc" },
@@ -37,6 +37,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       prisma.tawze3a.findFirst({
         where: { isPublished: true },
         select: { id: true, createdAt: true },
+      }),
+      prisma.newsEvent.findMany({
+        where: { isActive: true },
+        select: { id: true, updatedAt: true },
+        orderBy: { createdAt: "desc" },
       }),
     ]);
 
@@ -71,7 +76,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ]
       : [];
 
-    return [...staticEntries, ...mediaEntries, ...sectorEntries, ...tawze3aEntries];
+    const newsEntries: MetadataRoute.Sitemap = news.map((item) => ({
+      url: `${baseUrl}/news/${item.id}`,
+      lastModified: item.updatedAt,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    }));
+
+    return [...staticEntries, ...mediaEntries, ...sectorEntries, ...newsEntries, ...tawze3aEntries];
   } catch {
     return staticEntries;
   }

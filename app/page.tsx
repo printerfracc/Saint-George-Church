@@ -23,6 +23,7 @@ import { findDynamicContentByKey } from "@/lib/dynamic-content";
 import { prisma } from "@/lib/prisma";
 import { listActivities } from "@/actions/activities";
 import { ensurePriestColumns } from "@/actions/priests";
+import { requireAdmin } from "@/lib/require-admin";
 
 async function loadChurchNews() {
   try {
@@ -52,7 +53,7 @@ async function loadOr<T>(loader: () => Promise<T>, fallback: T) {
 }
 
 export default async function Home() {
-  const [heroRecord, storyRecord, relicRecords, activityRecords, priestRecords, newsRecords] =
+  const [heroRecord, storyRecord, relicRecords, activityRecords, priestRecords, newsRecords, adminSession] =
     await Promise.all([
       loadOr(() => findDynamicContentByKey("hero"), null),
       loadOr(() => findDynamicContentByKey("church_story"), null),
@@ -71,6 +72,7 @@ export default async function Home() {
         });
       }, []),
       loadChurchNews(),
+      loadOr(() => requireAdmin(), null),
     ]);
 
   const hero = heroRecord
@@ -121,15 +123,16 @@ export default async function Home() {
     contactNumbers: priest.contactNumbers,
   }));
 
+  const siteUrl = getAppUrl();
   const news = newsRecords.map((item) => ({
     id: item.id,
     title: item.title,
     description: item.description,
     imageUrl: item.imageUrl,
     createdAt: item.createdAt.toISOString(),
+    shareUrl: `${siteUrl}/news/${item.id}`,
   }));
 
-  const siteUrl = getAppUrl();
   const schemaObject = {
     "@context": "https://schema.org",
     "@type": ["LocalBusiness", "Church"],
@@ -178,6 +181,7 @@ export default async function Home() {
           relics={relics}
           activities={activities}
           priests={priests}
+          canShareNews={Boolean(adminSession)}
         />
       </div>
     </HomeFadeIn>

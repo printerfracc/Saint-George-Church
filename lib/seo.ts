@@ -27,11 +27,13 @@ export function recordPageMetadata({
   description,
   imageUrl,
   fallbackTitle,
+  path,
 }: {
   title?: string | null;
   description?: string | null;
   imageUrl?: string | null;
   fallbackTitle: string;
+  path?: string;
 }): Metadata {
   const resolvedTitle = title?.trim() || fallbackTitle;
   const resolvedDescription = description?.trim() || CHURCH_SEO_DESCRIPTION;
@@ -43,7 +45,8 @@ export function recordPageMetadata({
     openGraph: {
       title: resolvedTitle,
       description: resolvedDescription,
-      images: [{ url: image }],
+      ...(path ? { url: path } : {}),
+      images: [{ url: image, alt: resolvedTitle }],
     },
     twitter: {
       card: "summary_large_image",

@@ -126,7 +126,7 @@ export async function GET(request: Request) {
             id: item.id,
             title: item.title,
             type: "خبر",
-            url: searchHomeAnchorUrl(item.id),
+            url: `/news/${item.id}`,
           }),
         );
       }),

@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChurchLogo from "@/components/ChurchLogo";
@@ -19,7 +20,7 @@ export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
-}) {
+}): Promise<Metadata> {
   const { slug } = await params;
   const sector = await getService(slug);
 
@@ -28,6 +29,7 @@ export async function generateMetadata({
     description: sector?.description,
     imageUrl: sector?.imageUrl,
     fallbackTitle: "قطاعات الخدمات",
+    path: `/sectors/${slug}`,
   });
 }
 

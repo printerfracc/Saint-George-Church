@@ -61,6 +61,7 @@ function revalidateAdmin(serviceId?: string, slug?: string | null) {
   revalidatePath("/admin/services");
   revalidatePath("/admin/services", "layout");
   revalidatePath("/admin/news");
+  revalidatePath("/news/[id]", "page");
   revalidatePath("/admin/sermons");
   revalidatePath("/sectors");
   revalidatePath("/sectors", "layout");

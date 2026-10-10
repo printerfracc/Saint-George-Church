@@ -13,6 +13,7 @@ import {
   formatPartialDate,
   parseContactNumbers,
   toPhoneHref,
+  toWhatsAppShareUrl,
   toWhatsAppUrl,
 } from "@/lib/admin-labels";
 import { excerptStory, hasFilledText, storyNeedsReadMore } from "@/lib/content";
@@ -51,6 +52,7 @@ export type HomeNewsItem = {
   description: string;
   imageUrl: string | null;
   createdAt: string;
+  shareUrl?: string;
 };
 
 const fadeIn = {
@@ -147,7 +149,13 @@ function NewsArrow({
   );
 }
 
-function NewsSection({ news }: { news: HomeNewsItem[] }) {
+function NewsSection({
+  news,
+  canShare = false,
+}: {
+  news: HomeNewsItem[];
+  canShare?: boolean;
+}) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -262,6 +270,18 @@ function NewsSection({ news }: { news: HomeNewsItem[] }) {
                     >
                       {formatAdminDate(item.createdAt)}
                     </time>
+                    {canShare && item.shareUrl ? (
+                      <a
+                        href={toWhatsAppShareUrl(`${item.title}\n${item.shareUrl}`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#25D366] px-3 text-xs font-bold text-white transition hover:brightness-95"
+                        aria-label="مشاركة الخبر عبر واتساب"
+                      >
+                        <WhatsAppIcon className="h-4 w-4" />
+                        مشاركة عبر واتساب
+                      </a>
+                    ) : null}
                   </div>
                   <h3 className="text-xl font-bold leading-9 wrap-break-word text-coptic-gold-dark md:text-2xl">
                     {item.title}
@@ -815,16 +835,18 @@ export default function HomePageSections({
   relics = [],
   activities = [],
   priests = [],
+  canShareNews = false,
 }: {
   news?: HomeNewsItem[];
   churchStory: HomeContentSection | null;
   relics?: HomeNamedItem[];
   activities?: HomeNamedItem[];
   priests?: HomePriest[];
+  canShareNews?: boolean;
 }) {
   return (
     <>
-      <NewsSection news={news} />
+      <NewsSection news={news} canShare={canShareNews} />
       <ChurchStorySection section={churchStory} />
       <PriestsSection priests={priests} />
       <RelicsSection relics={relics} />

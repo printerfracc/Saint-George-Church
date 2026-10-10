@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChurchLogo from "@/components/ChurchLogo";
@@ -15,7 +16,7 @@ export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
-}) {
+}): Promise<Metadata> {
   const { slug } = await params;
   const collection = await getLibraryCollection(slug).catch(() => null);
 
@@ -24,6 +25,7 @@ export async function generateMetadata({
     description: collection?.description,
     imageUrl: collection?.imageUrl,
     fallbackTitle: "الوسائط والمكتبة",
+    path: `/media/${slug}`,
   });
 }
 
