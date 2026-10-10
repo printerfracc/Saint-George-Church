@@ -39,6 +39,9 @@ yarn-error.log*
 
 # printed khedma rosters (names and phone numbers)
 /Khedma_Exports
+/*.xlsx
+/*.xls
+/export-custom-lists.ts
 
 # vercel
 .vercel

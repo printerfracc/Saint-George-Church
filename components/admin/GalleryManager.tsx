@@ -137,7 +137,7 @@ export default function GalleryManager({ items }: { items: GalleryAdminItem[] })
         title="إدارة الصور"
         description={
           <p className="mt-2 text-sm leading-7 text-deep-red/70">
-            أضف صور وفيديوهات يوم عيد الخدام. تظهر في صفحة الصور بعد نشر التوزيعة.
+            أضف صور وفيديوهات يوم عيد الخدام. تظهر للخدام بعد تسجيل الدخول، وذلك بعد نشر التوزيعة.
           </p>
         }
       />

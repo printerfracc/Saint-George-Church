@@ -30,8 +30,6 @@ export default async function ServantLoginLayout({
     if (!servant) {
       redirect("/tawze3a/clear-session");
     }
-
-    redirect("/tawze3a");
   }
 
   return children;

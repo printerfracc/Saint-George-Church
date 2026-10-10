@@ -5,7 +5,7 @@ import ChurchLogo from "@/components/ChurchLogo";
 import { loginServant } from "@/actions/servant-auth";
 import { CHURCH_NAME } from "@/lib/church";
 
-export default function ServantLoginForm() {
+export default function ServantLoginForm({ nextPath = "/tawze3a" }: { nextPath?: string }) {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -22,7 +22,7 @@ export default function ServantLoginForm() {
       return;
     }
 
-    window.location.assign("/tawze3a");
+    window.location.assign(nextPath);
   }
 
   return (

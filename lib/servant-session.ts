@@ -4,6 +4,13 @@ import { cookies } from "next/headers";
 export const SERVANT_SESSION_COOKIE = "servant_session";
 export const SERVANT_SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
+const SERVANT_NEXT_PATHS = new Set(["/tawze3a", "/tawze3a/gallery"]);
+
+export function servantNextPath(value?: string | null) {
+  const path = value?.split("?")[0]?.trim() ?? "";
+  return SERVANT_NEXT_PATHS.has(path) ? path : "/tawze3a";
+}
+
 export type ServantSession = {
   servantId: string;
   name: string;

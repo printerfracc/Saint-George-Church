@@ -12,39 +12,55 @@ export type PublicGalleryItem = {
   url: string;
 };
 
+function photoDownloadHref(id: string) {
+  return `/tawze3a/gallery/download?id=${encodeURIComponent(id)}`;
+}
+
 export default function PublicGallery({ items }: { items: PublicGalleryItem[] }) {
   const [activeImage, setActiveImage] = useState<PublicGalleryItem | null>(null);
 
   return (
     <>
-      <ul className="columns-1 gap-4 sm:columns-2 lg:columns-3">
+      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:grid-cols-5">
         {items.map((item, index) => (
           <motion.li
             key={item.id}
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-40px" }}
-            transition={{ duration: 0.45, delay: Math.min(index, 6) * 0.04 }}
-            className="mb-4 break-inside-avoid overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm"
+            transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.03 }}
+            className="overflow-hidden rounded-xl border border-coptic-gold-main/40 bg-white/80 shadow-sm"
           >
             {item.type === GALLERY_MEDIA_YOUTUBE ? (
-              <YouTubeMediaCard url={item.url} title="مشاهدة الفيديو على يوتيوب" />
+              <YouTubeMediaCard
+                url={item.url}
+                title="مشاهدة الفيديو على يوتيوب"
+                className="aspect-square"
+              />
             ) : item.type === GALLERY_MEDIA_IMAGE ? (
-              <button
-                type="button"
-                onClick={() => setActiveImage(item)}
-                className="group block w-full"
-                aria-label="عرض الصورة"
-              >
-                <Image
-                  src={item.url}
-                  alt="صورة من معرض الكنيسة"
-                  width={1200}
-                  height={900}
-                  unoptimized
-                  className="h-auto w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                />
-              </button>
+              <div className="relative aspect-square">
+                <button
+                  type="button"
+                  onClick={() => setActiveImage(item)}
+                  className="group absolute inset-0 block overflow-hidden"
+                  aria-label="عرض الصورة"
+                >
+                  <Image
+                    src={item.url}
+                    alt="صورة من معرض الكنيسة"
+                    fill
+                    unoptimized
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                    className="object-cover transition duration-300 group-hover:scale-[1.03]"
+                  />
+                </button>
+                <a
+                  href={photoDownloadHref(item.id)}
+                  className="absolute bottom-2 start-2 z-10 inline-flex min-h-9 items-center rounded-full bg-cream/95 px-3 text-[11px] font-bold text-deep-red shadow-sm"
+                >
+                  تحميل
+                </a>
+              </div>
             ) : null}
           </motion.li>
         ))}
@@ -79,7 +95,13 @@ export default function PublicGallery({ items }: { items: PublicGalleryItem[] })
                   className="mx-auto h-auto max-h-[75vh] w-auto max-w-full object-contain"
                 />
               </div>
-              <div className="flex justify-center p-4">
+              <div className="flex flex-wrap justify-center gap-3 p-4">
+                <a
+                  href={photoDownloadHref(activeImage.id)}
+                  className="inline-flex min-h-11 items-center rounded-full bg-deep-red px-4 text-xs font-bold text-cream"
+                >
+                  تحميل الصورة
+                </a>
                 <button
                   type="button"
                   onClick={() => setActiveImage(null)}

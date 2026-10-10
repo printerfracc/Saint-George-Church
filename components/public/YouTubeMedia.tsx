@@ -46,9 +46,11 @@ export function YouTubeEmbedFrame({
 export function YouTubeMediaCard({
   url,
   title = "مشاهدة الفيديو على يوتيوب",
+  className = "aspect-video",
 }: {
   url: string;
   title?: string;
+  className?: string;
 }) {
   const videoId = extractYouTubeVideoId(url);
   const thumbnail = youtubeThumbnailUrl(url);
@@ -62,7 +64,7 @@ export function YouTubeMediaCard({
       href={`https://www.youtube.com/watch?v=${videoId}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative block aspect-video w-full overflow-hidden bg-[#1A0A10] text-right"
+      className={`group relative block w-full overflow-hidden bg-[#1A0A10] text-right ${className}`}
       aria-label={title}
     >
       <Image

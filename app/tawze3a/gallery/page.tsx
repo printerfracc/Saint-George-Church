@@ -1,7 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import ChurchLogo from "@/components/ChurchLogo";
 import PublicGallery from "@/components/public/PublicGallery";
 import { prisma } from "@/lib/prisma";
+import { getServantSession } from "@/lib/servant-session";
 
 export const metadata = {
   title: "صور عيد الخدام",
@@ -16,6 +17,21 @@ export default async function EedGalleryPage() {
 
   if (!publishedTawze3a) {
     notFound();
+  }
+
+  const session = await getServantSession();
+
+  if (!session) {
+    redirect("/tawze3a/login?next=/tawze3a/gallery");
+  }
+
+  const servant = await prisma.servant.findUnique({
+    where: { id: session.servantId },
+    select: { id: true },
+  });
+
+  if (!servant) {
+    redirect("/tawze3a/clear-session");
   }
 
   let items: Awaited<ReturnType<typeof prisma.galleryMedia.findMany>> = [];
