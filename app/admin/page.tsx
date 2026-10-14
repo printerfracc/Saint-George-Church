@@ -165,6 +165,13 @@ export default async function AdminDashboardPage() {
               <p className="text-sm font-bold text-coptic-gold-dark/80">إدارة الخدام</p>
               <p className="mt-3 text-base font-bold text-coptic-gold-dark">سجل الخدام</p>
             </Link>
+            <Link
+              href="/admin/birthdays"
+              className="flex min-h-11 flex-col rounded-2xl border border-coptic-gold-main/40 bg-white/80 p-5 shadow-sm transition hover:-translate-y-1 hover:border-coptic-gold-main"
+            >
+              <p className="text-sm font-bold text-coptic-gold-dark/80">أعياد الميلاد</p>
+              <p className="mt-3 text-base font-bold text-coptic-gold-dark">اليوم والأيام القريبة</p>
+            </Link>
           </>
         ) : null}
       </div>

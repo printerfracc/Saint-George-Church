@@ -24,6 +24,7 @@ const navItems = [
   { href: "/admin/news", label: "الأخبار" },
   { href: "/admin/tawze3a", label: "إدارة التوزيعة", tawze3aRolesOnly: true },
   { href: "/admin/servants", label: "إدارة الخدام", tawze3aRolesOnly: true },
+  { href: "/admin/birthdays", label: "أعياد الميلاد", tawze3aRolesOnly: true },
   { href: "/admin/invitations", label: "الدعوات", superAdminOnly: true },
   { href: "/admin/users", label: "إدارة الحسابات", superAdminOnly: true },
 ] as const;

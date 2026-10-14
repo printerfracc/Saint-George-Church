@@ -29,6 +29,7 @@ export default async function AdminLayout({
   const isTawze3aRoute =
     pathname === "/admin" ||
     pathname.startsWith("/admin/servants") ||
+    pathname.startsWith("/admin/birthdays") ||
     pathname.startsWith("/admin/tawze3a");
 
   if (session.user.role === "TAWZE3A_ADMIN" && !isTawze3aRoute) {
