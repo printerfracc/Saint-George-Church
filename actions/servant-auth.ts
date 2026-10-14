@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { hashForLookup, readServantContact } from "@/lib/crypto";
 import { prisma } from "@/lib/prisma";
 import {
   clearServantSessionCookie,
@@ -26,12 +27,12 @@ export async function loginServant(formData: FormData): Promise<ServantLoginResu
   }
 
   try {
-    const servant = await prisma.servant.findFirst({
-      where: { phone: trimmedPhone },
+    const servant = await prisma.servant.findUnique({
+      where: { phoneHash: hashForLookup(trimmedPhone) },
       select: {
         id: true,
         name: true,
-        nationalId: true,
+        encryptedNationalId: true,
       },
     });
 
@@ -41,14 +42,16 @@ export async function loginServant(formData: FormData): Promise<ServantLoginResu
       };
     }
 
-    if (!servant.nationalId) {
+    const nationalId = readServantContact(servant).nationalId;
+
+    if (!nationalId) {
       return {
         error:
           "الرقم القومي غير مسجل لهذا الحساب، يرجى مراجعة مسؤول التوزيعة لاستكمال بياناتك",
       };
     }
 
-    if (!servant.nationalId.endsWith(trimmedLast4)) {
+    if (!nationalId.endsWith(trimmedLast4)) {
       return {
         error:
           "آخر 4 أرقام من الرقم القومي غير صحيحة، يرجى التأكد والمحاولة مرة أخرى",

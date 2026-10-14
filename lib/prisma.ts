@@ -7,7 +7,7 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const clientGeneration = "khedma-logo-url-v1";
+const clientGeneration = "servant-pii-encrypted-v1";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;

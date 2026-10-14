@@ -180,7 +180,7 @@ export default function ServantSearchDialog({
               autoFocus
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="اكتب الاسم للبحث..."
+              placeholder="اكتب الاسم أو رقم الموبايل أو الرقم القومي"
               className="mt-2 w-full rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
             />
 
@@ -190,7 +190,7 @@ export default function ServantSearchDialog({
               ) : error ? (
                 <p className="py-6 text-center text-sm text-deep-red">{error}</p>
               ) : !query.trim() ? (
-                <p className="py-6 text-center text-sm text-deep-red/70">ابدأ بكتابة اسم الخادم</p>
+                <p className="py-6 text-center text-sm text-deep-red/70">ابدأ بكتابة الاسم أو رقم الموبايل أو الرقم القومي</p>
               ) : results.length === 0 ? (
                 <p className="py-6 text-center text-sm text-deep-red/70">لا توجد نتائج مطابقة</p>
               ) : (

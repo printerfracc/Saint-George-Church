@@ -211,15 +211,17 @@ model PrayerRequest {
 }
 
 model Servant {
-  id          String               @id @default(cuid())
-  name        String
-  phone       String?              @unique
-  nationalId  String?              @unique
-  status      String?
-  newUser     Boolean?             @default(false)
-  assignments ServantAssignment[]
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  id                  String               @id @default(cuid())
+  name                String
+  encryptedPhone      String?
+  phoneHash           String?              @unique
+  encryptedNationalId String?
+  nationalIdHash      String?              @unique
+  status              String?
+  newUser             Boolean?             @default(false)
+  assignments         ServantAssignment[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 }
 
 model ServantRole {

@@ -2,10 +2,11 @@
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { nationalIdSecretFields, phoneSecretFields, readServantContact } from "@/lib/crypto";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { OTHER_KHEDMA_STATUS_ROLES } from "@/lib/servant-import-schema";
-import { servantListWhere, type ServantQueryFilters } from "@/lib/servant-filters";
+import { servantListWhere, servantMatchesSearchQuery, type ServantQueryFilters } from "@/lib/servant-filters";
 import { wipeServantRolesAndCategories } from "@/lib/tawze3a-wipe";
 import { calendarYear } from "@/lib/tawze3a-year";
 
@@ -76,6 +77,63 @@ function uniqueConstraintText(error: unknown) {
   return isDuplicate ? message : null;
 }
 
+function encryptionConfigMessage(error: unknown) {
+  if (error instanceof Error && error.message.includes("APP_ENCRYPTION_KEY")) {
+    return "تعذر حفظ البيانات لأن مفتاح التشفير غير مُعد";
+  }
+
+  return null;
+}
+
+function toServantRecord(
+  servant: {
+    id: string;
+    name: string;
+    encryptedPhone: string | null;
+    encryptedNationalId: string | null;
+    status: string | null;
+    newUser: boolean | null;
+    createdAt: Date;
+  },
+  assignments: ServantAssignmentChip[] = [],
+): ServantRecord {
+  const contact = readServantContact(servant);
+
+  return {
+    id: servant.id,
+    name: servant.name,
+    phone: contact.phone,
+    nationalId: contact.nationalId,
+    status: servant.status,
+    newUser: servant.newUser,
+    createdAt: servant.createdAt,
+    assignments,
+  };
+}
+
+function mapServantAssignments(
+  assignments: Array<{
+    id: string;
+    khedmaId: string | null;
+    khedma: { id: string; name: string } | null;
+    roleId: string;
+    role: { name: string } | null;
+    year: number;
+    isDraft: boolean;
+    category: { khedmaId: string; khedma: { name: string } | null } | null;
+  }>,
+): ServantAssignmentChip[] {
+  return assignments.map((assignment) => ({
+    id: assignment.id,
+    khedmaId: assignment.khedmaId ?? assignment.khedma?.id ?? assignment.category?.khedmaId ?? "",
+    khedmaName: assignment.khedma?.name ?? assignment.category?.khedma?.name ?? "",
+    roleId: assignment.roleId,
+    roleName: assignment.role?.name ?? "",
+    year: assignment.year,
+    isDraft: assignment.isDraft,
+  }));
+}
+
 function uniqueConstraintMessage(error: unknown) {
   const text = uniqueConstraintText(error);
 
@@ -122,15 +180,15 @@ export async function createServant(input: {
     const servant = await prisma.servant.create({
       data: {
         name,
-        phone,
-        nationalId,
         status,
+        ...phoneSecretFields(phone),
+        ...nationalIdSecretFields(nationalId),
       },
     });
 
-    return { success: true, servant: { ...servant, assignments: [] } };
+    return { success: true, servant: toServantRecord(servant) };
   } catch (error) {
-    const uniqueMessage = uniqueConstraintMessage(error);
+    const uniqueMessage = encryptionConfigMessage(error) ?? uniqueConstraintMessage(error);
 
     if (uniqueMessage) {
       return { error: uniqueMessage };
@@ -160,12 +218,7 @@ export async function updateServant(
     return { error: "تعذر تحديد الخادم المطلوب تعديله" };
   }
 
-  const payload: {
-    name?: string;
-    phone?: string | null;
-    nationalId?: string | null;
-    status?: string | null;
-  } = {};
+  const payload: Prisma.ServantUpdateInput = {};
 
   if (data.name !== undefined) {
     const name = data.name.trim();
@@ -178,11 +231,11 @@ export async function updateServant(
   }
 
   if (data.phone !== undefined) {
-    payload.phone = emptyToNull(data.phone);
+    Object.assign(payload, phoneSecretFields(emptyToNull(data.phone)));
   }
 
   if (data.nationalId !== undefined) {
-    payload.nationalId = emptyToNull(data.nationalId);
+    Object.assign(payload, nationalIdSecretFields(emptyToNull(data.nationalId)));
   }
 
   if (data.status !== undefined) {
@@ -195,9 +248,9 @@ export async function updateServant(
       data: payload,
     });
 
-    return { success: true, servant: { ...servant, assignments: [] } };
+    return { success: true, servant: toServantRecord(servant) };
   } catch (error) {
-    const uniqueMessage = uniqueConstraintMessage(error);
+    const uniqueMessage = encryptionConfigMessage(error) ?? uniqueConstraintMessage(error);
 
     if (uniqueMessage) {
       return { error: uniqueMessage };
@@ -336,58 +389,63 @@ export async function getServants(
   const year = filters?.year ?? calendarYear();
   const where = servantListWhere(
     await resolveServantListWhere({
-      query: trimmedQuery,
       roleIds: filters?.roleIds ?? [],
       khedmaIds: filters?.khedmaIds ?? [],
       year,
       assignedToOtherKhedma: filters?.assignedToOtherKhedma,
     }),
   );
+  const include = {
+    assignments: {
+      include: {
+        khedma: true,
+        role: true,
+        category: {
+          include: {
+            khedma: true,
+          },
+        },
+      },
+    },
+  } as const;
 
   try {
+    if (trimmedQuery) {
+      const servants = await prisma.servant.findMany({
+        where,
+        orderBy: { name: "asc" },
+        include,
+      });
+      const matched = servants
+        .map((servant) => toServantRecord(servant, mapServantAssignments(servant.assignments)))
+        .filter((servant) => servantMatchesSearchQuery(servant, trimmedQuery));
+      const start = (currentPage - 1) * pageSize;
+
+      return {
+        success: true,
+        servants: matched.slice(start, start + pageSize),
+        total: matched.length,
+        page: currentPage,
+        limit: pageSize,
+      };
+    }
+
     const [servants, total] = await Promise.all([
       prisma.servant.findMany({
         where,
         orderBy: { name: "asc" },
         skip: (currentPage - 1) * pageSize,
         take: pageSize,
-        include: {
-          assignments: {
-            include: {
-              khedma: true,
-              role: true,
-              category: {
-                include: {
-                  khedma: true,
-                },
-              },
-            },
-          },
-        },
+        include,
       }),
       prisma.servant.count({ where }),
     ]);
 
     return {
       success: true,
-      servants: servants.map((servant) => ({
-        id: servant.id,
-        name: servant.name,
-        phone: servant.phone,
-        nationalId: servant.nationalId,
-        status: servant.status,
-        newUser: servant.newUser,
-        createdAt: servant.createdAt,
-        assignments: servant.assignments.map((assignment) => ({
-          id: assignment.id,
-          khedmaId: assignment.khedmaId ?? assignment.khedma?.id ?? assignment.category?.khedmaId ?? "",
-          khedmaName: assignment.khedma?.name ?? assignment.category?.khedma?.name ?? "",
-          roleId: assignment.roleId,
-          roleName: assignment.role?.name ?? "",
-          year: assignment.year,
-          isDraft: assignment.isDraft,
-        })),
-      })),
+      servants: servants.map((servant) =>
+        toServantRecord(servant, mapServantAssignments(servant.assignments)),
+      ),
       total,
       page: currentPage,
       limit: pageSize,

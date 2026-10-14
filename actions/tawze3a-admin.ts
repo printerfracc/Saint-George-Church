@@ -2,6 +2,8 @@
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { readServantContact } from "@/lib/crypto";
+import { servantMatchesSearchQuery } from "@/lib/servant-filters";
 import { validateImageFile } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
 import { uploadToR2 } from "@/lib/r2";
@@ -64,7 +66,7 @@ function builderCategoryInclude(year: number) {
     assignments: {
       where: { year },
       include: {
-        servant: { select: { id: true, name: true, phone: true } },
+        servant: { select: { id: true, name: true, encryptedPhone: true } },
       },
     },
   };
@@ -95,15 +97,31 @@ function revalidateTawze3aPaths(id?: string, khedmaId?: string) {
   }
 }
 
+function toServantSearchHit(servant: {
+  id: string;
+  name: string;
+  encryptedPhone: string | null;
+}): ServantSearchHit {
+  return {
+    id: servant.id,
+    name: servant.name,
+    phone: readServantContact(servant).phone,
+  };
+}
+
 function mapAssignment(assignment: {
   id: string;
   isDraft: boolean;
-  servant: ServantSearchHit;
+  servant: {
+    id: string;
+    name: string;
+    encryptedPhone: string | null;
+  };
 }): BuilderAssignment {
   return {
     id: assignment.id,
     isDraft: assignment.isDraft,
-    servant: assignment.servant,
+    servant: toServantSearchHit(assignment.servant),
   };
 }
 
@@ -160,7 +178,15 @@ function mapCategory(category: {
   order: number;
   roleId: string | null;
   role: { id: string; name: string } | null;
-  assignments: Array<{ id: string; isDraft: boolean; servant: ServantSearchHit }>;
+  assignments: Array<{
+    id: string;
+    isDraft: boolean;
+    servant: {
+      id: string;
+      name: string;
+      encryptedPhone: string | null;
+    };
+  }>;
 }): BuilderCategory {
   return {
     id: category.id,
@@ -604,13 +630,24 @@ export async function searchServants(query: string): Promise<
 
   try {
     const servants = await prisma.servant.findMany({
-      where: { name: { contains: trimmed } },
-      select: { id: true, name: true, phone: true },
+      select: { id: true, name: true, encryptedPhone: true, encryptedNationalId: true },
       orderBy: { name: "asc" },
-      take: 12,
     });
+    const matches = servants
+      .map((servant) => {
+        const contact = readServantContact(servant);
+        return {
+          id: servant.id,
+          name: servant.name,
+          phone: contact.phone,
+          nationalId: contact.nationalId,
+        };
+      })
+      .filter((servant) => servantMatchesSearchQuery(servant, trimmed))
+      .slice(0, 12)
+      .map(({ id, name, phone }) => ({ id, name, phone }));
 
-    return { success: true, servants };
+    return { success: true, servants: matches };
   } catch {
     return { success: false, error: "تعذر البحث في الخدام حالياً." };
   }
@@ -637,7 +674,7 @@ export async function assignServant(
       }),
       prisma.servant.findUnique({
         where: { id: servantId },
-        select: { id: true, name: true, phone: true },
+        select: { id: true, name: true },
       }),
     ]);
 
@@ -693,7 +730,7 @@ export async function assignServant(
         isDraft: false,
       },
       include: {
-        servant: { select: { id: true, name: true, phone: true } },
+        servant: { select: { id: true, name: true, encryptedPhone: true } },
       },
     });
 

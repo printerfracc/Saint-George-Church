@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { hashForLookup, nationalIdSecretFields, phoneSecretFields } from "@/lib/crypto";
 import { prisma } from "@/lib/prisma";
 import { calendarYear } from "@/lib/tawze3a-year";
 import {
@@ -35,20 +36,35 @@ async function ensureCategory(khedmaId: string, role: { id: string; name: string
   });
 }
 
+async function findServantByNationalId(nationalId: string) {
+  const nationalIdHash = hashForLookup(nationalId);
+
+  return prisma.servant.findUnique({
+    where: { nationalIdHash },
+  });
+}
+
 async function upsertServant(nationalId: string, name: string, phone: string | null) {
+  const contact = {
+    ...nationalIdSecretFields(nationalId),
+    ...(phone ? phoneSecretFields(phone) : {}),
+  };
+
   try {
-    return await prisma.servant.upsert({
-      where: { nationalId },
-      update: {
-        name,
-        ...(phone ? { phone } : {}),
-      },
-      create: { name, phone, nationalId },
+    const existing = await findServantByNationalId(nationalId);
+
+    if (existing) {
+      return await prisma.servant.update({
+        where: { id: existing.id },
+        data: { name, ...contact },
+      });
+    }
+
+    return await prisma.servant.create({
+      data: { name, ...contact },
     });
   } catch {
-    const existing = await prisma.servant.findFirst({
-      where: { nationalId },
-    });
+    const existing = await findServantByNationalId(nationalId);
 
     if (existing) {
       return prisma.servant.update({
@@ -58,7 +74,7 @@ async function upsertServant(nationalId: string, name: string, phone: string | n
     }
 
     return prisma.servant.create({
-      data: { name, phone: null, nationalId },
+      data: { name, ...phoneSecretFields(null), ...nationalIdSecretFields(nationalId) },
     });
   }
 }

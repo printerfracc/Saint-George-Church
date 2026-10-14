@@ -57,21 +57,10 @@ export function servantListWhere(
   filters: ServantQueryFilters,
 ): Prisma.ServantWhereInput | undefined {
   const and: Prisma.ServantWhereInput[] = [];
-  const query = filters.query?.trim() ?? "";
   const roleIds = (filters.roleIds ?? []).filter(Boolean);
   const khedmaIds = (filters.khedmaIds ?? []).filter(Boolean);
   const hasRole = roleIds.length > 0;
   const hasKhedma = khedmaIds.length > 0;
-
-  if (query) {
-    and.push({
-      OR: [
-        { name: { contains: query } },
-        { phone: { contains: query } },
-        { nationalId: { contains: query } },
-      ],
-    });
-  }
 
   if (hasKhedma) {
     and.push({
@@ -112,6 +101,27 @@ export function servantListWhere(
   }
 
   return and.length > 0 ? { AND: and } : undefined;
+}
+
+export function servantMatchesSearchQuery(
+  servant: {
+    name: string;
+    phone?: string | null;
+    nationalId?: string | null;
+  },
+  query?: string | null,
+) {
+  const searchQuery = query?.trim() ?? "";
+
+  if (!searchQuery) {
+    return true;
+  }
+
+  const matchesName = servant.name.includes(searchQuery);
+  const matchesPhone = servant.phone?.includes(searchQuery) ?? false;
+  const matchesId = servant.nationalId?.includes(searchQuery) ?? false;
+
+  return matchesName || matchesPhone || matchesId;
 }
 
 export function assignmentMatchesFilters(

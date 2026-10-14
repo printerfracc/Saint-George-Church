@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { hashForLookup, nationalIdSecretFields, phoneSecretFields } from "@/lib/crypto";
 import { prisma } from "@/lib/prisma";
 import { UNREGISTERED_SERVANT_ROLE, type ServantImportRow } from "@/lib/servant-import-schema";
 import { getCurrentActiveYear } from "@/lib/tawze3a-year";
@@ -68,15 +69,19 @@ async function findExistingServant(input: {
   nationalId: string | null;
 }) {
   if (input.nationalId) {
-    return prisma.servant.findUnique({ where: { nationalId: input.nationalId } });
+    return prisma.servant.findUnique({
+      where: { nationalIdHash: hashForLookup(input.nationalId) },
+    });
   }
 
   if (input.phone) {
-    return prisma.servant.findUnique({ where: { phone: input.phone } });
+    return prisma.servant.findUnique({
+      where: { phoneHash: hashForLookup(input.phone) },
+    });
   }
 
   return prisma.servant.findFirst({
-    where: { name: input.name, nationalId: null, phone: null },
+    where: { name: input.name, nationalIdHash: null, phoneHash: null },
     orderBy: { createdAt: "asc" },
   });
 }
@@ -97,8 +102,8 @@ async function upsertServant(input: {
         where: { id: existing.id },
         data: {
           name: input.name,
-          ...(phone ? { phone } : {}),
-          ...(nationalId ? { nationalId } : {}),
+          ...(phone ? phoneSecretFields(phone) : {}),
+          ...(nationalId ? nationalIdSecretFields(nationalId) : {}),
         },
       });
     } catch (error) {
@@ -117,8 +122,8 @@ async function upsertServant(input: {
     return await prisma.servant.create({
       data: {
         name: input.name,
-        phone,
-        nationalId,
+        ...phoneSecretFields(phone),
+        ...nationalIdSecretFields(nationalId),
       },
     });
   } catch (error) {
@@ -138,8 +143,8 @@ async function upsertServant(input: {
     return prisma.servant.create({
       data: {
         name: input.name,
-        phone: null,
-        nationalId,
+        ...phoneSecretFields(null),
+        ...nationalIdSecretFields(nationalId),
       },
     });
   }

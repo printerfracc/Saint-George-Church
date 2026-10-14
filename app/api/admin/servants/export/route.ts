@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
+import { readServantContact } from "@/lib/crypto";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { OTHER_KHEDMA_STATUS_ROLES } from "@/lib/servant-import-schema";
@@ -8,6 +9,7 @@ import {
   parseServantListFilters,
   serializeIdList,
   servantListWhere,
+  servantMatchesSearchQuery,
   uniqueJoin,
   type ServantQueryFilters,
 } from "@/lib/servant-filters";
@@ -67,18 +69,24 @@ async function exportFilteredServants(filters: ServantQueryFilters) {
       },
     });
 
-    const rows = servants.map((servant) => {
+    const rows = servants.flatMap((servant) => {
+      const contact = readServantContact(servant);
+
+      if (!servantMatchesSearchQuery({ name: servant.name, ...contact }, filters.query)) {
+        return [];
+      }
+
       const assignments = servant.assignments.filter((assignment) =>
         assignmentMatchesFilters(assignment, filters),
       );
 
-      return {
+      return [{
         "الاسم (Name)": servant.name,
-        "رقم الموبايل (Phone)": servant.phone ?? "",
-        "الرقم القومي (NationalID)": servant.nationalId ?? "",
+        "رقم الموبايل (Phone)": contact.phone ?? "",
+        "الرقم القومي (NationalID)": contact.nationalId ?? "",
         "اسم الخدمة": uniqueJoin(assignments.map((item) => item.khedma?.name ?? "")),
         الرتبة: uniqueJoin(assignments.map((item) => item.role?.name ?? "")),
-      };
+      }];
     });
 
     const worksheet =

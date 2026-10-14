@@ -195,12 +195,19 @@ async function main() {
   const { prisma } = await import("./lib/prisma");
 
   try {
+    const { readServantContact } = await import("./lib/crypto");
     const servants = await prisma.servant.findMany({
       include: {
         assignments: true,
       },
     });
-    const assigned = servants.filter((servant) => servant.assignments.length > 0);
+    const assigned = servants
+      .filter((servant) => servant.assignments.length > 0)
+      .map((servant) => ({
+        name: servant.name,
+        ...readServantContact(servant),
+        assignments: servant.assignments,
+      }));
     const missing = excelServants.filter(
       (row) => !assigned.some((servant) => matchesAssignedServant(row, servant)),
     );

@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import dotenv from "dotenv";
 import { Workbook, type Borders, type Cell, type Margins } from "exceljs";
+import { readServantContact } from "./lib/crypto";
 import { normalizeArabic } from "./lib/arabicNormalizer";
 import { roleDisplayIndex } from "./lib/servant-role-order";
 
@@ -225,7 +226,7 @@ async function exportKhedmas() {
         assignments: {
           where: { year, isDraft: false },
           include: {
-            servant: { select: { name: true, phone: true } },
+            servant: { select: { name: true, encryptedPhone: true } },
             role: { select: { name: true } },
           },
         },
@@ -234,7 +235,7 @@ async function exportKhedmas() {
             assignments: {
               where: { year, isDraft: false, khedmaId: null },
               include: {
-                servant: { select: { name: true, phone: true } },
+                servant: { select: { name: true, encryptedPhone: true } },
                 role: { select: { name: true } },
               },
             },
@@ -251,13 +252,13 @@ async function exportKhedmas() {
       const rows = sortRoster([
         ...khedma.assignments.map((assignment) => ({
           name: assignment.servant.name,
-          phone: assignment.servant.phone,
+          phone: readServantContact(assignment.servant).phone,
           role: assignment.role.name,
         })),
         ...khedma.categories.flatMap((category) =>
           category.assignments.map((assignment) => ({
             name: assignment.servant.name,
-            phone: assignment.servant.phone,
+            phone: readServantContact(assignment.servant).phone,
             role: assignment.role.name,
           })),
         ),
