@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { YouTubeMediaCard } from "@/components/public/YouTubeMedia";
@@ -16,28 +16,48 @@ function photoDownloadHref(id: string) {
   return `/tawze3a/gallery/download?id=${encodeURIComponent(id)}`;
 }
 
+const tileClassName =
+  "overflow-hidden rounded-xl border border-coptic-gold-main/40 bg-white/80 shadow-sm";
+
+function GalleryTile({
+  index,
+  children,
+}: {
+  index: number;
+  children: ReactNode;
+}) {
+  return (
+    <motion.li
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.03 }}
+      className={tileClassName}
+    >
+      {children}
+    </motion.li>
+  );
+}
+
 export default function PublicGallery({ items }: { items: PublicGalleryItem[] }) {
   const [activeImage, setActiveImage] = useState<PublicGalleryItem | null>(null);
+  const orderedItems = [
+    ...items.filter((item) => item.type === GALLERY_MEDIA_YOUTUBE),
+    ...items.filter((item) => item.type === GALLERY_MEDIA_IMAGE),
+  ];
 
   return (
     <>
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:grid-cols-5">
-        {items.map((item, index) => (
-          <motion.li
-            key={item.id}
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-40px" }}
-            transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.03 }}
-            className="overflow-hidden rounded-xl border border-coptic-gold-main/40 bg-white/80 shadow-sm"
-          >
+        {orderedItems.map((item, index) => (
+          <GalleryTile key={item.id} index={index}>
             {item.type === GALLERY_MEDIA_YOUTUBE ? (
               <YouTubeMediaCard
                 url={item.url}
                 title="مشاهدة الفيديو على يوتيوب"
                 className="aspect-square"
               />
-            ) : item.type === GALLERY_MEDIA_IMAGE ? (
+            ) : (
               <div className="relative aspect-square">
                 <button
                   type="button"
@@ -61,8 +81,8 @@ export default function PublicGallery({ items }: { items: PublicGalleryItem[] })
                   تحميل
                 </a>
               </div>
-            ) : null}
-          </motion.li>
+            )}
+          </GalleryTile>
         ))}
       </ul>
 
