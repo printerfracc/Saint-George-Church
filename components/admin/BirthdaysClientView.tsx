@@ -161,6 +161,9 @@ function matchesSearch(servant: BirthdayServant, search: string) {
 const fieldClassName =
   "min-h-11 w-full rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold";
 
+const compactFieldClassName =
+  "min-h-11 w-full min-w-0 rounded-xl border border-deep-red/20 bg-white px-2 py-3 text-sm text-deep-red outline-none focus:ring-2 focus:ring-gold sm:px-4 sm:text-base";
+
 export default function BirthdaysClientView({ servants }: { servants: BirthdayServant[] }) {
   const [query, setQuery] = useState("");
   const [month, setMonth] = useState("");
@@ -168,6 +171,7 @@ export default function BirthdaysClientView({ servants }: { servants: BirthdaySe
   const [year, setYear] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const today = useMemo(() => new Date(), []);
   const search = query.trim();
   const range = birthdayRange(start, end);
@@ -255,19 +259,41 @@ export default function BirthdaysClientView({ servants }: { servants: BirthdaySe
             id="birthday-search"
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              const value = event.target.value;
+              setQuery(value);
+              if (value.trim()) {
+                setFiltersOpen(false);
+              }
+            }}
             placeholder="الاسم أو رقم الموبايل أو الرقم القومي"
             className={fieldClassName}
           />
         </label>
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <label className="block" htmlFor="birthday-month">
-            <span className="mb-2 block text-sm font-bold text-deep-red">الشهر</span>
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((open) => !open)}
+          aria-expanded={filtersOpen}
+          aria-controls="birthday-filters"
+          className="mt-3 flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-coptic-gold-main/50 bg-cream px-4 text-sm font-bold text-deep-red lg:hidden"
+        >
+          <span>{filtersOpen ? "إخفاء خيارات التصفية" : "خيارات التصفية"}</span>
+          <span className="flex items-center gap-2">
+            {hasDateFilter ? (
+              <span className="rounded-full bg-coptic-gold-main px-2 py-0.5 text-xs text-gray-900">مفعّلة</span>
+            ) : null}
+            <span aria-hidden="true">{filtersOpen ? "▴" : "▾"}</span>
+          </span>
+        </button>
+        <div id="birthday-filters" className={filtersOpen ? "block" : "hidden lg:block"}>
+        <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+          <label className="block min-w-0" htmlFor="birthday-month">
+            <span className="mb-2 block text-xs font-bold text-deep-red sm:text-sm">الشهر</span>
             <select
               id="birthday-month"
               value={month}
               onChange={(event) => setMonth(event.target.value)}
-              className={fieldClassName}
+              className={compactFieldClassName}
             >
               <option value="">كل الشهور</option>
               {ARABIC_MONTHS.map((item, index) => (
@@ -277,13 +303,13 @@ export default function BirthdaysClientView({ servants }: { servants: BirthdaySe
               ))}
             </select>
           </label>
-          <label className="block" htmlFor="birthday-day">
-            <span className="mb-2 block text-sm font-bold text-deep-red">اليوم</span>
+          <label className="block min-w-0" htmlFor="birthday-day">
+            <span className="mb-2 block text-xs font-bold text-deep-red sm:text-sm">اليوم</span>
             <select
               id="birthday-day"
               value={day}
               onChange={(event) => setDay(event.target.value)}
-              className={fieldClassName}
+              className={compactFieldClassName}
             >
               <option value="">كل الأيام</option>
               {Array.from({ length: 31 }, (_, index) => index + 1).map((value) => (
@@ -293,13 +319,13 @@ export default function BirthdaysClientView({ servants }: { servants: BirthdaySe
               ))}
             </select>
           </label>
-          <label className="block" htmlFor="birthday-year">
-            <span className="mb-2 block text-sm font-bold text-deep-red">سنة الميلاد</span>
+          <label className="block min-w-0" htmlFor="birthday-year">
+            <span className="mb-2 block text-xs font-bold text-deep-red sm:text-sm">سنة الميلاد</span>
             <select
               id="birthday-year"
               value={year}
               onChange={(event) => setYear(event.target.value)}
-              className={fieldClassName}
+              className={compactFieldClassName}
             >
               <option value="">كل السنوات</option>
               {years.map((value) => (
@@ -310,30 +336,35 @@ export default function BirthdaysClientView({ servants }: { servants: BirthdaySe
             </select>
           </label>
         </div>
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="block" htmlFor="birthday-start">
-            <span className="mb-2 block text-sm font-bold text-deep-red">من تاريخ</span>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
+          <label className="block min-w-0" htmlFor="birthday-start">
+            <span className="mb-2 block text-xs font-bold text-deep-red sm:text-sm">من تاريخ</span>
             <input
               id="birthday-start"
               type="date"
               value={start}
               onChange={(event) => setStart(event.target.value)}
-              className={fieldClassName}
+              className={compactFieldClassName}
             />
           </label>
-          <label className="block" htmlFor="birthday-end">
-            <span className="mb-2 block text-sm font-bold text-deep-red">إلى تاريخ</span>
+          <label className="block min-w-0" htmlFor="birthday-end">
+            <span className="mb-2 block text-xs font-bold text-deep-red sm:text-sm">إلى تاريخ</span>
             <input
               id="birthday-end"
               type="date"
               value={end}
               onChange={(event) => setEnd(event.target.value)}
-              className={fieldClassName}
+              className={compactFieldClassName}
             />
           </label>
         </div>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs leading-6 text-deep-red/70">
+        </div>
+        <div
+          className={`mt-3 flex flex-wrap items-center justify-between gap-3 ${
+            filtersOpen || query || month || day || year || start || end ? "" : "max-lg:hidden"
+          }`}
+        >
+          <p className={`text-xs leading-6 text-deep-red/70 ${filtersOpen ? "block" : "hidden"} lg:block`}>
             البحث بالاسم أو الموبايل أو الرقم القومي يشمل كل الخدام. يمكنك اختيار الشهر فقط، مثل يوليو، أو تحديد من تاريخ إلى تاريخ. أي حقل واحد يكفي.
           </p>
           {query || month || day || year || start || end ? (
