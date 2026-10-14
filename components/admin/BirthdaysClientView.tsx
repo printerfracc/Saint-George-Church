@@ -71,7 +71,7 @@ function BirthdaySection({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className={`flex h-[calc(100dvh-4.5rem)] flex-col overflow-hidden rounded-3xl border p-4 lg:h-dvh ${
+      className={`flex max-h-[calc(100dvh-4.5rem)] flex-col overflow-hidden rounded-3xl border p-4 lg:h-dvh lg:max-h-none ${
         highlighted
           ? "border-coptic-gold-main bg-linear-to-b from-coptic-gold-main/20 to-white shadow-md"
           : "border-coptic-gold-main/30 bg-white/50"
@@ -88,7 +88,7 @@ function BirthdaySection({
       {servants.length === 0 ? (
         <AdminEmptyState>لا توجد أعياد ميلاد في هذه الفترة</AdminEmptyState>
       ) : (
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-y-contain pe-1">
+        <div className="min-h-0 flex-auto space-y-3 overflow-y-auto overscroll-y-contain pe-1">
           {servants.map((servant) => (
             <BirthdayCard
               key={servant.id}
