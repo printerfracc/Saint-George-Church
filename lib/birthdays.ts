@@ -156,7 +156,16 @@ export function whatsAppBirthdayHref(servant: BirthdayServant) {
 
   const firstName = servant.name.trim().split(/\s+/)[0] || servant.name;
   const message = encodeURIComponent(
-    `كل سنة وأنت طيب يا ${firstName}، وعقبال سنين كتير حلوة مع ربنا \u{1F382}\u{1F389}`,
+    [
+      `كل عام وحضرتك بخير يا ا. ${firstName}`,
+      "\u{1F382} \u{1F973} \u{1F382}",
+      "نصلي أن يبارك الرب عامك الجديد ويديم تعب محبتك في خدمته.",
+      "",
+      "\"فَإِنَّنَا نَحْنُ عَامِلاَنِ مَعَ اللهِ، وَأَنْتُمْ فَلاَحَةُ اللهِ، بِنَاءُ اللهِ\" (١ كو ٣: ٩).",
+      "",
+      "مع خالص محبتنا،",
+      "أسرة خدام مارجرجس المطرية",
+    ].join("\n"),
   );
 
   return `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${message}`;
