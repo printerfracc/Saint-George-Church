@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { uploadMedia } from "@/actions/upload-media";
+import type { CloudinaryUploadResult } from "@/lib/cloudinary";
 import { VERCEL_UPLOAD_LIMIT_BYTES } from "@/lib/media";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error";
@@ -23,6 +24,7 @@ type ImageUploadProps = {
   label?: string;
   hint?: string | null;
   preview?: ImagePreviewVariant;
+  uploadFile?: (formData: FormData) => Promise<CloudinaryUploadResult>;
 };
 
 const statusMessages: Record<Exclude<UploadStatus, "idle">, string> = {
@@ -90,6 +92,7 @@ export default function ImageUpload({
   label = "رفع صورة",
   hint = "المعاينة بنفس شكل الصورة على الموقع. غيّر الصورة إن لم تكن القصّة مناسبة.",
   preview = "wide",
+  uploadFile = uploadMedia,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uncontrolledUrl, setUncontrolledUrl] = useState(value);
@@ -125,7 +128,7 @@ export default function ImageUpload({
     formData.append("file", file);
 
     try {
-      const result = await uploadMedia(formData);
+      const result = await uploadFile(formData);
 
       if (!result.success) {
         setStatus("error");

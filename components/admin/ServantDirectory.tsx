@@ -10,8 +10,10 @@ import {
   deleteAllServants,
   deleteServant,
   updateServant,
+  uploadServantPhoto,
   type ServantRecord,
 } from "@/actions/servants-crud";
+import ImageUpload from "@/components/admin/ImageUpload";
 import { DraftBadge } from "@/components/admin/AssignmentYearTools";
 import MultiSelectFilter from "@/components/admin/MultiSelectFilter";
 import { OTHER_KHEDMA_STATUS_ROLES } from "@/lib/servant-import-schema";
@@ -167,6 +169,49 @@ function formFromServant(servant: ServantRow): ServantFormState {
   };
 }
 
+function servantPhotoUrl(photoUrl?: string | null) {
+  const url = photoUrl?.trim() ?? "";
+  return url && isHttpUrl(url) ? url : "";
+}
+
+function ServantPhoto({
+  name,
+  photoUrl,
+  size = "list",
+  onOpen,
+}: {
+  name: string;
+  photoUrl?: string | null;
+  size?: "list" | "details";
+  onOpen: (src: string, name: string) => void;
+}) {
+  const src = servantPhotoUrl(photoUrl);
+
+  if (!src) {
+    return null;
+  }
+
+  const frame =
+    size === "details"
+      ? "size-20 border-2"
+      : "size-10 border";
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(src, name)}
+      className="shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-gold"
+      aria-label={`عرض صورة ${name}`}
+    >
+      <img
+        src={src}
+        alt=""
+        className={`${frame} rounded-full border-coptic-gold-main object-cover`}
+      />
+    </button>
+  );
+}
+
 function ProfileDetails({ servant }: { servant: ServantRow }) {
   return (
     <dl className="mt-4 space-y-3">
@@ -178,23 +223,6 @@ function ProfileDetails({ servant }: { servant: ServantRow }) {
           </dd>
         </div>
       ))}
-      <div className="rounded-xl bg-white/80 px-3 py-2">
-        <dt className="text-xs font-bold text-coptic-gold-dark">رابط الصورة</dt>
-        <dd className="mt-1 break-all text-sm leading-7 text-deep-red">
-          {servant.photoUrl?.trim() && isHttpUrl(servant.photoUrl.trim()) ? (
-            <a
-              href={servant.photoUrl.trim()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-bold text-coptic-gold-dark underline"
-            >
-              {servant.photoUrl.trim()}
-            </a>
-          ) : (
-            filledText(servant.photoUrl)
-          )}
-        </dd>
-      </div>
     </dl>
   );
 }
@@ -283,6 +311,7 @@ export default function ServantDirectory({
   const [selectedDeaconRank, setSelectedDeaconRank] = useState(deaconRank);
   const [otherKhedmaOnly, setOtherKhedmaOnly] = useState(assignedToOtherKhedma);
   const [details, setDetails] = useState<ServantRow | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<{ src: string; name: string } | null>(null);
   const [clearingId, setClearingId] = useState("");
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
@@ -302,6 +331,21 @@ export default function ServantDirectory({
     setServants(initialServants);
     setTotal(initialTotal);
   }, [initialServants, initialTotal]);
+
+  useEffect(() => {
+    if (!photoPreview) {
+      return;
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setPhotoPreview(null);
+      }
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [photoPreview]);
 
   useEffect(() => {
     if (skipFilterSync.current) {
@@ -841,13 +885,20 @@ export default function ServantDirectory({
           }
           cards={visibleServants.map((servant) => (
             <AdminMobileCard key={servant.id}>
-              <button
-                type="button"
-                onClick={() => setDetails(servant)}
-                className="text-right font-bold text-deep-red underline-offset-2 hover:underline"
-              >
-                {servant.name}
-              </button>
+              <div className="flex items-center gap-3">
+                <ServantPhoto
+                  name={servant.name}
+                  photoUrl={servant.photoUrl}
+                  onOpen={(src, photoName) => setPhotoPreview({ src, name: photoName })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setDetails(servant)}
+                  className="text-right font-bold text-deep-red underline-offset-2 hover:underline"
+                >
+                  {servant.name}
+                </button>
+              </div>
               <p className="mt-1 text-sm text-deep-red/80" dir="ltr">
                 {displayPhone(servant.phone)}
               </p>
@@ -888,13 +939,20 @@ export default function ServantDirectory({
           rows={visibleServants.map((servant) => (
             <tr key={servant.id} className="border-t border-coptic-gold-main/20 text-deep-red">
               <td className="px-4 py-3 font-bold">
-                <button
-                  type="button"
-                  onClick={() => setDetails(servant)}
-                  className="text-right font-bold text-deep-red underline-offset-2 hover:underline"
-                >
-                  {servant.name}
-                </button>
+                <div className="flex items-center gap-3">
+                  <ServantPhoto
+                    name={servant.name}
+                    photoUrl={servant.photoUrl}
+                    onOpen={(src, photoName) => setPhotoPreview({ src, name: photoName })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setDetails(servant)}
+                    className="text-right font-bold text-deep-red underline-offset-2 hover:underline"
+                  >
+                    {servant.name}
+                  </button>
+                </div>
               </td>
               <td className="px-4 py-3" dir="ltr">
                 {displayPhone(servant.phone)}
@@ -1114,17 +1172,14 @@ export default function ServantDirectory({
                       className={fieldClass}
                     />
                   </div>
-                  <div>
-                    <label htmlFor="servant-photo" className="mb-2 block text-sm font-bold text-deep-red">
-                      رابط الصورة
-                    </label>
-                    <input
-                      id="servant-photo"
-                      autoComplete="off"
+                  <div className="sm:col-span-2">
+                    <ImageUpload
+                      label="الصورة الشخصية"
+                      hint="ارفع صورة من جهازك. تظهر بجانب اسم الخادم بعد الحفظ."
+                      preview="circle"
                       value={form.photoUrl}
-                      onChange={(event) => setForm((current) => ({ ...current, photoUrl: event.target.value }))}
-                      placeholder="اختياري"
-                      className={fieldClass}
+                      uploadFile={uploadServantPhoto}
+                      onChange={(url) => setForm((current) => ({ ...current, photoUrl: url }))}
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -1196,12 +1251,22 @@ export default function ServantDirectory({
               aria-modal="true"
               aria-labelledby="servant-details-title"
             >
-              <h2 id="servant-details-title" className="text-lg font-bold text-deep-red">
-                {details.name}
-              </h2>
-              <p className="mt-2 text-sm text-deep-red/75" dir="ltr">
-                {displayPhone(details.phone)} — {maskNationalId(details.nationalId)}
-              </p>
+              <div className="flex items-center gap-4">
+                <ServantPhoto
+                  name={details.name}
+                  photoUrl={details.photoUrl}
+                  size="details"
+                  onOpen={(src, photoName) => setPhotoPreview({ src, name: photoName })}
+                />
+                <div>
+                  <h2 id="servant-details-title" className="text-lg font-bold text-deep-red">
+                    {details.name}
+                  </h2>
+                  <p className="mt-2 text-sm text-deep-red/75" dir="ltr">
+                    {displayPhone(details.phone)} — {maskNationalId(details.nationalId)}
+                  </p>
+                </div>
+              </div>
               <ProfileDetails servant={details} />
               <div className="mt-5 flex flex-wrap gap-2">
                 <button type="button" onClick={() => openEdit(details)} className={adminActionGold}>
@@ -1312,6 +1377,35 @@ export default function ServantDirectory({
               </div>
             </motion.div>
           </>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {photoPreview ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`صورة ${photoPreview.name}`}
+            onClick={() => setPhotoPreview(null)}
+          >
+            <button
+              type="button"
+              onClick={() => setPhotoPreview(null)}
+              className="absolute end-4 top-4 min-h-11 rounded-full bg-white px-4 text-sm font-bold text-deep-red"
+            >
+              إغلاق
+            </button>
+            <img
+              src={photoPreview.src}
+              alt={`صورة ${photoPreview.name}`}
+              onClick={(event) => event.stopPropagation()}
+              className="max-h-[88vh] max-w-[min(92vw,56rem)] rounded-2xl object-contain shadow-2xl"
+            />
+          </motion.div>
         ) : null}
       </AnimatePresence>
     </div>

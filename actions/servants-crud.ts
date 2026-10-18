@@ -3,6 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { uploadImageToCloudinary, type CloudinaryUploadResult } from "@/lib/cloudinary";
 import { nationalIdSecretFields, phoneSecretFields, readServantContact } from "@/lib/crypto";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
@@ -53,16 +54,21 @@ export type ServantListFilters = {
 const STANDARD_BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const STANDARD_DEACON_RANKS = ["ابصالتس", "أغنسطس", "اغناسطس", "دياكون", "إيبي دياكون"];
 
-const optionalServantText = z
-  .string()
-  .trim()
-  .max(191, "النص أطول من المسموح (191 حرفاً)")
-  .optional()
-  .nullable()
-  .transform((value) => {
-    const text = value?.trim() ?? "";
-    return text.length > 0 ? text : null;
-  });
+function optionalText(max: number) {
+  return z
+    .string()
+    .trim()
+    .max(max, "النص أطول من المسموح")
+    .optional()
+    .nullable()
+    .transform((value) => {
+      const text = value?.trim() ?? "";
+      return text.length > 0 ? text : null;
+    });
+}
+
+const optionalServantText = optionalText(191);
+const optionalPhotoUrl = optionalText(2048);
 
 const servantWriteSchema = z.object({
   name: z.string().trim().min(1, "يرجى إدخال اسم الخادم"),
@@ -76,7 +82,7 @@ const servantWriteSchema = z.object({
   previousKhedmas: optionalServantText,
   deaconRank: optionalServantText,
   extraNotes: optionalServantText,
-  photoUrl: optionalServantText,
+  photoUrl: optionalPhotoUrl,
 });
 
 type ServantWriteData = z.infer<typeof servantWriteSchema>;
@@ -254,6 +260,22 @@ function uniqueConstraintMessage(error: unknown) {
   }
 
   return null;
+}
+
+export async function uploadServantPhoto(formData: FormData): Promise<CloudinaryUploadResult> {
+  const session = await requireTawze3aAdmin();
+
+  if (!session) {
+    return { success: false, error: "غير مصرح لك بتنفيذ هذه العملية" };
+  }
+
+  const file = formData.get("file");
+
+  if (!(file instanceof File)) {
+    return { success: false, error: "يرجى اختيار صورة للرفع" };
+  }
+
+  return uploadImageToCloudinary(file);
 }
 
 export async function createServant(input: {
