@@ -219,6 +219,15 @@ model Servant {
   nationalIdHash      String?              @unique
   status              String?
   newUser             Boolean?             @default(false)
+  address             String?
+  bloodType           String?
+  emergencyContact    String?
+  graduationYear      String?
+  jobOrStudy          String?
+  previousKhedmas     String?
+  deaconRank          String?
+  extraNotes          String?
+  photoUrl            String?
   assignments         ServantAssignment[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt

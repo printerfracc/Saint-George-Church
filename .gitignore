@@ -43,6 +43,11 @@ yarn-error.log*
 /*.xls
 /export-custom-lists.ts
 
+# servant form imports and conflict reports (names, phones, and national IDs)
+/conflicts-report.csv
+/leftover-conflicts.csv
+/servants-data.csv
+
 # vercel
 .vercel
 

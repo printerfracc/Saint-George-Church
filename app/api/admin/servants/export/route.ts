@@ -135,6 +135,8 @@ export async function GET(request: NextRequest) {
       khedma: request.nextUrl.searchParams.get("khedma"),
       year: request.nextUrl.searchParams.get("year"),
       other: request.nextUrl.searchParams.get("other"),
+      blood: request.nextUrl.searchParams.get("blood"),
+      rank: request.nextUrl.searchParams.get("rank"),
     }),
   );
 }
@@ -146,6 +148,8 @@ export async function POST(request: NextRequest) {
     khedma?: string;
     year?: string;
     other?: string;
+    blood?: string;
+    rank?: string;
   } | null;
 
   return exportFilteredServants(
@@ -155,6 +159,8 @@ export async function POST(request: NextRequest) {
       khedma: body?.khedma,
       year: body?.year,
       other: body?.other,
+      blood: body?.blood,
+      rank: body?.rank,
     }),
   );
 }

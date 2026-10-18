@@ -20,6 +20,8 @@ export type ServantQueryFilters = {
   year: number;
   assignedToOtherKhedma?: boolean;
   statusRoleIds?: string[];
+  bloodType?: string;
+  deaconRank?: string;
 };
 
 export function parseIdList(value?: string | string[] | null): string[] {
@@ -31,14 +33,22 @@ export function serializeIdList(ids: string[]): string {
   return [...new Set(ids.map((item) => item.trim()).filter(Boolean))].join(",");
 }
 
+function firstText(value?: string | string[] | null) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const text = raw?.trim() ?? "";
+  return text || undefined;
+}
+
 export function parseServantListFilters(params: {
   q?: string | string[] | null;
   role?: string | string[] | null;
   khedma?: string | string[] | null;
   year?: string | string[] | null;
   other?: string | string[] | null;
+  blood?: string | string[] | null;
+  rank?: string | string[] | null;
 }): ServantQueryFilters {
-  const query = (Array.isArray(params.q) ? params.q[0] : params.q)?.trim() ?? "";
+  const query = firstText(params.q) ?? "";
   const roleIds = parseIdList(params.role);
   const khedmaIds = parseIdList(params.khedma);
   const yearValue = Array.isArray(params.year) ? params.year[0] : params.year;
@@ -50,6 +60,8 @@ export function parseServantListFilters(params: {
     khedmaIds,
     year: parseYear(yearValue),
     assignedToOtherKhedma: otherValue === "1",
+    bloodType: firstText(params.blood),
+    deaconRank: firstText(params.rank),
   };
 }
 
@@ -72,6 +84,14 @@ export function servantListWhere(
     and.push({
       assignments: { some: { roleId: { in: roleIds } } },
     });
+  }
+
+  if (filters.bloodType) {
+    and.push({ bloodType: filters.bloodType });
+  }
+
+  if (filters.deaconRank) {
+    and.push({ deaconRank: filters.deaconRank });
   }
 
   if (filters.assignedToOtherKhedma) {
@@ -149,9 +169,13 @@ export function assignmentMatchesFilters(
 export function servantMatchesFilters(
   servant: {
     assignments: Array<{ roleId: string; khedmaId?: string | null }>;
+    bloodType?: string | null;
+    deaconRank?: string | null;
   },
   selectedRoles: string[],
   selectedKhedmat: string[],
+  bloodType?: string,
+  deaconRank?: string,
 ) {
   const matchesKhedma =
     selectedKhedmat.length === 0 ||
@@ -161,7 +185,10 @@ export function servantMatchesFilters(
     selectedRoles.length === 0 ||
     servant.assignments.some((assignment) => selectedRoles.includes(assignment.roleId));
 
-  return matchesKhedma && matchesRole;
+  const matchesBlood = !bloodType || servant.bloodType === bloodType;
+  const matchesRank = !deaconRank || servant.deaconRank === deaconRank;
+
+  return matchesKhedma && matchesRole && matchesBlood && matchesRank;
 }
 
 export function uniqueJoin(values: string[]) {

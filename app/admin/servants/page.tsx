@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import ServantDirectory, { type ServantRow } from "@/components/admin/ServantDirectory";
 import { AdminPageHeader } from "@/components/admin/admin-ui";
-import { getServants, listKhedmaFilters } from "@/actions/servants-crud";
+import { getServants, listKhedmaFilters, listServantFieldOptions } from "@/actions/servants-crud";
 import { listServantRoles } from "@/actions/tawze3a-admin";
 import { authOptions } from "@/lib/auth";
 import { parseServantListFilters } from "@/lib/servant-filters";
@@ -18,7 +18,15 @@ export const metadata = {
 export default async function ServantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; role?: string; khedma?: string; year?: string; other?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    role?: string;
+    khedma?: string;
+    year?: string;
+    other?: string;
+    blood?: string;
+    rank?: string;
+  }>;
 }) {
   const session = await getServerSession(authOptions);
 
@@ -33,15 +41,18 @@ export default async function ServantsPage({
   const khedmaIds = filters.khedmaIds;
   const activeYear = await getCurrentActiveYear();
 
-  const [result, khedmat, roles] = await Promise.all([
+  const [result, khedmat, roles, fieldOptions] = await Promise.all([
     getServants(query, 1, 100, {
       roleIds,
       khedmaIds,
       year: activeYear,
       assignedToOtherKhedma: filters.assignedToOtherKhedma,
+      bloodType: filters.bloodType,
+      deaconRank: filters.deaconRank,
     }),
     listKhedmaFilters(),
     listServantRoles(),
+    listServantFieldOptions(),
   ]);
 
   const servants: ServantRow[] =
@@ -58,7 +69,7 @@ export default async function ServantsPage({
         title="إدارة الخدام"
         description={
           <p className="mt-2 text-sm leading-7 text-deep-red/75">
-            ضيف خدام، عدّل البيانات، أو ارفع Excel. الموبايل والرقم القومي والخدمة اختيارية، ويمكنك التصفية بالرتبة.
+            ضيف خدام، عدّل البيانات، أو ارفع Excel. الموبايل والرقم القومي والخدمة اختيارية، ويمكنك التصفية بالرتبة وفصيلة الدم والرتبة الشماسية.
           </p>
         }
       />
@@ -74,6 +85,10 @@ export default async function ServantsPage({
         query={query}
         roleIds={roleIds}
         khedmaIds={khedmaIds}
+        bloodType={filters.bloodType ?? ""}
+        deaconRank={filters.deaconRank ?? ""}
+        bloodTypes={fieldOptions.bloodTypes}
+        deaconRanks={fieldOptions.deaconRanks}
         selectedYear={activeYear}
         assignedToOtherKhedma={
           Boolean(filters.assignedToOtherKhedma) &&

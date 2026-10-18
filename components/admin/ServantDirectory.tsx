@@ -101,13 +101,103 @@ type ServantFormState = {
   name: string;
   phone: string;
   nationalId: string;
+  address: string;
+  bloodType: string;
+  emergencyContact: string;
+  graduationYear: string;
+  jobOrStudy: string;
+  previousKhedmas: string;
+  deaconRank: string;
+  extraNotes: string;
+  photoUrl: string;
 };
 
 const emptyForm: ServantFormState = {
   name: "",
   phone: "",
   nationalId: "",
+  address: "",
+  bloodType: "",
+  emergencyContact: "",
+  graduationYear: "",
+  jobOrStudy: "",
+  previousKhedmas: "",
+  deaconRank: "",
+  extraNotes: "",
+  photoUrl: "",
 };
+
+const fieldClass =
+  "w-full rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold";
+
+const PROFILE_DETAILS = [
+  ["address", "العنوان"],
+  ["bloodType", "فصيلة الدم"],
+  ["emergencyContact", "طوارئ"],
+  ["graduationYear", "سنة التخرج"],
+  ["jobOrStudy", "المهنة/الدراسة"],
+  ["deaconRank", "الرتبة الشماسية"],
+  ["previousKhedmas", "خدمات سابقة"],
+  ["extraNotes", "ملاحظات"],
+] as const;
+
+function filledText(value?: string | null) {
+  const text = value?.trim() ?? "";
+  return text || "غير مسجل";
+}
+
+function isHttpUrl(value: string) {
+  return /^https?:\/\//i.test(value);
+}
+
+function formFromServant(servant: ServantRow): ServantFormState {
+  return {
+    name: servant.name,
+    phone: servant.phone ?? "",
+    nationalId: servant.nationalId ?? "",
+    address: servant.address ?? "",
+    bloodType: servant.bloodType ?? "",
+    emergencyContact: servant.emergencyContact ?? "",
+    graduationYear: servant.graduationYear ?? "",
+    jobOrStudy: servant.jobOrStudy ?? "",
+    previousKhedmas: servant.previousKhedmas ?? "",
+    deaconRank: servant.deaconRank ?? "",
+    extraNotes: servant.extraNotes ?? "",
+    photoUrl: servant.photoUrl ?? "",
+  };
+}
+
+function ProfileDetails({ servant }: { servant: ServantRow }) {
+  return (
+    <dl className="mt-4 space-y-3">
+      {PROFILE_DETAILS.map(([key, label]) => (
+        <div key={key} className="rounded-xl bg-white/80 px-3 py-2">
+          <dt className="text-xs font-bold text-coptic-gold-dark">{label}</dt>
+          <dd className="mt-1 whitespace-pre-wrap wrap-break-word text-sm leading-7 text-deep-red">
+            {filledText(servant[key])}
+          </dd>
+        </div>
+      ))}
+      <div className="rounded-xl bg-white/80 px-3 py-2">
+        <dt className="text-xs font-bold text-coptic-gold-dark">رابط الصورة</dt>
+        <dd className="mt-1 break-all text-sm leading-7 text-deep-red">
+          {servant.photoUrl?.trim() && isHttpUrl(servant.photoUrl.trim()) ? (
+            <a
+              href={servant.photoUrl.trim()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-coptic-gold-dark underline"
+            >
+              {servant.photoUrl.trim()}
+            </a>
+          ) : (
+            filledText(servant.photoUrl)
+          )}
+        </dd>
+      </div>
+    </dl>
+  );
+}
 
 function KhedmaChips({ assignments }: { assignments: ServantRow["assignments"] }) {
   const groups = new Map<string, { name: string; roles: string[]; isDraft: boolean }>();
@@ -162,6 +252,10 @@ export default function ServantDirectory({
   query,
   roleIds,
   khedmaIds,
+  bloodType,
+  deaconRank,
+  bloodTypes,
+  deaconRanks,
   selectedYear,
   assignedToOtherKhedma,
 }: {
@@ -172,6 +266,10 @@ export default function ServantDirectory({
   query: string;
   roleIds: string[];
   khedmaIds: string[];
+  bloodType: string;
+  deaconRank: string;
+  bloodTypes: string[];
+  deaconRanks: string[];
   selectedYear: number;
   assignedToOtherKhedma: boolean;
 }) {
@@ -181,7 +279,10 @@ export default function ServantDirectory({
   const [searchInput, setSearchInput] = useState(query);
   const [selectedRoles, setSelectedRoles] = useState<string[]>(roleIds);
   const [selectedKhedmat, setSelectedKhedmat] = useState<string[]>(khedmaIds);
+  const [selectedBloodType, setSelectedBloodType] = useState(bloodType);
+  const [selectedDeaconRank, setSelectedDeaconRank] = useState(deaconRank);
   const [otherKhedmaOnly, setOtherKhedmaOnly] = useState(assignedToOtherKhedma);
+  const [details, setDetails] = useState<ServantRow | null>(null);
   const [clearingId, setClearingId] = useState("");
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
@@ -210,8 +311,10 @@ export default function ServantDirectory({
 
     setSelectedRoles(roleIds);
     setSelectedKhedmat(khedmaIds);
+    setSelectedBloodType(bloodType);
+    setSelectedDeaconRank(deaconRank);
     setOtherKhedmaOnly(assignedToOtherKhedma);
-  }, [assignedToOtherKhedma, incomingKhedmaKey, incomingRoleKey, khedmaIds, roleIds]);
+  }, [assignedToOtherKhedma, bloodType, deaconRank, incomingKhedmaKey, incomingRoleKey, khedmaIds, roleIds]);
 
   const statusRoleIds = useMemo(
     () =>
@@ -239,9 +342,15 @@ export default function ServantDirectory({
   const visibleServants = useMemo(
     () =>
       servants.filter((servant) =>
-        servantMatchesFilters(servant, selectedRoles, selectedKhedmat),
+        servantMatchesFilters(
+          servant,
+          selectedRoles,
+          selectedKhedmat,
+          selectedBloodType,
+          selectedDeaconRank,
+        ),
       ),
-    [selectedKhedmat, selectedRoles, servants],
+    [selectedBloodType, selectedDeaconRank, selectedKhedmat, selectedRoles, servants],
   );
 
   useEffect(() => {
@@ -264,7 +373,7 @@ export default function ServantDirectory({
     }, 300);
 
     return () => window.clearTimeout(handle);
-  }, [otherKhedmaOnly, searchInput, query, selectedRoles, selectedKhedmat]);
+  }, [otherKhedmaOnly, searchInput, query, selectedBloodType, selectedDeaconRank, selectedRoles, selectedKhedmat]);
 
   const title = useMemo(
     () => (editing ? "تعديل خادم" : "إضافة خادم"),
@@ -276,11 +385,15 @@ export default function ServantDirectory({
     roleIds?: string[];
     khedmaIds?: string[];
     assignedToOtherKhedma?: boolean;
+    bloodType?: string;
+    deaconRank?: string;
   }) {
     const params = new URLSearchParams();
     const nextQuery = "q" in next ? next.q ?? "" : query;
     const nextRoles = "roleIds" in next ? next.roleIds ?? [] : selectedRoles;
     const nextKhedmat = "khedmaIds" in next ? next.khedmaIds ?? [] : selectedKhedmat;
+    const nextBlood = "bloodType" in next ? next.bloodType ?? "" : selectedBloodType;
+    const nextRank = "deaconRank" in next ? next.deaconRank ?? "" : selectedDeaconRank;
     const nextOther =
       "assignedToOtherKhedma" in next ? Boolean(next.assignedToOtherKhedma) : otherKhedmaOnly;
     const nextRole = serializeIdList(nextRoles);
@@ -299,6 +412,14 @@ export default function ServantDirectory({
 
     if (nextKhedma) {
       params.set("khedma", nextKhedma);
+    }
+
+    if (nextBlood) {
+      params.set("blood", nextBlood);
+    }
+
+    if (nextRank) {
+      params.set("rank", nextRank);
     }
 
     if (keepOther) {
@@ -331,6 +452,18 @@ export default function ServantDirectory({
     replaceFilters({ khedmaIds: ids });
   }
 
+  function handleBloodTypeChange(value: string) {
+    skipFilterSync.current = true;
+    setSelectedBloodType(value);
+    replaceFilters({ bloodType: value });
+  }
+
+  function handleDeaconRankChange(value: string) {
+    skipFilterSync.current = true;
+    setSelectedDeaconRank(value);
+    replaceFilters({ deaconRank: value });
+  }
+
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
@@ -339,12 +472,9 @@ export default function ServantDirectory({
   }
 
   function openEdit(servant: ServantRow) {
+    setDetails(null);
     setEditing(servant);
-    setForm({
-      name: servant.name,
-      phone: servant.phone ?? "",
-      nationalId: servant.nationalId ?? "",
-    });
+    setForm(formFromServant(servant));
     setFormError("");
     setIsFormOpen(true);
   }
@@ -364,6 +494,15 @@ export default function ServantDirectory({
       name: form.name,
       phone: form.phone,
       nationalId: form.nationalId,
+      address: form.address,
+      bloodType: form.bloodType,
+      emergencyContact: form.emergencyContact,
+      graduationYear: form.graduationYear,
+      jobOrStudy: form.jobOrStudy,
+      previousKhedmas: form.previousKhedmas,
+      deaconRank: form.deaconRank,
+      extraNotes: form.extraNotes,
+      photoUrl: form.photoUrl,
     };
 
     const result = editing
@@ -526,6 +665,8 @@ export default function ServantDirectory({
         khedma: serializeIdList(selectedKhedmat) || pageParams.get("khedma") || "",
         year: String(selectedYear),
         other: otherKhedmaOnly && showOtherKhedmaToggle ? "1" : "",
+        blood: selectedBloodType,
+        rank: selectedDeaconRank,
       };
 
       const response = await fetch("/api/admin/servants/export", {
@@ -585,7 +726,7 @@ export default function ServantDirectory({
               className="min-h-11 w-full rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
             />
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="grid w-full grid-cols-1 gap-3 overflow-visible sm:grid-cols-2 xl:max-w-2xl">
+            <div className="grid w-full grid-cols-1 gap-3 overflow-visible sm:grid-cols-2 xl:max-w-3xl">
               <MultiSelectFilter
                 label="الرتبة"
                 options={roleOptions}
@@ -602,6 +743,36 @@ export default function ServantDirectory({
                 emptyLabel="جميع الخدمات"
                 countLabel={(count) => `تم تحديد ${count} خدمات`}
               />
+              <label className="block min-w-0">
+                <span className="mb-1 block text-[11px] font-bold text-coptic-gold-dark">فصيلة الدم</span>
+                <select
+                  value={selectedBloodType}
+                  onChange={(event) => handleBloodTypeChange(event.target.value)}
+                  className="min-h-14 w-full rounded-2xl border border-coptic-gold-main/45 bg-white px-4 text-sm font-semibold text-deep-red outline-none focus:ring-2 focus:ring-gold"
+                >
+                  <option value="">كل الفصائل</option>
+                  {bloodTypes.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block min-w-0">
+                <span className="mb-1 block text-[11px] font-bold text-coptic-gold-dark">الرتبة الشماسية</span>
+                <select
+                  value={selectedDeaconRank}
+                  onChange={(event) => handleDeaconRankChange(event.target.value)}
+                  className="min-h-14 w-full rounded-2xl border border-coptic-gold-main/45 bg-white px-4 text-sm font-semibold text-deep-red outline-none focus:ring-2 focus:ring-gold"
+                >
+                  <option value="">كل الرتب الشماسية</option>
+                  {deaconRanks.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </label>
               {showOtherKhedmaToggle ? (
                 <label className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-deep-red/20 bg-white px-4 text-sm font-bold text-deep-red sm:col-span-2">
                   <input
@@ -670,7 +841,13 @@ export default function ServantDirectory({
           }
           cards={visibleServants.map((servant) => (
             <AdminMobileCard key={servant.id}>
-              <p className="font-bold text-deep-red">{servant.name}</p>
+              <button
+                type="button"
+                onClick={() => setDetails(servant)}
+                className="text-right font-bold text-deep-red underline-offset-2 hover:underline"
+              >
+                {servant.name}
+              </button>
               <p className="mt-1 text-sm text-deep-red/80" dir="ltr">
                 {displayPhone(servant.phone)}
               </p>
@@ -710,7 +887,15 @@ export default function ServantDirectory({
           ))}
           rows={visibleServants.map((servant) => (
             <tr key={servant.id} className="border-t border-coptic-gold-main/20 text-deep-red">
-              <td className="px-4 py-3 font-bold">{servant.name}</td>
+              <td className="px-4 py-3 font-bold">
+                <button
+                  type="button"
+                  onClick={() => setDetails(servant)}
+                  className="text-right font-bold text-deep-red underline-offset-2 hover:underline"
+                >
+                  {servant.name}
+                </button>
+              </td>
               <td className="px-4 py-3" dir="ltr">
                 {displayPhone(servant.phone)}
               </td>
@@ -769,7 +954,7 @@ export default function ServantDirectory({
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 16 }}
-              className="fixed inset-x-4 top-[10vh] z-50 mx-auto w-auto max-w-lg rounded-2xl bg-cream p-5 shadow-2xl"
+              className="fixed inset-x-4 top-[6vh] z-50 mx-auto max-h-[88vh] w-auto max-w-xl overflow-y-auto rounded-2xl bg-cream p-5 shadow-2xl"
               role="dialog"
               aria-modal="true"
               aria-labelledby="servant-form-title"
@@ -795,7 +980,7 @@ export default function ServantDirectory({
                     suppressHydrationWarning
                     value={form.name}
                     onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                    className="w-full rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
+                    className={fieldClass}
                   />
                 </div>
                 <div>
@@ -811,7 +996,7 @@ export default function ServantDirectory({
                     value={form.phone}
                     onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
                     placeholder="اختياري"
-                    className="w-full rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
+                    className={fieldClass}
                   />
                 </div>
                 <div>
@@ -831,8 +1016,145 @@ export default function ServantDirectory({
                       setForm((current) => ({ ...current, nationalId: event.target.value }))
                     }
                     placeholder="اختياري"
-                    className="w-full rounded-xl border border-deep-red/20 bg-white px-4 py-3 text-deep-red outline-none focus:ring-2 focus:ring-gold"
+                    className={fieldClass}
                   />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label htmlFor="servant-address" className="mb-2 block text-sm font-bold text-deep-red">
+                      العنوان
+                    </label>
+                    <input
+                      id="servant-address"
+                      autoComplete="off"
+                      value={form.address}
+                      onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
+                      placeholder="اختياري"
+                      className={fieldClass}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="servant-job" className="mb-2 block text-sm font-bold text-deep-red">
+                      المهنة/الدراسة
+                    </label>
+                    <input
+                      id="servant-job"
+                      autoComplete="off"
+                      value={form.jobOrStudy}
+                      onChange={(event) => setForm((current) => ({ ...current, jobOrStudy: event.target.value }))}
+                      placeholder="اختياري"
+                      className={fieldClass}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="servant-graduation" className="mb-2 block text-sm font-bold text-deep-red">
+                      سنة التخرج
+                    </label>
+                    <input
+                      id="servant-graduation"
+                      autoComplete="off"
+                      value={form.graduationYear}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, graduationYear: event.target.value }))
+                      }
+                      placeholder="اختياري"
+                      className={fieldClass}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="servant-blood" className="mb-2 block text-sm font-bold text-deep-red">
+                      فصيلة الدم
+                    </label>
+                    <input
+                      id="servant-blood"
+                      list="servant-blood-options"
+                      autoComplete="off"
+                      value={form.bloodType}
+                      onChange={(event) => setForm((current) => ({ ...current, bloodType: event.target.value }))}
+                      placeholder="اختياري"
+                      className={fieldClass}
+                    />
+                    <datalist id="servant-blood-options">
+                      {bloodTypes.map((value) => (
+                        <option key={value} value={value} />
+                      ))}
+                    </datalist>
+                  </div>
+                  <div>
+                    <label htmlFor="servant-deacon" className="mb-2 block text-sm font-bold text-deep-red">
+                      الرتبة الشماسية
+                    </label>
+                    <input
+                      id="servant-deacon"
+                      list="servant-deacon-options"
+                      autoComplete="off"
+                      value={form.deaconRank}
+                      onChange={(event) => setForm((current) => ({ ...current, deaconRank: event.target.value }))}
+                      placeholder="اختياري"
+                      className={fieldClass}
+                    />
+                    <datalist id="servant-deacon-options">
+                      {deaconRanks.map((value) => (
+                        <option key={value} value={value} />
+                      ))}
+                    </datalist>
+                  </div>
+                  <div>
+                    <label htmlFor="servant-emergency" className="mb-2 block text-sm font-bold text-deep-red">
+                      طوارئ
+                    </label>
+                    <input
+                      id="servant-emergency"
+                      autoComplete="off"
+                      value={form.emergencyContact}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, emergencyContact: event.target.value }))
+                      }
+                      placeholder="اختياري"
+                      className={fieldClass}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="servant-photo" className="mb-2 block text-sm font-bold text-deep-red">
+                      رابط الصورة
+                    </label>
+                    <input
+                      id="servant-photo"
+                      autoComplete="off"
+                      value={form.photoUrl}
+                      onChange={(event) => setForm((current) => ({ ...current, photoUrl: event.target.value }))}
+                      placeholder="اختياري"
+                      className={fieldClass}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="servant-previous" className="mb-2 block text-sm font-bold text-deep-red">
+                      خدمات سابقة
+                    </label>
+                    <textarea
+                      id="servant-previous"
+                      rows={3}
+                      value={form.previousKhedmas}
+                      onChange={(event) =>
+                        setForm((current) => ({ ...current, previousKhedmas: event.target.value }))
+                      }
+                      placeholder="اختياري"
+                      className={fieldClass}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="servant-notes" className="mb-2 block text-sm font-bold text-deep-red">
+                      ملاحظات
+                    </label>
+                    <textarea
+                      id="servant-notes"
+                      rows={3}
+                      value={form.extraNotes}
+                      onChange={(event) => setForm((current) => ({ ...current, extraNotes: event.target.value }))}
+                      placeholder="اختياري"
+                      className={fieldClass}
+                    />
+                  </div>
                 </div>
                 {formError ? (
                   <p role="alert" className="text-sm font-medium text-deep-red">
@@ -848,6 +1170,47 @@ export default function ServantDirectory({
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {details ? (
+          <>
+            <motion.button
+              type="button"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/40"
+              aria-label="إغلاق التفاصيل"
+              onClick={() => setDetails(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
+              className="fixed inset-x-4 top-[8vh] z-50 mx-auto max-h-[84vh] w-auto max-w-lg overflow-y-auto rounded-2xl bg-cream p-5 shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="servant-details-title"
+            >
+              <h2 id="servant-details-title" className="text-lg font-bold text-deep-red">
+                {details.name}
+              </h2>
+              <p className="mt-2 text-sm text-deep-red/75" dir="ltr">
+                {displayPhone(details.phone)} — {maskNationalId(details.nationalId)}
+              </p>
+              <ProfileDetails servant={details} />
+              <div className="mt-5 flex flex-wrap gap-2">
+                <button type="button" onClick={() => openEdit(details)} className={adminActionGold}>
+                  تعديل
+                </button>
+                <button type="button" onClick={() => setDetails(null)} className={adminActionOutline}>
+                  إغلاق
+                </button>
+              </div>
             </motion.div>
           </>
         ) : null}

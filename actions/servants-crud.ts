@@ -2,6 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { nationalIdSecretFields, phoneSecretFields, readServantContact } from "@/lib/crypto";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
@@ -27,6 +28,15 @@ export type ServantRecord = {
   nationalId: string | null;
   status: string | null;
   newUser: boolean | null;
+  address: string | null;
+  bloodType: string | null;
+  emergencyContact: string | null;
+  graduationYear: string | null;
+  jobOrStudy: string | null;
+  previousKhedmas: string | null;
+  deaconRank: string | null;
+  extraNotes: string | null;
+  photoUrl: string | null;
   createdAt: Date;
   assignments: ServantAssignmentChip[];
 };
@@ -36,6 +46,51 @@ export type ServantListFilters = {
   khedmaIds?: string[];
   year?: number;
   assignedToOtherKhedma?: boolean;
+  bloodType?: string;
+  deaconRank?: string;
+};
+
+const STANDARD_BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+const STANDARD_DEACON_RANKS = ["ابصالتس", "أغنسطس", "اغناسطس", "دياكون", "إيبي دياكون"];
+
+const optionalServantText = z
+  .string()
+  .trim()
+  .max(191, "النص أطول من المسموح (191 حرفاً)")
+  .optional()
+  .nullable()
+  .transform((value) => {
+    const text = value?.trim() ?? "";
+    return text.length > 0 ? text : null;
+  });
+
+const servantWriteSchema = z.object({
+  name: z.string().trim().min(1, "يرجى إدخال اسم الخادم"),
+  phone: optionalServantText,
+  nationalId: optionalServantText,
+  address: optionalServantText,
+  bloodType: optionalServantText,
+  emergencyContact: optionalServantText,
+  graduationYear: optionalServantText,
+  jobOrStudy: optionalServantText,
+  previousKhedmas: optionalServantText,
+  deaconRank: optionalServantText,
+  extraNotes: optionalServantText,
+  photoUrl: optionalServantText,
+});
+
+type ServantWriteData = z.infer<typeof servantWriteSchema>;
+
+type ServantProfile = {
+  address: string | null;
+  bloodType: string | null;
+  emergencyContact: string | null;
+  graduationYear: string | null;
+  jobOrStudy: string | null;
+  previousKhedmas: string | null;
+  deaconRank: string | null;
+  extraNotes: string | null;
+  photoUrl: string | null;
 };
 
 export type ServantMutationResult =
@@ -85,8 +140,46 @@ function encryptionConfigMessage(error: unknown) {
   return null;
 }
 
+function profileFromWrite(data: ServantWriteData): ServantProfile {
+  return {
+    address: data.address,
+    bloodType: data.bloodType,
+    emergencyContact: data.emergencyContact,
+    graduationYear: data.graduationYear,
+    jobOrStudy: data.jobOrStudy,
+    previousKhedmas: data.previousKhedmas,
+    deaconRank: data.deaconRank,
+    extraNotes: data.extraNotes,
+    photoUrl: data.photoUrl,
+  };
+}
+
+function parseServantWrite(input: unknown): { data: ServantWriteData } | { error: string } {
+  const parsed = servantWriteSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "يرجى مراجعة البيانات" };
+  }
+
+  return { data: parsed.data };
+}
+
+function uniqueSorted(values: Array<string | null | undefined>, extras: string[]) {
+  const unique = new Set<string>();
+
+  for (const value of [...extras, ...values]) {
+    const text = value?.trim() ?? "";
+
+    if (text) {
+      unique.add(text);
+    }
+  }
+
+  return [...unique].sort((left, right) => left.localeCompare(right, "ar"));
+}
+
 function toServantRecord(
-  servant: {
+  servant: ServantProfile & {
     id: string;
     name: string;
     encryptedPhone: string | null;
@@ -106,6 +199,15 @@ function toServantRecord(
     nationalId: contact.nationalId,
     status: servant.status,
     newUser: servant.newUser,
+    address: servant.address,
+    bloodType: servant.bloodType,
+    emergencyContact: servant.emergencyContact,
+    graduationYear: servant.graduationYear,
+    jobOrStudy: servant.jobOrStudy,
+    previousKhedmas: servant.previousKhedmas,
+    deaconRank: servant.deaconRank,
+    extraNotes: servant.extraNotes,
+    photoUrl: servant.photoUrl,
     createdAt: servant.createdAt,
     assignments,
   };
@@ -156,9 +258,18 @@ function uniqueConstraintMessage(error: unknown) {
 
 export async function createServant(input: {
   name: string;
-  phone?: string;
-  nationalId?: string;
-  status?: string;
+  phone?: string | null;
+  nationalId?: string | null;
+  status?: string | null;
+  address?: string | null;
+  bloodType?: string | null;
+  emergencyContact?: string | null;
+  graduationYear?: string | null;
+  jobOrStudy?: string | null;
+  previousKhedmas?: string | null;
+  deaconRank?: string | null;
+  extraNotes?: string | null;
+  photoUrl?: string | null;
 }): Promise<ServantMutationResult> {
   const session = await requireTawze3aAdmin();
 
@@ -166,23 +277,22 @@ export async function createServant(input: {
     return { error: "غير مصرح لك بتنفيذ هذه العملية" };
   }
 
-  const name = input.name.trim();
+  const parsed = parseServantWrite(input);
 
-  if (!name) {
-    return { error: "يرجى إدخال اسم الخادم" };
+  if ("error" in parsed) {
+    return parsed;
   }
 
-  const phone = emptyToNull(input.phone);
-  const nationalId = emptyToNull(input.nationalId);
   const status = emptyToNull(input.status);
 
   try {
     const servant = await prisma.servant.create({
       data: {
-        name,
+        name: parsed.data.name,
         status,
-        ...phoneSecretFields(phone),
-        ...nationalIdSecretFields(nationalId),
+        ...profileFromWrite(parsed.data),
+        ...phoneSecretFields(parsed.data.phone),
+        ...nationalIdSecretFields(parsed.data.nationalId),
       },
     });
 
@@ -203,9 +313,18 @@ export async function updateServant(
   id: string,
   data: {
     name?: string;
-    phone?: string;
-    nationalId?: string;
-    status?: string;
+    phone?: string | null;
+    nationalId?: string | null;
+    status?: string | null;
+    address?: string | null;
+    bloodType?: string | null;
+    emergencyContact?: string | null;
+    graduationYear?: string | null;
+    jobOrStudy?: string | null;
+    previousKhedmas?: string | null;
+    deaconRank?: string | null;
+    extraNotes?: string | null;
+    photoUrl?: string | null;
   },
 ): Promise<ServantMutationResult> {
   const session = await requireTawze3aAdmin();
@@ -218,25 +337,18 @@ export async function updateServant(
     return { error: "تعذر تحديد الخادم المطلوب تعديله" };
   }
 
-  const payload: Prisma.ServantUpdateInput = {};
+  const parsed = parseServantWrite({ name: data.name ?? "", ...data });
 
-  if (data.name !== undefined) {
-    const name = data.name.trim();
-
-    if (!name) {
-      return { error: "يرجى إدخال اسم الخادم" };
-    }
-
-    payload.name = name;
+  if ("error" in parsed) {
+    return parsed;
   }
 
-  if (data.phone !== undefined) {
-    Object.assign(payload, phoneSecretFields(emptyToNull(data.phone)));
-  }
-
-  if (data.nationalId !== undefined) {
-    Object.assign(payload, nationalIdSecretFields(emptyToNull(data.nationalId)));
-  }
+  const payload: Prisma.ServantUpdateInput = {
+    name: parsed.data.name,
+    ...profileFromWrite(parsed.data),
+    ...phoneSecretFields(parsed.data.phone),
+    ...nationalIdSecretFields(parsed.data.nationalId),
+  };
 
   if (data.status !== undefined) {
     payload.status = emptyToNull(data.status);
@@ -393,6 +505,8 @@ export async function getServants(
       khedmaIds: filters?.khedmaIds ?? [],
       year,
       assignedToOtherKhedma: filters?.assignedToOtherKhedma,
+      bloodType: filters?.bloodType,
+      deaconRank: filters?.deaconRank,
     }),
   );
   const include = {
@@ -452,6 +566,51 @@ export async function getServants(
     };
   } catch {
     return { error: "تعذر تحميل قائمة الخدام حالياً. حاول مرة أخرى." };
+  }
+}
+
+export async function listServantFieldOptions(): Promise<{
+  bloodTypes: string[];
+  deaconRanks: string[];
+}> {
+  const session = await requireTawze3aAdmin();
+
+  if (!session) {
+    return {
+      bloodTypes: [...STANDARD_BLOOD_TYPES],
+      deaconRanks: [...STANDARD_DEACON_RANKS],
+    };
+  }
+
+  try {
+    const [bloodRows, rankRows] = await Promise.all([
+      prisma.servant.findMany({
+        where: { AND: [{ bloodType: { not: null } }, { NOT: { bloodType: "" } }] },
+        distinct: ["bloodType"],
+        select: { bloodType: true },
+      }),
+      prisma.servant.findMany({
+        where: { AND: [{ deaconRank: { not: null } }, { NOT: { deaconRank: "" } }] },
+        distinct: ["deaconRank"],
+        select: { deaconRank: true },
+      }),
+    ]);
+
+    return {
+      bloodTypes: uniqueSorted(
+        bloodRows.map((row) => row.bloodType),
+        STANDARD_BLOOD_TYPES,
+      ),
+      deaconRanks: uniqueSorted(
+        rankRows.map((row) => row.deaconRank),
+        STANDARD_DEACON_RANKS,
+      ),
+    };
+  } catch {
+    return {
+      bloodTypes: [...STANDARD_BLOOD_TYPES],
+      deaconRanks: [...STANDARD_DEACON_RANKS],
+    };
   }
 }
 
