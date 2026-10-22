@@ -31,7 +31,6 @@ export type ServantRecord = {
   newUser: boolean | null;
   address: string | null;
   bloodType: string | null;
-  emergencyContact: string | null;
   graduationYear: string | null;
   jobOrStudy: string | null;
   previousKhedmas: string | null;
@@ -76,7 +75,6 @@ const servantWriteSchema = z.object({
   nationalId: optionalServantText,
   address: optionalServantText,
   bloodType: optionalServantText,
-  emergencyContact: optionalServantText,
   graduationYear: optionalServantText,
   jobOrStudy: optionalServantText,
   previousKhedmas: optionalServantText,
@@ -90,7 +88,6 @@ type ServantWriteData = z.infer<typeof servantWriteSchema>;
 type ServantProfile = {
   address: string | null;
   bloodType: string | null;
-  emergencyContact: string | null;
   graduationYear: string | null;
   jobOrStudy: string | null;
   previousKhedmas: string | null;
@@ -150,7 +147,6 @@ function profileFromWrite(data: ServantWriteData): ServantProfile {
   return {
     address: data.address,
     bloodType: data.bloodType,
-    emergencyContact: data.emergencyContact,
     graduationYear: data.graduationYear,
     jobOrStudy: data.jobOrStudy,
     previousKhedmas: data.previousKhedmas,
@@ -207,7 +203,6 @@ function toServantRecord(
     newUser: servant.newUser,
     address: servant.address,
     bloodType: servant.bloodType,
-    emergencyContact: servant.emergencyContact,
     graduationYear: servant.graduationYear,
     jobOrStudy: servant.jobOrStudy,
     previousKhedmas: servant.previousKhedmas,
@@ -285,7 +280,6 @@ export async function createServant(input: {
   status?: string | null;
   address?: string | null;
   bloodType?: string | null;
-  emergencyContact?: string | null;
   graduationYear?: string | null;
   jobOrStudy?: string | null;
   previousKhedmas?: string | null;
@@ -340,7 +334,6 @@ export async function updateServant(
     status?: string | null;
     address?: string | null;
     bloodType?: string | null;
-    emergencyContact?: string | null;
     graduationYear?: string | null;
     jobOrStudy?: string | null;
     previousKhedmas?: string | null;

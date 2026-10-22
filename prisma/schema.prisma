@@ -84,22 +84,22 @@ model Sermon {
 }
 
 model Service {
-  id          String      @id @default(cuid())
-  title       String
-  description String      @db.Text
-  schedule    String
-  type        ServiceType
-  slug              String?   @unique
-  order       Int         @default(0)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  parentId          String?
-  parent            Service?  @relation("ServiceHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children          Service[] @relation("ServiceHierarchy")
-  imageDisplayMode  String    @default("NORMAL")
-  serviceTime       String?   @db.Text
-  amenPhone         String?
-  imageUrls         String?   @db.Text
+  id               String      @id @default(cuid())
+  title            String
+  description      String      @db.Text
+  schedule         String
+  type             ServiceType
+  slug             String?     @unique
+  order            Int         @default(0)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  parentId         String?
+  parent           Service?    @relation("ServiceHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children         Service[]   @relation("ServiceHierarchy")
+  imageDisplayMode String      @default("NORMAL")
+  serviceTime      String?     @db.Text
+  amenPhone        String?
+  imageUrls        String?     @db.Text
 
   @@index([parentId])
 }
@@ -173,32 +173,32 @@ model LiturgyEntry {
 }
 
 model MediaCollection {
-  id                String        @id @default(cuid())
-  title             String
-  description       String        @db.Text
-  slug              String?       @unique
-  imageUrl          String?       @db.Text
-  imageDisplayMode  String        @default("NORMAL")
-  category          MediaCategory @default(SERMONS)
-  order             Int           @default(0)
-  createdAt         DateTime      @default(now())
-  items             MediaItem[]
+  id               String        @id @default(cuid())
+  title            String
+  description      String        @db.Text
+  slug             String?       @unique
+  imageUrl         String?       @db.Text
+  imageDisplayMode String        @default("NORMAL")
+  category         MediaCategory @default(SERMONS)
+  order            Int           @default(0)
+  createdAt        DateTime      @default(now())
+  items            MediaItem[]
 }
 
 model MediaItem {
-  id           String          @id @default(cuid())
-  collectionId String
-  title        String          @default("")
-  fileUrl      String?         @db.Text
-  fileName     String?
-  fileType     String          @default("link")
-  thumbnail         String?         @db.Text
-  imageDisplayMode  String          @default("NORMAL")
-  link              String?         @db.Text
-  linkLabel         String?
-  order        Int             @default(0)
-  createdAt     DateTime        @default(now())
-  collection   MediaCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  id               String          @id @default(cuid())
+  collectionId     String
+  title            String          @default("")
+  fileUrl          String?         @db.Text
+  fileName         String?
+  fileType         String          @default("link")
+  thumbnail        String?         @db.Text
+  imageDisplayMode String          @default("NORMAL")
+  link             String?         @db.Text
+  linkLabel        String?
+  order            Int             @default(0)
+  createdAt        DateTime        @default(now())
+  collection       MediaCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@index([collectionId])
 }
@@ -211,26 +211,25 @@ model PrayerRequest {
 }
 
 model Servant {
-  id                  String               @id @default(cuid())
+  id                  String              @id @default(cuid())
   name                String
   encryptedPhone      String?
-  phoneHash           String?              @unique
+  phoneHash           String?             @unique
   encryptedNationalId String?
-  nationalIdHash      String?              @unique
+  nationalIdHash      String?             @unique
   status              String?
-  newUser             Boolean?             @default(false)
+  newUser             Boolean?            @default(false)
   address             String?
   bloodType           String?
-  emergencyContact    String?
   graduationYear      String?
   jobOrStudy          String?
   previousKhedmas     String?
   deaconRank          String?
   extraNotes          String?
-  photoUrl            String?              @db.Text
+  photoUrl            String?             @db.Text
   assignments         ServantAssignment[]
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 }
 
 model ServantRole {
@@ -262,13 +261,13 @@ model Khedma {
 }
 
 model KhedmaCategory {
-  id          String               @id @default(cuid())
+  id          String              @id @default(cuid())
   khedmaId    String
-  khedma      Khedma               @relation(fields: [khedmaId], references: [id], onDelete: Cascade)
+  khedma      Khedma              @relation(fields: [khedmaId], references: [id], onDelete: Cascade)
   label       String
   roleId      String
-  role        ServantRole          @relation(fields: [roleId], references: [id])
-  order       Int                  @default(0)
+  role        ServantRole         @relation(fields: [roleId], references: [id])
+  order       Int                 @default(0)
   assignments ServantAssignment[]
 
   @@index([khedmaId])
@@ -282,9 +281,9 @@ model ServantAssignment {
   khedmaId   String?
   khedma     Khedma?         @relation(fields: [khedmaId], references: [id], onDelete: Cascade)
   servantId  String
-  servant    Servant        @relation(fields: [servantId], references: [id], onDelete: Cascade)
+  servant    Servant         @relation(fields: [servantId], references: [id], onDelete: Cascade)
   roleId     String
-  role       ServantRole    @relation(fields: [roleId], references: [id])
+  role       ServantRole     @relation(fields: [roleId], references: [id])
   year       Int
   isDraft    Boolean         @default(true)
 

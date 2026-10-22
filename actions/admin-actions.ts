@@ -238,16 +238,27 @@ export async function createNewsEvent(
   if (auth !== true) return auth;
 
   try {
-    const maxOrder = await prisma.newsEvent.aggregate({ _max: { order: true } });
-    await prisma.newsEvent.create({
-      data: {
-        title: requiredText(formData.get("title"), "العنوان"),
-        description: requiredText(formData.get("description"), "الوصف"),
-        imageUrl: optionalText(formData.get("imageUrl")),
-        isActive: formData.get("isActive") === "true",
-        order: (maxOrder._max.order ?? -1) + 1,
-      },
-    });
+    const title = requiredText(formData.get("title"), "العنوان");
+    const description = requiredText(formData.get("description"), "الوصف");
+    const imageUrl = optionalText(formData.get("imageUrl"));
+    const isActive = formData.get("isActive") === "true";
+
+    await prisma.$transaction([
+      prisma.newsEvent.updateMany({
+        data: {
+          order: { increment: 1 },
+        },
+      }),
+      prisma.newsEvent.create({
+        data: {
+          title,
+          description,
+          imageUrl,
+          isActive,
+          order: 0,
+        },
+      }),
+    ]);
     revalidateAdmin();
     return { success: true };
   } catch (error) {

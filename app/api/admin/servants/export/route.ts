@@ -5,6 +5,12 @@ import { requireTawze3aAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { OTHER_KHEDMA_STATUS_ROLES } from "@/lib/servant-import-schema";
 import {
+  DEFAULT_SERVANT_EXPORT_FIELDS,
+  orderedServantExportFields,
+  servantExportLabel,
+  type ServantExportField,
+} from "@/lib/servant-export";
+import {
   assignmentMatchesFilters,
   parseServantListFilters,
   serializeIdList,
@@ -17,15 +23,97 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const HEADER_ROW = [
-  "الاسم (Name)",
-  "رقم الموبايل (Phone)",
-  "الرقم القومي (NationalID)",
-  "اسم الخدمة",
-  "الرتبة",
-];
+function resolveExportFields(values: unknown) {
+  if (values == null || values === "") {
+    return [...DEFAULT_SERVANT_EXPORT_FIELDS];
+  }
 
-async function exportFilteredServants(filters: ServantQueryFilters) {
+  return orderedServantExportFields(values);
+}
+
+const WIDE_COLUMNS = new Set<ServantExportField>([
+  "address",
+  "jobOrStudy",
+  "previousKhedmas",
+  "notes",
+]);
+
+type ExportAssignment = {
+  khedma: { name: string } | null;
+  role: { name: string } | null;
+};
+
+function exportCell(
+  field: ServantExportField,
+  servant: {
+    name: string;
+    address: string | null;
+    bloodType: string | null;
+    graduationYear: string | null;
+    jobOrStudy: string | null;
+    previousKhedmas: string | null;
+    deaconRank: string | null;
+    extraNotes: string | null;
+  },
+  contact: { phone: string | null; nationalId: string | null },
+  assignments: ExportAssignment[],
+) {
+  switch (field) {
+    case "name":
+      return servant.name;
+    case "nationalId":
+      return contact.nationalId ?? "";
+    case "phone":
+      return contact.phone ?? "";
+    case "address":
+      return servant.address ?? "";
+    case "bloodType":
+      return servant.bloodType ?? "";
+    case "deaconRank":
+      return servant.deaconRank ?? "";
+    case "graduationYear":
+      return servant.graduationYear ?? "";
+    case "jobOrStudy":
+      return servant.jobOrStudy ?? "";
+    case "khedma":
+      return uniqueJoin(assignments.map((item) => item.khedma?.name ?? ""));
+    case "role":
+      return uniqueJoin(assignments.map((item) => item.role?.name ?? ""));
+    case "previousKhedmas":
+      return servant.previousKhedmas ?? "";
+    case "notes":
+      return servant.extraNotes ?? "";
+  }
+}
+
+function workbookBuffer(fields: ServantExportField[], rows: string[][]) {
+  const worksheet: XLSX.WorkSheet = {};
+
+  const write = (row: number, column: number, value: string) => {
+    worksheet[XLSX.utils.encode_cell({ r: row, c: column })] = { t: "s", v: value };
+  };
+
+  fields.forEach((field, column) => write(0, column, servantExportLabel(field)));
+  rows.forEach((row, rowIndex) => {
+    row.forEach((value, column) => write(rowIndex + 1, column, value));
+  });
+
+  worksheet["!ref"] = XLSX.utils.encode_range({
+    s: { r: 0, c: 0 },
+    e: { r: Math.max(rows.length, 0), c: Math.max(fields.length - 1, 0) },
+  });
+  worksheet["!cols"] = fields.map((field) => ({ wch: WIDE_COLUMNS.has(field) ? 36 : 22 }));
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "الخدام");
+
+  return XLSX.write(workbook, {
+    type: "buffer",
+    bookType: "xlsx",
+  }) as Buffer;
+}
+
+async function exportFilteredServants(filters: ServantQueryFilters, fields: ServantExportField[]) {
   const session = await requireTawze3aAdmin();
 
   if (!session) {
@@ -33,6 +121,10 @@ async function exportFilteredServants(filters: ServantQueryFilters) {
       { error: "غير مصرح لك بتنفيذ هذه العملية" },
       { status: 401 },
     );
+  }
+
+  if (fields.length === 0) {
+    return NextResponse.json({ error: "حدد بيانات واحدة على الأقل" }, { status: 400 });
   }
 
   const statusRoles = filters.assignedToOtherKhedma
@@ -80,27 +172,10 @@ async function exportFilteredServants(filters: ServantQueryFilters) {
         assignmentMatchesFilters(assignment, filters),
       );
 
-      return [{
-        "الاسم (Name)": servant.name,
-        "رقم الموبايل (Phone)": contact.phone ?? "",
-        "الرقم القومي (NationalID)": contact.nationalId ?? "",
-        "اسم الخدمة": uniqueJoin(assignments.map((item) => item.khedma?.name ?? "")),
-        الرتبة: uniqueJoin(assignments.map((item) => item.role?.name ?? "")),
-      }];
+      return [fields.map((field) => exportCell(field, servant, contact, assignments))];
     });
 
-    const worksheet =
-      rows.length > 0
-        ? XLSX.utils.json_to_sheet(rows, { header: HEADER_ROW })
-        : XLSX.utils.aoa_to_sheet([HEADER_ROW]);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "الخدام");
-
-    const buffer = XLSX.write(workbook, {
-      type: "buffer",
-      bookType: "xlsx",
-    }) as Buffer;
-
+    const buffer = workbookBuffer(fields, rows);
     const suffix = [
       String(filters.year),
       serializeIdList(filters.roleIds),
@@ -121,7 +196,7 @@ async function exportFilteredServants(filters: ServantQueryFilters) {
     });
   } catch {
     return NextResponse.json(
-      { error: "تعذر تصدير بيانات الخدام حالياً" },
+      { error: "تعذر تحميل الملف حالياً" },
       { status: 500 },
     );
   }
@@ -138,6 +213,7 @@ export async function GET(request: NextRequest) {
       blood: request.nextUrl.searchParams.get("blood"),
       rank: request.nextUrl.searchParams.get("rank"),
     }),
+    resolveExportFields(request.nextUrl.searchParams.get("fields")),
   );
 }
 
@@ -150,6 +226,7 @@ export async function POST(request: NextRequest) {
     other?: string;
     blood?: string;
     rank?: string;
+    fields?: unknown;
   } | null;
 
   return exportFilteredServants(
@@ -162,5 +239,6 @@ export async function POST(request: NextRequest) {
       blood: body?.blood,
       rank: body?.rank,
     }),
+    resolveExportFields(body?.fields),
   );
 }

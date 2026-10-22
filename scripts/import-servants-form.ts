@@ -20,7 +20,6 @@ const EASTERN_ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 type ExtraField =
   | "address"
   | "bloodType"
-  | "emergencyContact"
   | "graduationYear"
   | "jobOrStudy"
   | "previousKhedmas"
@@ -40,7 +39,6 @@ type SheetRow = {
   khedma: string | null;
   address: string | null;
   bloodType: string | null;
-  emergencyContact: string | null;
   graduationYear: string | null;
   jobOrStudy: string | null;
   previousKhedmas: string | null;
@@ -66,10 +64,6 @@ const HEADER_MATCHERS: { field: SheetField; test: (header: string) => boolean }[
   { field: "graduationYear", test: (header) => header.includes("سنة التخرج") },
   { field: "photo", test: (header) => header.includes("صورة") },
   { field: "bloodType", test: (header) => header.includes("فصيلة الدم") },
-  {
-    field: "emergencyContact",
-    test: (header) => header.includes("حالات الطوارئ") && !header.includes("فصيلة"),
-  },
   { field: "extraNotes", test: (header) => header.includes("ملاحظات") },
   { field: "deaconRank", test: (header) => header.includes("الرتبة الشماسية") },
 ];
@@ -252,7 +246,6 @@ function readRows(sheet: XLSX.WorkSheet, columns: ColumnMap, range: XLSX.Range) 
       khedma: textField(sheet, row, columns.khedma),
       address: textField(sheet, row, columns.address),
       bloodType: textField(sheet, row, columns.bloodType),
-      emergencyContact: textField(sheet, row, columns.emergencyContact),
       graduationYear: textField(sheet, row, columns.graduationYear),
       jobOrStudy: textField(sheet, row, columns.jobOrStudy),
       previousKhedmas: textField(sheet, row, columns.previousKhedmas),
@@ -272,7 +265,7 @@ function readRows(sheet: XLSX.WorkSheet, columns: ColumnMap, range: XLSX.Range) 
   return rows;
 }
 
-function extraData(row: SheetRow, includeEmergencyContact: boolean) {
+function extraData(row: SheetRow) {
   return {
     address: row.address,
     bloodType: row.bloodType,
@@ -281,7 +274,6 @@ function extraData(row: SheetRow, includeEmergencyContact: boolean) {
     previousKhedmas: row.previousKhedmas,
     deaconRank: row.deaconRank,
     extraNotes: row.extraNotes,
-    ...(includeEmergencyContact ? { emergencyContact: row.emergencyContact } : {}),
   };
 }
 
@@ -430,7 +422,6 @@ async function importServants() {
   }
 
   const { workbookPath, sheetName, columns, rows } = loadServantFormRows();
-  const includeEmergencyContact = columns.emergencyContact != null;
   const { prisma } = await import("../lib/prisma");
 
   let updated = 0;
@@ -480,7 +471,7 @@ async function importServants() {
         if (perfectMatch && matches[0]) {
           await prisma.servant.update({
             where: { id: matches[0].id },
-            data: extraData(row, includeEmergencyContact),
+            data: extraData(row),
           });
           updated += 1;
           continue;
@@ -492,7 +483,7 @@ async function importServants() {
               name: row.name,
               ...phoneSecretFields(row.phone),
               ...nationalIdSecretFields(row.nationalId),
-              ...extraData(row, includeEmergencyContact),
+              ...extraData(row),
             },
           });
           created += 1;

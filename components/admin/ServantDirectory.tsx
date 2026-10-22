@@ -16,9 +16,7 @@ import {
 import ImageUpload from "@/components/admin/ImageUpload";
 import { DraftBadge } from "@/components/admin/AssignmentYearTools";
 import MultiSelectFilter from "@/components/admin/MultiSelectFilter";
-import { OTHER_KHEDMA_STATUS_ROLES } from "@/lib/servant-import-schema";
-import type { ServantRoleOption } from "@/lib/servant-roles";
-import { serializeIdList, servantMatchesFilters } from "@/lib/servant-filters";
+import ServantExportDialog from "@/components/admin/ServantExportDialog";
 import {
   AdminEmptyState,
   AdminMobileCard,
@@ -28,6 +26,10 @@ import {
   adminActionMuted,
   adminActionOutline,
 } from "@/components/admin/admin-ui";
+import { OTHER_KHEDMA_STATUS_ROLES } from "@/lib/servant-import-schema";
+import type { ServantExportField } from "@/lib/servant-export";
+import type { ServantRoleOption } from "@/lib/servant-roles";
+import { serializeIdList, servantMatchesFilters } from "@/lib/servant-filters";
 
 export type ServantRow = Omit<ServantRecord, "createdAt"> & {
   createdAt: string;
@@ -105,7 +107,6 @@ type ServantFormState = {
   nationalId: string;
   address: string;
   bloodType: string;
-  emergencyContact: string;
   graduationYear: string;
   jobOrStudy: string;
   previousKhedmas: string;
@@ -120,7 +121,6 @@ const emptyForm: ServantFormState = {
   nationalId: "",
   address: "",
   bloodType: "",
-  emergencyContact: "",
   graduationYear: "",
   jobOrStudy: "",
   previousKhedmas: "",
@@ -135,7 +135,6 @@ const fieldClass =
 const PROFILE_DETAILS = [
   ["address", "العنوان"],
   ["bloodType", "فصيلة الدم"],
-  ["emergencyContact", "طوارئ"],
   ["graduationYear", "سنة التخرج"],
   ["jobOrStudy", "المهنة/الدراسة"],
   ["deaconRank", "الرتبة الشماسية"],
@@ -159,7 +158,6 @@ function formFromServant(servant: ServantRow): ServantFormState {
     nationalId: servant.nationalId ?? "",
     address: servant.address ?? "",
     bloodType: servant.bloodType ?? "",
-    emergencyContact: servant.emergencyContact ?? "",
     graduationYear: servant.graduationYear ?? "",
     jobOrStudy: servant.jobOrStudy ?? "",
     previousKhedmas: servant.previousKhedmas ?? "",
@@ -322,6 +320,7 @@ export default function ServantDirectory({
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const skipFilterSync = useRef(false);
   const isComposing = useRef(false);
   const incomingRoleKey = serializeIdList(roleIds);
@@ -540,7 +539,6 @@ export default function ServantDirectory({
       nationalId: form.nationalId,
       address: form.address,
       bloodType: form.bloodType,
-      emergencyContact: form.emergencyContact,
       graduationYear: form.graduationYear,
       jobOrStudy: form.jobOrStudy,
       previousKhedmas: form.previousKhedmas,
@@ -697,7 +695,7 @@ export default function ServantDirectory({
     });
   }
 
-  async function handleExport() {
+  async function handleExport(fields: ServantExportField[]) {
     setIsExporting(true);
     setError("");
 
@@ -711,6 +709,7 @@ export default function ServantDirectory({
         other: otherKhedmaOnly && showOtherKhedmaToggle ? "1" : "",
         blood: selectedBloodType,
         rank: selectedDeaconRank,
+        fields,
       };
 
       const response = await fetch("/api/admin/servants/export", {
@@ -721,7 +720,8 @@ export default function ServantDirectory({
       });
 
       if (!response.ok) {
-        setError("تعذر تصدير ملف Excel حالياً");
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        setError(body?.error || "تعذر تحميل الملف حالياً");
         return;
       }
 
@@ -735,8 +735,9 @@ export default function ServantDirectory({
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
+      setShowExport(false);
     } catch {
-      setError("تعذر تصدير ملف Excel حالياً");
+      setError("تعذر تحميل الملف حالياً");
     } finally {
       setIsExporting(false);
     }
@@ -835,11 +836,15 @@ export default function ServantDirectory({
               </button>
               <button
                 type="button"
-                onClick={() => void handleExport()}
-                disabled={isExporting}
-                className={adminActionOutline}
+                onClick={() => setShowExport(true)}
+                className={`${adminActionOutline} gap-2`}
               >
-                {isExporting ? "جاري التصدير..." : "تصدير إلى Excel"}
+                <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M12 3v12" strokeLinecap="round" />
+                  <path d="m7 11 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M5 21h14" strokeLinecap="round" />
+                </svg>
+                تصدير البيانات
               </button>
               <Link href="/admin/servants/import" className={adminActionMuted}>
                 رفع ملف Excel
@@ -1157,21 +1162,6 @@ export default function ServantDirectory({
                       ))}
                     </datalist>
                   </div>
-                  <div>
-                    <label htmlFor="servant-emergency" className="mb-2 block text-sm font-bold text-deep-red">
-                      طوارئ
-                    </label>
-                    <input
-                      id="servant-emergency"
-                      autoComplete="off"
-                      value={form.emergencyContact}
-                      onChange={(event) =>
-                        setForm((current) => ({ ...current, emergencyContact: event.target.value }))
-                      }
-                      placeholder="اختياري"
-                      className={fieldClass}
-                    />
-                  </div>
                   <div className="sm:col-span-2">
                     <ImageUpload
                       label="الصورة الشخصية"
@@ -1324,6 +1314,17 @@ export default function ServantDirectory({
           </>
         ) : null}
       </AnimatePresence>
+
+      <ServantExportDialog
+        open={showExport}
+        isExporting={isExporting}
+        onClose={() => {
+          if (!isExporting) {
+            setShowExport(false);
+          }
+        }}
+        onDownload={(fields) => void handleExport(fields)}
+      />
 
       <AnimatePresence>
         {showDeleteAll ? (
