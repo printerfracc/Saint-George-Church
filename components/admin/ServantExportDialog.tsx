@@ -140,6 +140,9 @@ export default function ServantExportDialog({
                 <legend className="px-2 text-sm font-bold text-coptic-gold-dark">
                   {BIRTHDATE_EXPORT_LABEL}
                 </legend>
+                <p className="mb-2 text-xs leading-6 text-deep-red/70">
+                  بتنزل تحت عنوان تاريخ الميلاد، كل جزء في عمود: يوم ثم شهر ثم سنة.
+                </p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   {SERVANT_EXPORT_FIELDS.filter((field) => isBirthdateExportField(field.key)).map(
                     renderField,

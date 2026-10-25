@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as XLSX from "xlsx";
 import { readServantContact } from "@/lib/crypto";
 import { parseNationalId } from "@/lib/national-id";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { OTHER_KHEDMA_STATUS_ROLES } from "@/lib/servant-import-schema";
 import {
+  BIRTHDATE_EXPORT_LABEL,
   DEFAULT_SERVANT_EXPORT_FIELDS,
+  SERVANT_EXPORT_FIELDS,
+  birthdatePartValue,
   isBirthdateExportField,
   orderedServantExportFields,
+  selectedBirthdateParts,
   servantExportLabel,
   type ServantExportField,
 } from "@/lib/servant-export";
+import { buildServantExportWorkbook, type ServantSheetColumn } from "@/lib/servant-export-sheet";
 import {
   assignmentMatchesFilters,
   parseServantListFilters,
@@ -33,36 +37,67 @@ function resolveExportFields(values: unknown) {
   return orderedServantExportFields(values);
 }
 
-const WIDE_COLUMNS = new Set<ServantExportField>([
-  "address",
-  "jobOrStudy",
-  "previousKhedmas",
-  "notes",
-]);
-
 type ExportAssignment = {
   khedma: { name: string } | null;
   role: { name: string } | null;
 };
 
-function birthExportValue(dateOfBirth: Date | null, field: "birthDay" | "birthMonth" | "birthYear") {
-  if (!dateOfBirth) {
-    return "";
+type SheetColumn = ServantSheetColumn & {
+  value: (
+    servant: {
+      name: string;
+      address: string | null;
+      bloodType: string | null;
+      graduationYear: string | null;
+      jobOrStudy: string | null;
+      previousKhedmas: string | null;
+      deaconRank: string | null;
+      extraNotes: string | null;
+    },
+    contact: { phone: string | null; nationalId: string | null },
+    assignments: ExportAssignment[],
+    dateOfBirth: Date | null,
+  ) => string;
+};
+
+function exportColumns(fields: ServantExportField[]): SheetColumn[] {
+  const columns: SheetColumn[] = [];
+  let birthdateAdded = false;
+
+  for (const field of fields) {
+    if (isBirthdateExportField(field)) {
+      if (!birthdateAdded) {
+        for (const part of selectedBirthdateParts(fields)) {
+          const source = SERVANT_EXPORT_FIELDS.find((field) => field.key === part.key);
+          columns.push({
+            header: part.label,
+            groupTitle: BIRTHDATE_EXPORT_LABEL,
+            width: source?.width ?? 12,
+            kind: "number",
+            value: (_servant, _contact, _assignments, dateOfBirth) =>
+              birthdatePartValue(dateOfBirth, part.key),
+          });
+        }
+        birthdateAdded = true;
+      }
+      continue;
+    }
+
+    const source = SERVANT_EXPORT_FIELDS.find((item) => item.key === field);
+    columns.push({
+      header: source?.label ?? servantExportLabel(field),
+      groupTitle: null,
+      width: source?.width ?? 20,
+      kind: source?.kind === "id" || source?.kind === "number" ? source.kind : "text",
+      value: (servant, contact, assignments) => exportCell(field, servant, contact, assignments),
+    });
   }
 
-  if (field === "birthDay") {
-    return String(dateOfBirth.getDate());
-  }
-
-  if (field === "birthMonth") {
-    return String(dateOfBirth.getMonth() + 1);
-  }
-
-  return String(dateOfBirth.getFullYear());
+  return columns;
 }
 
 function exportCell(
-  field: ServantExportField,
+  field: Exclude<ServantExportField, "birthDay" | "birthMonth" | "birthYear">,
   servant: {
     name: string;
     address: string | null;
@@ -75,17 +110,12 @@ function exportCell(
   },
   contact: { phone: string | null; nationalId: string | null },
   assignments: ExportAssignment[],
-  dateOfBirth: Date | null,
 ) {
   switch (field) {
     case "name":
       return servant.name;
     case "nationalId":
       return contact.nationalId ?? "";
-    case "birthDay":
-    case "birthMonth":
-    case "birthYear":
-      return birthExportValue(dateOfBirth, field);
     case "phone":
       return contact.phone ?? "";
     case "address":
@@ -107,33 +137,6 @@ function exportCell(
     case "notes":
       return servant.extraNotes ?? "";
   }
-}
-
-function workbookBuffer(fields: ServantExportField[], rows: string[][]) {
-  const worksheet: XLSX.WorkSheet = {};
-
-  const write = (row: number, column: number, value: string) => {
-    worksheet[XLSX.utils.encode_cell({ r: row, c: column })] = { t: "s", v: value };
-  };
-
-  fields.forEach((field, column) => write(0, column, servantExportLabel(field)));
-  rows.forEach((row, rowIndex) => {
-    row.forEach((value, column) => write(rowIndex + 1, column, value));
-  });
-
-  worksheet["!ref"] = XLSX.utils.encode_range({
-    s: { r: 0, c: 0 },
-    e: { r: Math.max(rows.length, 0), c: Math.max(fields.length - 1, 0) },
-  });
-  worksheet["!cols"] = fields.map((field) => ({ wch: WIDE_COLUMNS.has(field) ? 36 : 22 }));
-
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "الخدام");
-
-  return XLSX.write(workbook, {
-    type: "buffer",
-    bookType: "xlsx",
-  }) as Buffer;
 }
 
 async function exportFilteredServants(filters: ServantQueryFilters, fields: ServantExportField[]) {
@@ -184,6 +187,7 @@ async function exportFilteredServants(filters: ServantQueryFilters, fields: Serv
       },
     });
 
+    const columns = exportColumns(fields);
     const rows = servants.flatMap((servant) => {
       const contact = readServantContact(servant);
 
@@ -199,11 +203,11 @@ async function exportFilteredServants(filters: ServantQueryFilters, fields: Serv
         : null;
 
       return [
-        fields.map((field) => exportCell(field, servant, contact, assignments, dateOfBirth)),
+        columns.map((column) => column.value(servant, contact, assignments, dateOfBirth)),
       ];
     });
 
-    const buffer = workbookBuffer(fields, rows);
+    const buffer = await buildServantExportWorkbook(columns, rows);
     const suffix = [
       String(filters.year),
       serializeIdList(filters.roleIds),
