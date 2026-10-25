@@ -50,9 +50,6 @@ export type ServantListFilters = {
   deaconRank?: string;
 };
 
-const STANDARD_BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
-const STANDARD_DEACON_RANKS = ["ابصالتس", "أغنسطس", "اغناسطس", "دياكون", "إيبي دياكون"];
-
 function optionalText(max: number) {
   return z
     .string()
@@ -166,10 +163,10 @@ function parseServantWrite(input: unknown): { data: ServantWriteData } | { error
   return { data: parsed.data };
 }
 
-function uniqueSorted(values: Array<string | null | undefined>, extras: string[]) {
+function uniqueSorted(values: Array<string | null | undefined>) {
   const unique = new Set<string>();
 
-  for (const value of [...extras, ...values]) {
+  for (const value of values) {
     const text = value?.trim() ?? "";
 
     if (text) {
@@ -592,8 +589,8 @@ export async function listServantFieldOptions(): Promise<{
 
   if (!session) {
     return {
-      bloodTypes: [...STANDARD_BLOOD_TYPES],
-      deaconRanks: [...STANDARD_DEACON_RANKS],
+      bloodTypes: [],
+      deaconRanks: [],
     };
   }
 
@@ -612,19 +609,13 @@ export async function listServantFieldOptions(): Promise<{
     ]);
 
     return {
-      bloodTypes: uniqueSorted(
-        bloodRows.map((row) => row.bloodType),
-        STANDARD_BLOOD_TYPES,
-      ),
-      deaconRanks: uniqueSorted(
-        rankRows.map((row) => row.deaconRank),
-        STANDARD_DEACON_RANKS,
-      ),
+      bloodTypes: uniqueSorted(bloodRows.map((row) => row.bloodType)),
+      deaconRanks: uniqueSorted(rankRows.map((row) => row.deaconRank)),
     };
   } catch {
     return {
-      bloodTypes: [...STANDARD_BLOOD_TYPES],
-      deaconRanks: [...STANDARD_DEACON_RANKS],
+      bloodTypes: [],
+      deaconRanks: [],
     };
   }
 }

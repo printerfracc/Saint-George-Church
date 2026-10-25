@@ -1,6 +1,9 @@
 export const SERVANT_EXPORT_FIELDS = [
   { key: "name", label: "الاسم" },
   { key: "nationalId", label: "الرقم القومي" },
+  { key: "birthDay", label: "يوم الميلاد", group: "birthdate" },
+  { key: "birthMonth", label: "شهر الميلاد", group: "birthdate" },
+  { key: "birthYear", label: "سنة الميلاد", group: "birthdate" },
   { key: "phone", label: "رقم الموبايل" },
   { key: "address", label: "العنوان" },
   { key: "bloodType", label: "فصيلة الدم" },
@@ -14,6 +17,14 @@ export const SERVANT_EXPORT_FIELDS = [
 ] as const;
 
 export type ServantExportField = (typeof SERVANT_EXPORT_FIELDS)[number]["key"];
+
+export const BIRTHDATE_EXPORT_LABEL = "تاريخ الميلاد";
+
+export function isBirthdateExportField(
+  field: ServantExportField,
+): field is "birthDay" | "birthMonth" | "birthYear" {
+  return field === "birthDay" || field === "birthMonth" || field === "birthYear";
+}
 
 export const DEFAULT_SERVANT_EXPORT_FIELDS: ServantExportField[] = [
   "name",

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { readServantContact } from "@/lib/crypto";
+import { parseNationalId } from "@/lib/national-id";
 import { requireTawze3aAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { OTHER_KHEDMA_STATUS_ROLES } from "@/lib/servant-import-schema";
 import {
   DEFAULT_SERVANT_EXPORT_FIELDS,
+  isBirthdateExportField,
   orderedServantExportFields,
   servantExportLabel,
   type ServantExportField,
@@ -43,6 +45,22 @@ type ExportAssignment = {
   role: { name: string } | null;
 };
 
+function birthExportValue(dateOfBirth: Date | null, field: "birthDay" | "birthMonth" | "birthYear") {
+  if (!dateOfBirth) {
+    return "";
+  }
+
+  if (field === "birthDay") {
+    return String(dateOfBirth.getDate());
+  }
+
+  if (field === "birthMonth") {
+    return String(dateOfBirth.getMonth() + 1);
+  }
+
+  return String(dateOfBirth.getFullYear());
+}
+
 function exportCell(
   field: ServantExportField,
   servant: {
@@ -57,12 +75,17 @@ function exportCell(
   },
   contact: { phone: string | null; nationalId: string | null },
   assignments: ExportAssignment[],
+  dateOfBirth: Date | null,
 ) {
   switch (field) {
     case "name":
       return servant.name;
     case "nationalId":
       return contact.nationalId ?? "";
+    case "birthDay":
+    case "birthMonth":
+    case "birthYear":
+      return birthExportValue(dateOfBirth, field);
     case "phone":
       return contact.phone ?? "";
     case "address":
@@ -171,8 +194,13 @@ async function exportFilteredServants(filters: ServantQueryFilters, fields: Serv
       const assignments = servant.assignments.filter((assignment) =>
         assignmentMatchesFilters(assignment, filters),
       );
+      const dateOfBirth = fields.some(isBirthdateExportField)
+        ? parseNationalId(contact.nationalId ?? "").dateOfBirth
+        : null;
 
-      return [fields.map((field) => exportCell(field, servant, contact, assignments))];
+      return [
+        fields.map((field) => exportCell(field, servant, contact, assignments, dateOfBirth)),
+      ];
     });
 
     const buffer = workbookBuffer(fields, rows);

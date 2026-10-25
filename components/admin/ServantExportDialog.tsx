@@ -4,8 +4,10 @@ import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { adminActionGold, adminActionOutline } from "@/components/admin/admin-ui";
 import {
+  BIRTHDATE_EXPORT_LABEL,
   DEFAULT_SERVANT_EXPORT_FIELDS,
   SERVANT_EXPORT_FIELDS,
+  isBirthdateExportField,
   orderedServantExportFields,
   type ServantExportField,
 } from "@/lib/servant-export";
@@ -68,6 +70,23 @@ export default function ServantExportDialog({
     );
   }
 
+  function renderField(field: (typeof SERVANT_EXPORT_FIELDS)[number]) {
+    return (
+      <label
+        key={field.key}
+        className="flex min-h-11 items-center gap-3 rounded-xl border border-deep-red/15 bg-white px-4 py-2 text-sm font-bold text-deep-red"
+      >
+        <input
+          type="checkbox"
+          checked={selected.includes(field.key)}
+          onChange={() => toggleField(field.key)}
+          className="h-4 w-4 accent-deep-red"
+        />
+        {field.label}
+      </label>
+    );
+  }
+
   return (
     <AnimatePresence>
       {open ? (
@@ -113,21 +132,20 @@ export default function ServantExportDialog({
                 تحديد الكل
               </label>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {SERVANT_EXPORT_FIELDS.map((field) => (
-                  <label
-                    key={field.key}
-                    className="flex min-h-11 items-center gap-3 rounded-xl border border-deep-red/15 bg-white px-4 py-2 text-sm font-bold text-deep-red"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(field.key)}
-                      onChange={() => toggleField(field.key)}
-                      className="h-4 w-4 accent-deep-red"
-                    />
-                    {field.label}
-                  </label>
-                ))}
+                {SERVANT_EXPORT_FIELDS.filter((field) => !isBirthdateExportField(field.key)).map(
+                  renderField,
+                )}
               </div>
+              <fieldset className="rounded-xl border border-coptic-gold-main/40 bg-white/70 p-3">
+                <legend className="px-2 text-sm font-bold text-coptic-gold-dark">
+                  {BIRTHDATE_EXPORT_LABEL}
+                </legend>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {SERVANT_EXPORT_FIELDS.filter((field) => isBirthdateExportField(field.key)).map(
+                    renderField,
+                  )}
+                </div>
+              </fieldset>
             </fieldset>
             {selected.length === 0 ? (
               <p className="mt-3 text-sm font-medium text-deep-red">حدد بيانات واحدة على الأقل</p>
