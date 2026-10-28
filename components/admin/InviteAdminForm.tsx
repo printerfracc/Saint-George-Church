@@ -68,8 +68,8 @@ export default function InviteAdminForm() {
 
       <fieldset className="mt-4">
         <legend className="text-sm font-bold text-deep-red">الصلاحية</legend>
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-          {(["ADMIN", "TAWZE3A_ADMIN"] as const).map((value) => (
+        <div className="mt-2 flex flex-col gap-2">
+          {(["ADMIN", "TAWZE3A_ADMIN", "MONASBAT_ADMIN"] as const).map((value) => (
             <label
               key={value}
               className="inline-flex min-h-11 flex-1 items-center gap-2 rounded-xl border border-deep-red/20 bg-cream px-4 py-3 text-sm font-bold text-deep-red"

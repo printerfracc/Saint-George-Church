@@ -39,7 +39,7 @@ export async function requireRegistryAdmin() {
   const session = await getServerSession(authOptions);
   const role = session?.user?.role;
 
-  if (!session?.user?.id || (role !== "SUPER_ADMIN" && role !== "ADMIN" && role !== "TAWZE3A_ADMIN")) {
+  if (!session?.user?.id || (role !== "MONASBAT_ADMIN" && role !== "TAWZE3A_ADMIN")) {
     return null;
   }
 

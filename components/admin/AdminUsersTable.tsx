@@ -21,6 +21,7 @@ const accountRoleLabels: Record<Role, string> = {
   SUPER_ADMIN: "مدير عام",
   ADMIN: "أدمن عام",
   TAWZE3A_ADMIN: "أدمن التوزيعة",
+  MONASBAT_ADMIN: "مسئول سجل المناسبات",
 };
 
 export default function AdminUsersTable({

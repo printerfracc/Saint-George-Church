@@ -27,7 +27,7 @@ export type InvitationRow = {
 };
 
 function inviteRoleLabel(role: Role) {
-  if (role === "ADMIN" || role === "TAWZE3A_ADMIN") {
+  if (role === "ADMIN" || role === "TAWZE3A_ADMIN" || role === "MONASBAT_ADMIN") {
     return inviteRoleLabels[role];
   }
 

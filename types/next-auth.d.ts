@@ -1,7 +1,7 @@
 import type { Role } from "@prisma/client";
 import type { DefaultSession } from "next-auth";
 
-/** Valid session roles: SUPER_ADMIN, ADMIN, TAWZE3A_ADMIN */
+/** Valid session roles: SUPER_ADMIN, ADMIN, TAWZE3A_ADMIN, MONASBAT_ADMIN */
 type SessionRole = Role;
 
 declare module "next-auth" {

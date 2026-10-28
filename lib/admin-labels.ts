@@ -4,11 +4,13 @@ export const roleLabels: Record<Role, string> = {
   SUPER_ADMIN: "مسؤول أعلى",
   ADMIN: "مسؤول",
   TAWZE3A_ADMIN: "مسؤول التوزيعة",
+  MONASBAT_ADMIN: "مسئول سجل المناسبات",
 };
 
-export const inviteRoleLabels: Record<"ADMIN" | "TAWZE3A_ADMIN", string> = {
+export const inviteRoleLabels: Record<"ADMIN" | "TAWZE3A_ADMIN" | "MONASBAT_ADMIN", string> = {
   ADMIN: "أدمن عام",
   TAWZE3A_ADMIN: "أدمن التوزيعة",
+  MONASBAT_ADMIN: "مسئول سجل المناسبات (Monasbat Admin)",
 };
 
 export function formatAdminDate(value: string | Date) {

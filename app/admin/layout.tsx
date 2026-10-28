@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/admin/Sidebar";
 import { authOptions } from "@/lib/auth";
+import { isMonasbatAdminRoute } from "@/lib/roles";
 
 export const metadata = { robots: { index: false, follow: false } };
 
@@ -34,8 +35,20 @@ export default async function AdminLayout({
     pathname.startsWith("/admin/registry") ||
     pathname.startsWith("/admin/anniversaries");
 
+  if (
+    isMonasbatAdminRoute(pathname) &&
+    session.user.role !== "MONASBAT_ADMIN" &&
+    session.user.role !== "TAWZE3A_ADMIN"
+  ) {
+    redirect("/admin");
+  }
+
   if (session.user.role === "TAWZE3A_ADMIN" && !isTawze3aRoute) {
     redirect("/admin");
+  }
+
+  if (session.user.role === "MONASBAT_ADMIN" && !isMonasbatAdminRoute(pathname)) {
+    redirect("/admin/registry");
   }
 
   return (
