@@ -30,7 +30,9 @@ export default async function AdminLayout({
     pathname === "/admin" ||
     pathname.startsWith("/admin/servants") ||
     pathname.startsWith("/admin/birthdays") ||
-    pathname.startsWith("/admin/tawze3a");
+    pathname.startsWith("/admin/tawze3a") ||
+    pathname.startsWith("/admin/registry") ||
+    pathname.startsWith("/admin/anniversaries");
 
   if (session.user.role === "TAWZE3A_ADMIN" && !isTawze3aRoute) {
     redirect("/admin");

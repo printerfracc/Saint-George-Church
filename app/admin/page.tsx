@@ -32,6 +32,10 @@ const cards = [
   { href: "/admin/sermons", label: "عدد العظات", key: "sermons" },
 ] as const;
 
+const registryCards = [
+  { href: "/admin/registry", label: "سجل الكنيسة", detail: "المعموديات والزيجات والنياحة وتذكاراتها" },
+] as const;
+
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
   const userName = session?.user?.name ?? "مسؤول";
@@ -115,6 +119,16 @@ export default async function AdminDashboardPage() {
       </p>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {registryCards.map((card) => (
+          <Link
+            key={card.href}
+            href={card.href}
+            className="flex min-h-11 flex-col rounded-2xl border border-coptic-gold-main/40 bg-white/80 p-5 shadow-sm transition hover:-translate-y-1 hover:border-coptic-gold-main"
+          >
+            <p className="text-sm font-bold text-coptic-gold-dark/80">{card.label}</p>
+            <p className="mt-3 text-base font-bold text-coptic-gold-dark">{card.detail}</p>
+          </Link>
+        ))}
         {!isTawze3aOnly
           ? cards.map((card) => (
               <Link

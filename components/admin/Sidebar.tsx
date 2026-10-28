@@ -22,6 +22,7 @@ const navItems = [
   { href: "/admin/gallery", label: "إدارة الصور" },
   { href: "/admin/prayer-requests", label: "طلبات الصلاة والافتقاد" },
   { href: "/admin/news", label: "الأخبار" },
+  { href: "/admin/registry", label: "سجل الكنيسة", allRoles: true },
   { href: "/admin/tawze3a", label: "إدارة التوزيعة", tawze3aRolesOnly: true },
   { href: "/admin/servants", label: "إدارة الخدام", tawze3aRolesOnly: true },
   { href: "/admin/birthdays", label: "أعياد الميلاد", tawze3aRolesOnly: true },
@@ -42,6 +43,10 @@ export default function Sidebar({
   const items = navItems.filter((item) => {
     if ("superAdminOnly" in item && item.superAdminOnly) {
       return userRole === "SUPER_ADMIN";
+    }
+
+    if ("allRoles" in item && item.allRoles) {
+      return true;
     }
 
     if ("tawze3aRolesOnly" in item && item.tawze3aRolesOnly) {

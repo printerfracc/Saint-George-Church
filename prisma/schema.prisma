@@ -308,3 +308,55 @@ model GalleryMedia {
   url       String   @db.Text
   createdAt DateTime @default(now())
 }
+
+model BaptismRecord {
+  id                  String    @id @default(cuid())
+  serialNumber        String? // رقم مسلسل
+  baptismDate         DateTime? // تاريخ المعمودية
+  birthName           String? // الاسم بالميلاد
+  baptismName         String? // الاسم بالمعمودية
+  fatherName          String? // اسم الأب
+  fatherPhone         String? // تليفون الأب
+  motherName          String? // اسم الأم
+  priest              String? // الأب الكاهن
+  receivedCertificate Boolean   @default(false) // استلام شهادة العماد
+  createdAt           DateTime  @default(now())
+}
+
+model MarriageRecord {
+  id               String    @id @default(cuid())
+  serialNumber     String?
+  weddingDate      DateTime? // تاريخ صلاة الإكليل
+  weddingTime      String? // الساعة
+  husbandName      String?
+  wifeName         String?
+  husbandPhone     String?
+  wifePhone        String?
+  weddingChurch    String? // كنيسة الزفاف
+  priest           String?
+  isHusbandServant Boolean   @default(false) // خادم ام لا
+  isWifeServant    Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+}
+
+model DepartedRecord {
+  id                 String    @id @default(cuid())
+  serialNumber       String?
+  departedName       String? // اسم المنتقلة
+  ageAtDeath         String? // العمر عند الوفاة
+  familyAddress      String?   @db.Text // عنوان الأسرة
+  spouseName         String? // الزوج / الزوجة
+  childrenNames      String?   @db.Text // الأولاد
+  contactMobile      String? // رقم موبايل للتواصل
+  contactOwner       String? // صاحب الموبايل
+  funeralDate        DateTime? // تاريخ صلاة التجنيز
+  funeralTime        String? // موعد الصلاة
+  funeralPlace       String? // مكان الصلاة
+  causeOfDeath       String?   @db.Text // سبب الوفاة
+  burialPlace        String? // مكان المدفن
+  priest             String? // الكاهن الذي قام بالصلاة
+  thirdDayPrayerTime String? // موعد صلاة الثالث
+  notes              String?   @db.Text // ملاحظات / الخدمة
+  isServant          Boolean   @default(false) // خادم ام لا
+  createdAt          DateTime  @default(now())
+}
