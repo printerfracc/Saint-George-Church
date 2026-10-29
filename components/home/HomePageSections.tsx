@@ -157,6 +157,7 @@ function NewsSection({
   canShare?: boolean;
 }) {
   const [index, setIndex] = useState(0);
+  const dotsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function syncNewsFromHash() {
@@ -178,6 +179,25 @@ function NewsSection({
     window.addEventListener("hashchange", syncNewsFromHash);
     return () => window.removeEventListener("hashchange", syncNewsFromHash);
   }, [news]);
+
+  useEffect(() => {
+    const root = dotsRef.current;
+    const active = root?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!root || !active) {
+      return;
+    }
+
+    const delta =
+      active.getBoundingClientRect().left -
+      root.getBoundingClientRect().left -
+      (root.clientWidth - active.offsetWidth) / 2;
+
+    if (Math.abs(delta) < 1) {
+      return;
+    }
+
+    root.scrollBy({ left: delta });
+  }, [index]);
 
   if (news.length === 0) {
     return (
@@ -310,14 +330,17 @@ function NewsSection({
         </div>
 
         {canNavigate ? (
-          <div className="mt-5 flex items-center justify-center gap-3">
+          <div className="mt-5 flex min-w-0 items-center justify-center gap-3">
             <NewsArrow
               variant="bar"
               side="right"
               label="الخبر التالي"
               onClick={() => goTo(index + 1)}
             />
-            <div className="flex items-center justify-center gap-1">
+            <div
+              ref={dotsRef}
+              className="flex min-w-0 flex-1 items-center justify-[safe_center] gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
               {news.map((entry, entryIndex) => (
                 <button
                   key={entry.id}
@@ -330,7 +353,7 @@ function NewsSection({
                     }
                     goTo(entryIndex);
                   }}
-                  className="inline-flex h-11 min-w-11 items-center justify-center"
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center"
                 >
                   <span
                     className={`h-2.5 rounded-full transition ${
