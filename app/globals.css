@@ -29,3 +29,14 @@ body {
   color: var(--foreground);
   font-family: var(--font-cairo), "Segoe UI", Tahoma, sans-serif;
 }
+
+/* Force hide Netlify injected badge */
+netlify-badge,
+#netlify-badge,
+a[href^="https://www.netlify.com/"][target="_blank"]:has(svg) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: -9999 !important;
+}
