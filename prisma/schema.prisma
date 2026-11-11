@@ -110,6 +110,7 @@ model NewsEvent {
   title       String
   description String   @db.Text
   imageUrl    String?
+  imageUrls   String?  @db.Text
   isActive    Boolean  @default(true)
   order       Int      @default(0)
   createdAt   DateTime @default(now())

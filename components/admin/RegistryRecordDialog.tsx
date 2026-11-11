@@ -421,24 +421,15 @@ function DepartedFields({
         <p className="text-sm font-bold text-deep-red">رقم المسلسل: {form.serialNumber}</p>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
-        <TextField id="departed-age" label="العمر عند الوفاة" value={form.ageAtDeath} onChange={(ageAtDeath) => patch({ ageAtDeath })} />
         <div className="sm:col-span-2">
-          <SmartNameInput
+          <TextField
             id="departed-name"
             label="اسم المنتقل"
             value={form.departedName}
-            onValueChange={(departedName) => patch({ departedName })}
-            onServantSelect={(servant) =>
-              setForm((current) => ({
-                ...current,
-                departedName: servant.name,
-                isServant: true,
-                contactMobile: servant.phone || current.contactMobile,
-                contactOwner: current.contactOwner || servant.name,
-              }))
-            }
+            onChange={(departedName) => patch({ departedName })}
           />
         </div>
+        <TextField id="departed-age" label="العمر عند الوفاة" value={form.ageAtDeath} onChange={(ageAtDeath) => patch({ ageAtDeath })} />
         <CheckField
           id="departed-servant"
           label="المنتقل خادم"
@@ -455,7 +446,15 @@ function DepartedFields({
         <AreaField id="departed-children" label="الأولاد" value={form.childrenNames} onChange={(childrenNames) => patch({ childrenNames })} />
         <AreaField id="departed-address" label="عنوان الأسرة" value={form.familyAddress} onChange={(familyAddress) => patch({ familyAddress })} />
         <TextField id="departed-mobile" label="رقم موبايل للتواصل" type="tel" value={form.contactMobile} onChange={(contactMobile) => patch({ contactMobile })} />
-        <TextField id="departed-owner" label="صاحب الموبايل" value={form.contactOwner} onChange={(contactOwner) => patch({ contactOwner })} />
+        <SmartNameInput
+          id="departed-owner"
+          label="صاحب الموبايل"
+          value={form.contactOwner}
+          onValueChange={(contactOwner) => patch({ contactOwner })}
+          onServantSelect={(servant) =>
+            patch({ contactOwner: servant.name, contactMobile: servant.phone ?? "" })
+          }
+        />
         <TextField id="departed-date" label="تاريخ صلاة التجنيز" type="date" value={form.funeralDate} onChange={(funeralDate) => patch({ funeralDate })} />
         <TextField id="departed-time" label="موعد الصلاة" value={form.funeralTime} onChange={(funeralTime) => patch({ funeralTime })} />
         <TextField id="departed-place" label="مكان الصلاة" value={form.funeralPlace} onChange={(funeralPlace) => patch({ funeralPlace })} />

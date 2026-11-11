@@ -5,14 +5,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ChurchLogo from "@/components/ChurchLogo";
-import OptionalImage from "@/components/public/OptionalImage";
+import NewsImageRotator from "@/components/public/NewsImageRotator";
 import { formatAdminDate } from "@/lib/admin-labels";
-import { hasImageSrc } from "@/lib/optional-image";
+import { ensureNewsImageColumn } from "@/lib/ensure-news-column";
+import { parseStoredNewsImageUrls } from "@/lib/news-images";
 import { prisma } from "@/lib/prisma";
 import { recordPageMetadata } from "@/lib/seo";
 
 const getPublicNews = cache(async (id: string) => {
   try {
+    await ensureNewsImageColumn();
     const news = await prisma.newsEvent.findUnique({ where: { id } });
 
     if (!news?.isActive) {
@@ -57,6 +59,7 @@ export default async function NewsDetailPage({
 
   const title = news.title.trim() || "خبر";
   const description = news.description.trim();
+  const images = parseStoredNewsImageUrls(news.imageUrls, news.imageUrl);
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-28 pb-16">
@@ -79,15 +82,11 @@ export default async function NewsDetailPage({
       </p>
 
       <article className="mx-auto mt-8 overflow-hidden rounded-2xl border border-coptic-gold-main/40 bg-white/80 shadow-sm">
-        {hasImageSrc(news.imageUrl) ? (
-          <OptionalImage
-            src={news.imageUrl}
-            alt={title}
-            fill
-            frameClassName="relative aspect-video w-full overflow-hidden bg-cream"
-            className="object-cover"
-          />
-        ) : null}
+        <NewsImageRotator
+          images={images}
+          alt={title}
+          frameClassName="relative aspect-video w-full overflow-hidden bg-cream"
+        />
         <div className="p-6 md:p-8">
           {description ? (
             <p className="whitespace-pre-line text-sm leading-8 text-deep-red/85 md:text-base">

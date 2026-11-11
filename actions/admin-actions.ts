@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { parseImageDisplayMode } from "@/lib/image-display";
+import { ensureNewsImageColumn } from "@/lib/ensure-news-column";
+import { normalizeNewsImageUrls, storedNewsImages } from "@/lib/news-images";
 import {
   createServiceRecord,
   deleteServiceRecord,
@@ -215,8 +217,29 @@ export async function deleteService(id: string): Promise<AdminActionResult> {
   }
 }
 
+function newsImagesFromForm(formData: FormData) {
+  const raw = optionalText(formData.get("imageUrls"));
+  if (!raw) {
+    return storedNewsImages(normalizeNewsImageUrls(null, optionalText(formData.get("imageUrl"))));
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      return storedNewsImages(
+        normalizeNewsImageUrls(parsed.filter((item): item is string => typeof item === "string")),
+      );
+    }
+  } catch {
+    // Fall back to the single cover image when the gallery payload is invalid.
+  }
+
+  return storedNewsImages(normalizeNewsImageUrls(null, optionalText(formData.get("imageUrl"))));
+}
+
 export async function listNewsEvents() {
   try {
+    await ensureNewsImageColumn();
     return await prisma.newsEvent.findMany({
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
     });
@@ -240,9 +263,10 @@ export async function createNewsEvent(
   try {
     const title = requiredText(formData.get("title"), "العنوان");
     const description = requiredText(formData.get("description"), "الوصف");
-    const imageUrl = optionalText(formData.get("imageUrl"));
+    const images = newsImagesFromForm(formData);
     const isActive = formData.get("isActive") === "true";
 
+    await ensureNewsImageColumn();
     await prisma.$transaction([
       prisma.newsEvent.updateMany({
         data: {
@@ -253,7 +277,8 @@ export async function createNewsEvent(
         data: {
           title,
           description,
-          imageUrl,
+          imageUrl: images.imageUrl,
+          imageUrls: images.imageUrls,
           isActive,
           order: 0,
         },
@@ -277,12 +302,15 @@ export async function updateNewsEvent(
   if (auth !== true) return auth;
 
   try {
+    const images = newsImagesFromForm(formData);
+    await ensureNewsImageColumn();
     await prisma.newsEvent.update({
       where: { id },
       data: {
         title: requiredText(formData.get("title"), "العنوان"),
         description: requiredText(formData.get("description"), "الوصف"),
-        imageUrl: optionalText(formData.get("imageUrl")),
+        imageUrl: images.imageUrl,
+        imageUrls: images.imageUrls,
         isActive: formData.get("isActive") === "true",
       },
     });

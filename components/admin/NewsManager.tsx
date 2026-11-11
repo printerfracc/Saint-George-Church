@@ -10,7 +10,7 @@ import {
 } from "@/actions/admin-actions";
 import { updateItemOrder } from "@/actions/reorder";
 import DraggableList from "@/components/admin/DraggableList";
-import ImageUpload from "@/components/admin/ImageUpload";
+import MultiImageUpload from "@/components/admin/MultiImageUpload";
 import SlideOver from "@/components/admin/SlideOver";
 import {
   AdminActions,
@@ -24,13 +24,14 @@ export type NewsRow = {
   title: string;
   description: string;
   imageUrl: string | null;
+  imageUrls: string[];
   isActive: boolean;
 };
 
 const emptyForm = {
   title: "",
   description: "",
-  imageUrl: "",
+  imageUrls: [] as string[],
   isActive: true,
 };
 
@@ -73,7 +74,8 @@ export default function NewsManager({ news }: { news: NewsRow[] }) {
     setForm({
       title: item.title,
       description: item.description,
-      imageUrl: item.imageUrl ?? "",
+      imageUrls:
+        item.imageUrls.length > 0 ? item.imageUrls : item.imageUrl ? [item.imageUrl] : [],
       isActive: item.isActive,
     });
     setError("");
@@ -87,7 +89,8 @@ export default function NewsManager({ news }: { news: NewsRow[] }) {
     const formData = new FormData();
     formData.set("title", form.title);
     formData.set("description", form.description);
-    formData.set("imageUrl", form.imageUrl);
+    formData.set("imageUrls", JSON.stringify(form.imageUrls));
+    formData.set("imageUrl", form.imageUrls[0] ?? "");
     formData.set("isActive", form.isActive ? "true" : "false");
 
     const result = editing
@@ -138,14 +141,21 @@ export default function NewsManager({ news }: { news: NewsRow[] }) {
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <div className="flex min-w-0 flex-1 gap-3">
               {item.imageUrl ? (
-                <Image
-                  src={item.imageUrl}
-                  alt={item.title}
-                  width={64}
-                  height={48}
-                  unoptimized
-                  className="h-12 w-16 shrink-0 rounded-md object-cover"
-                />
+                <span className="relative h-12 w-16 shrink-0">
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.title}
+                    width={64}
+                    height={48}
+                    unoptimized
+                    className="h-12 w-16 rounded-md object-cover"
+                  />
+                  {item.imageUrls.length > 1 ? (
+                    <span className="absolute -bottom-1 -left-1 rounded-full bg-coptic-gold-main px-1.5 text-[10px] font-bold leading-5 text-black">
+                      {item.imageUrls.length.toLocaleString("ar-EG")}
+                    </span>
+                  ) : null}
+                </span>
               ) : (
                 <span className="flex h-12 w-16 shrink-0 items-center justify-center rounded-md bg-cream text-xs font-bold text-deep-red/50">
                   بدون
@@ -180,11 +190,11 @@ export default function NewsManager({ news }: { news: NewsRow[] }) {
         onClose={() => setOpen(false)}
       >
         <div className="space-y-4">
-          <ImageUpload
-            label="صورة الخبر"
-            preview="wide"
-            value={form.imageUrl}
-            onChange={(url) => setForm((current) => ({ ...current, imageUrl: url }))}
+          <MultiImageUpload
+            label="صور الخبر"
+            hint="يمكن رفع أكثر من صورة. تتبدل الصور على الموقع تلقائياً، كل صورة لمدة ٢٫٥ ثانية."
+            values={form.imageUrls}
+            onChange={(imageUrls) => setForm((current) => ({ ...current, imageUrls }))}
           />
           <label className="block text-sm font-bold">
             العنوان

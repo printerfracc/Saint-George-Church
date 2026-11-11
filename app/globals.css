@@ -30,6 +30,16 @@ body {
   font-family: var(--font-cairo), "Segoe UI", Tahoma, sans-serif;
 }
 
+@keyframes news-image-progress {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
 /* Force hide Netlify injected badge */
 netlify-badge,
 #netlify-badge,

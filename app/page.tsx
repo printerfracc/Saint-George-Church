@@ -20,6 +20,8 @@ import {
 } from "@/lib/church";
 import { priestDateValue } from "@/lib/admin-labels";
 import { findDynamicContentByKey } from "@/lib/dynamic-content";
+import { ensureNewsImageColumn } from "@/lib/ensure-news-column";
+import { parseStoredNewsImageUrls } from "@/lib/news-images";
 import { prisma } from "@/lib/prisma";
 import { listActivities } from "@/actions/activities";
 import { ensurePriestColumns } from "@/actions/priests";
@@ -27,6 +29,7 @@ import { requireAdmin } from "@/lib/require-admin";
 
 async function loadChurchNews() {
   try {
+    await ensureNewsImageColumn();
     return await prisma.newsEvent.findMany({
       where: { isActive: true },
       orderBy: [{ order: "asc" }, { createdAt: "desc" }],
@@ -124,14 +127,19 @@ export default async function Home() {
   }));
 
   const siteUrl = getAppUrl();
-  const news = newsRecords.map((item) => ({
-    id: item.id,
-    title: item.title,
-    description: item.description,
-    imageUrl: item.imageUrl,
-    createdAt: item.createdAt.toISOString(),
-    shareUrl: `${siteUrl}/news/${item.id}`,
-  }));
+  const news = newsRecords.map((item) => {
+    const imageUrls = parseStoredNewsImageUrls(item.imageUrls, item.imageUrl);
+
+    return {
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      imageUrl: imageUrls[0] ?? item.imageUrl,
+      imageUrls,
+      createdAt: item.createdAt.toISOString(),
+      shareUrl: `${siteUrl}/news/${item.id}`,
+    };
+  });
 
   const schemaObject = {
     "@context": "https://schema.org",

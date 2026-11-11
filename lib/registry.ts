@@ -4,37 +4,51 @@ import { formatEgyptianWhatsAppPhone } from "@/lib/birthdays";
 export const REGISTRY_SHORT_TEXT = 191;
 export const REGISTRY_LONG_TEXT = 4000;
 
-export const MARRIAGE_ANNIVERSARY_MESSAGE =
-  "كل سنة وأنتم طيبين بمناسبة عيد زواجكم، وعقبال سنين كتير حلوة مع ربنا 💍🎉";
-
 function firstName(name: string) {
   return name.trim().split(/\s+/)[0] ?? "";
 }
 
-export function marriageAnniversaryMessage(husbandName: string, wifeName: string) {
-  const names = [firstName(husbandName), firstName(wifeName)].filter(Boolean);
+export const MARRIAGE_ANNIVERSARY_MESSAGE = `خالص التهاني القلبية بمناسبة سر الزيجة المقدس والزفاف المبارك.
 
-  if (names.length === 0) {
-    return MARRIAGE_ANNIVERSARY_MESSAGE;
-  }
+نصلي أن يبارك الرب يسوع حياتكما الجديدة معاً، وأن يكللكما بالمجد والكرامة، ويجعل بيتكم كنيسة صغيرة مبنية على الصخر ومملوءة بالحب والسلام.
 
-  return `كل سنة وأنتم طيبين يا ${names.join(" و ")} بمناسبة عيد زواجكم، وعقبال سنين كتير حلوة مع ربنا 💍🎉`;
-}
+"فَالَّذِي جَمَعَهُ اللهُ لاَ يُفَرِّقُهُ إِنْسَانٌ" (متى ١٩: ٦).
 
-export const BAPTISM_ANNIVERSARY_MESSAGE =
-  "كل سنة وأنتم طيبين بمناسبة عيد المعمودية، ربنا يبارك ابنكم ويحفظه في حضن الكنيسة 🕊️";
+ألف مبروك، ونتمنى لكم حياة زوجية سعيدة ومثمرة.
+
+مع خالص محبتنا،
+أسرة خدام مارجرجس المطرية`;
 
 export function baptismAnniversaryMessage(name: string) {
   const childName = firstName(name);
+  const child = childName ? `الابن المبارك ${childName}` : "الابن المبارك";
 
-  if (!childName) {
-    return BAPTISM_ANNIVERSARY_MESSAGE;
-  }
+  return `خالص التهاني القلبية بمناسبة نوال سر المعمودية المقدس والميرون.
 
-  return `كل سنة وأنتم طيبين بمناسبة عيد معمودية ${childName}، ربنا يبارك ابنكم ويحفظه في حضن الكنيسة 🕊️`;
+نصلي أن يبارك الرب حياة ${child}، وينميه في النعمة والقامة ومحبة الله، ويجعله ابناً مباركاً للكنيسة، ويفرح قلوبكم به دائماً.
+
+"لأَنَّكُمُ الَّذِينَ اعْتَمَدْتُمْ بِالْمَسِيحِ قَدْ لَبِسْتُمُ الْمَسِيحَ" (غلاطية ٣: ٢٧).
+
+ألف مبروك،
+
+مع خالص محبتنا،
+أسرة خدام مارجرجس المطرية`;
 }
 
-export const DEPARTED_MEMORIAL_MESSAGE = "تعيشوا وتفتكروا، ربنا يعزيكم ويسندكم 🙏";
+export function departedMemorialMessage(contactName: string) {
+  const personName = firstName(contactName);
+  const addressed = personName ? `الأستاذ ${personName}` : "الأستاذ";
+
+  return `أصدق التعازي القلبية لأخينا الخادم ${addressed}،
+في نياحة والده المبارك.
+
+نصلي أن ينيح الرب يسوع نفسه الطاهرة في أحضان القديسين بفردوس النعيم، وأن يسكب تعزيات الروح القدس في قلبك وقلوب كل أفراد الأسرة.
+
+"أَنَا هُوَ الْقِيَامَةُ وَالْحَيَاةُ. مَنْ آمَنَ بِي وَلَوْ مَاتَ فَسَيَحْيَا" (يوحنا ١١: ٢٥).
+
+مع خالص محبتنا وتعازينا،
+أسرة خدام مارجرجس المطرية`;
+}
 
 export type RegistryTab = "baptisms" | "marriages" | "departed";
 export type RegistryPageTab = RegistryTab | "anniversaries";

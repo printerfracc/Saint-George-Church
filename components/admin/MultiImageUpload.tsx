@@ -9,10 +9,12 @@ export default function MultiImageUpload({
   values,
   onChange,
   label = "الصور",
+  hint = "يمكن رفع أكثر من صورة. ستظهر على الموقع بأسهم للتنقل بينها.",
 }: {
   values: string[];
   onChange: (urls: string[]) => void;
   label?: string;
+  hint?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -64,9 +66,7 @@ export default function MultiImageUpload({
   return (
     <div className="w-full space-y-3">
       <p className="text-sm font-bold text-deep-red">{label}</p>
-      <p className="text-xs text-deep-red/65">
-        يمكن رفع أكثر من صورة. ستظهر على الموقع بأسهم للتنقل بينها.
-      </p>
+      {hint ? <p className="text-xs text-deep-red/65">{hint}</p> : null}
 
       {values.length > 0 ? (
         <ul className="grid grid-cols-2 gap-3">

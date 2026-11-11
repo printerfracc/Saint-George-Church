@@ -72,6 +72,7 @@ const URL_FIELDS: Record<ModelName, readonly UrlField[]> = {
   ],
   newsEvent: [
     { name: "imageUrl", kind: "string" },
+    { name: "imageUrls", kind: "json" },
     { name: "description", kind: "string" },
   ],
   dynamicContent: [

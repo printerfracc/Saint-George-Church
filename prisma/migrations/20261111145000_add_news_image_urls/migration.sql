@@ -1,0 +1,1 @@
+ALTER TABLE `NewsEvent` ADD COLUMN `imageUrls` TEXT NULL;

@@ -6,8 +6,8 @@ import { AdminEmptyState, AdminResponsiveTable } from "@/components/admin/admin-
 import { normalizeArabic } from "@/lib/arabicNormalizer";
 import {
   baptismAnniversaryMessage,
-  DEPARTED_MEMORIAL_MESSAGE,
-  marriageAnniversaryMessage,
+  departedMemorialMessage,
+  MARRIAGE_ANNIVERSARY_MESSAGE,
   anniversaryCalendarOrder,
   celebrationLabel,
   celebratedYears,
@@ -244,13 +244,13 @@ function MarriageCard({
             key: "husband",
             label: "واتساب العريس",
             phone: record.husbandPhone,
-            message: marriageAnniversaryMessage(record.husbandName, record.wifeName),
+            message: MARRIAGE_ANNIVERSARY_MESSAGE,
           },
           {
             key: "wife",
             label: "واتساب العروسة",
             phone: record.wifePhone,
-            message: marriageAnniversaryMessage(record.husbandName, record.wifeName),
+            message: MARRIAGE_ANNIVERSARY_MESSAGE,
           },
         ]}
       />
@@ -333,7 +333,7 @@ function DepartedCard({ group }: { group: AnniversaryGroup<DatedDeparted> }) {
             key: "contact",
             label: "واتساب",
             phone: record.contactMobile,
-            message: DEPARTED_MEMORIAL_MESSAGE,
+            message: departedMemorialMessage(record.contactOwner),
           },
         ]}
       />

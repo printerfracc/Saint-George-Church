@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
+import NewsImageRotator from "@/components/public/NewsImageRotator";
 import OptionalImage from "@/components/public/OptionalImage";
 import LinkButton from "@/components/public/LinkButton";
 import ReadMoreText from "@/components/public/ReadMoreText";
@@ -51,6 +52,7 @@ export type HomeNewsItem = {
   title: string;
   description: string;
   imageUrl: string | null;
+  imageUrls?: string[];
   createdAt: string;
   shareUrl?: string;
 };
@@ -219,6 +221,12 @@ function NewsSection({
   const count = news.length;
   const item = news[index] ?? news[0];
   const canNavigate = count > 1;
+  const itemImages =
+    item.imageUrls && item.imageUrls.length > 0
+      ? item.imageUrls
+      : item.imageUrl
+        ? [item.imageUrl]
+        : [];
 
   function goTo(nextIndex: number) {
     setIndex((nextIndex + count) % count);
@@ -266,18 +274,16 @@ function NewsSection({
             >
               <div
                 className={`flex flex-col ${
-                  hasImageSrc(item.imageUrl) ? "lg:flex-row" : ""
+                  itemImages.length > 0 ? "lg:flex-row" : ""
                 }`}
               >
-                <OptionalImage
-                  src={item.imageUrl}
+                <NewsImageRotator
+                  images={itemImages}
                   alt={item.title}
-                  fill
                   frameClassName="relative aspect-video w-full min-w-0 overflow-hidden bg-cream lg:min-h-80 lg:w-1/2 lg:aspect-auto"
-                  className="object-cover"
                 />
 
-                <div className={`w-full min-w-0 p-6 md:p-10 ${hasImageSrc(item.imageUrl) ? "lg:w-1/2" : ""}`}>
+                <div className={`w-full min-w-0 p-6 md:p-10 ${itemImages.length > 0 ? "lg:w-1/2" : ""}`}>
                   <div className="mb-4 flex flex-wrap items-center gap-2">
                     {index === 0 ? (
                       <span className="rounded-full bg-coptic-gold-main px-3 py-1 text-xs font-bold text-black">
