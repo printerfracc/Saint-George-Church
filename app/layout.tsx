@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { Cairo } from "next/font/google";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import NetlifyBadgeRemover from "@/components/NetlifyBadgeRemover";
 import OpeningExperience from "@/components/opening/OpeningExperience";
 import { getAppUrl } from "@/lib/app-url";
 import { getNavEntries } from "@/lib/nav-data";
@@ -97,6 +98,7 @@ export default async function RootLayout({
           isOpeningRoute ? "bg-white" : "bg-cream"
         }`}
       >
+        <NetlifyBadgeRemover />
         {hideChrome ? null : (
           <div className="fixed top-0 z-50 w-full overflow-visible">
             <Navbar
